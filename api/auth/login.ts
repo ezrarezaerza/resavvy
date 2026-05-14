@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../../src/lib/prisma'; // Make sure this path is pointing to src/lib/prisma
+import { prisma } from '../../src/lib/prisma.js'; // Make sure this path is pointing to src/lib/prisma
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development';
 
