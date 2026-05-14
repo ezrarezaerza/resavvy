@@ -1,74 +1,77 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { createClient, Session, User } from '@supabase/supabase-js';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || 'https://bdaayqtxnqmpnniiukbr.supabase.co',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkYWF5cXR4bnFtcG5uaWl1a2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzkxMTQsImV4cCI6MjA5NDMxNTExNH0.9jyaP1xS2XUf12TS-pGCVZUeto-fEGq6az8WvhR3G4I'
-);
+export interface User {
+  id: string;
+  name: string;
+  username: string;
+}
 
 interface AuthContextType {
-  session: Session | null;
   user: User | null;
-  signInWithGoogle: () => Promise<void>;
-  signOut: () => Promise<void>;
+  token: string | null;
   isLoading: boolean;
+  login: (token: string, user: User) => void;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
+    const storedToken = localStorage.getItem('resavvy_token');
+    if (storedToken) {
+      try {
+        // Decode payload from JWT
+        const base64Url = storedToken.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+        const decoded = JSON.parse(jsonPayload);
+        
+        // rudimentary validation of expiry
+        if (decoded.exp * 1000 > Date.now()) {
+          setToken(storedToken);
+          setUser({ id: decoded.id, name: decoded.name, username: decoded.username });
+        } else {
+          localStorage.removeItem('resavvy_token');
+        }
+      } catch (e) {
+        console.error('Failed to parse token', e);
+        localStorage.removeItem('resavvy_token');
+      }
+    }
+    setIsLoading(false);
   }, []);
 
-  const signInWithGoogle = async () => {
-    try {
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin
-        }
-      });
-    } catch (error) {
-      console.error('Error logging in:', error);
-    }
+  const login = (newToken: string, newUser: User) => {
+    localStorage.setItem('resavvy_token', newToken);
+    setToken(newToken);
+    setUser(newUser);
   };
 
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
+  const logout = () => {
+    localStorage.removeItem('resavvy_token');
+    setToken(null);
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, signInWithGoogle, signOut, isLoading }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}

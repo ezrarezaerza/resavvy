@@ -8,10 +8,9 @@ import { PlayerProvider } from "./context/PlayerContext";
 import { SettingsProvider } from "./context/SettingsContext";
 import { PlaylistProvider } from "./context/PlaylistContext";
 import { HiddenYouTubePlayer } from "./components/HiddenYouTubePlayer";
-
 import { ToastProvider } from "./context/ToastContext";
-
 import { AuthProvider } from "./context/AuthContext";
+import { AuthGuard } from "./components/AuthGuard";
 
 export default function App() {
   return (
@@ -20,8 +19,10 @@ export default function App() {
         <ToastProvider>
           <PlaylistProvider>
             <PlayerProvider>
-              <HiddenYouTubePlayer />
-              <AppLayout />
+              <AuthGuard>
+                <HiddenYouTubePlayer />
+                <AppLayout />
+              </AuthGuard>
             </PlayerProvider>
           </PlaylistProvider>
         </ToastProvider>

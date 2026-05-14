@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { Moon, Plus, Sun, AudioLines, MoreHorizontal, LogOut, User } from "lucide-react";
+import { Moon, Plus, Sun, AudioLines, MoreHorizontal, Trash2 } from "lucide-react";
 import { PlaylistGroup } from "../types";
 import { ConfirmModal } from "./ConfirmModal";
 import { usePlaylist } from "../context/PlaylistContext";
-import { useAuth } from "../context/AuthContext";
 
 interface SidebarProps {
   groups: PlaylistGroup[];
@@ -32,7 +31,6 @@ export function Sidebar({
   const [playlistToDelete, setPlaylistToDelete] = useState<PlaylistGroup | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const { renameGroup } = usePlaylist();
-  const { user, signOut } = useAuth();
 
   const goHome = () => {
     setActiveGroupId(null);
@@ -91,105 +89,65 @@ export function Sidebar({
           </div>
         </div>
 
-        {user && (
-          <>
-            <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
-              Your Playlists
-            </div>
-            <div className="space-y-0.5">
-              {groups.map((playlist) => {
-                const isActive = playlist.id === activeGroupId;
-                const isMenuOpen = openMenuId === playlist.id;
-                return (
-                  <div 
-                    key={playlist.id}
-                    className={`relative w-full group flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors cursor-pointer ${
-                      isActive
-                        ? "bg-gray-200 dark:bg-gray-700/80 text-gray-900 dark:text-gray-100 font-bold"
-                        : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 font-medium"
-                    }`}
-                    onClick={() => setActiveGroupId(playlist.id)}
-                  >
-                    <span className="truncate">{playlist.name}</span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId(isMenuOpen ? null : playlist.id);
-                      }}
-                      className={`opacity-0 group-hover:opacity-100 p-1 rounded hover:text-gray-900 dark:hover:text-white transition-all ${isActive ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-300/50 dark:hover:bg-gray-600/50'} ${isMenuOpen ? 'opacity-100' : ''}`}
-                      title="More options"
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
+        <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
+          Your Playlists
+        </div>
+        <div className="space-y-0.5">
+          {groups.map((playlist) => {
+            const isActive = playlist.id === activeGroupId;
+            const isMenuOpen = openMenuId === playlist.id;
+            return (
+              <div 
+                key={playlist.id}
+                className={`relative w-full group flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors cursor-pointer ${
+                  isActive
+                    ? "bg-gray-200 dark:bg-gray-700/80 text-gray-900 dark:text-gray-100 font-bold"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 font-medium"
+                }`}
+                onClick={() => setActiveGroupId(playlist.id)}
+              >
+                <span className="truncate">{playlist.name}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenMenuId(isMenuOpen ? null : playlist.id);
+                  }}
+                  className={`opacity-0 group-hover:opacity-100 p-1 rounded hover:text-gray-900 dark:hover:text-white transition-all ${isActive ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500 hover:bg-gray-300/50 dark:hover:bg-gray-600/50'} ${isMenuOpen ? 'opacity-100' : ''}`}
+                  title="More options"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
+                </button>
 
-                    {isMenuOpen && (
-                      <div className="absolute right-4 top-8 z-50 bg-gray-900 border border-white/10 rounded-lg shadow-2xl overflow-hidden w-40 flex flex-col p-1 animate-in fade-in zoom-in-95 duration-150">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleRename(playlist); }}
-                          className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-md transition-colors"
-                        >
-                          Rename
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setPlaylistToDelete(playlist); setOpenMenuId(null); }}
-                          className="w-full text-left px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    )}
+                {isMenuOpen && (
+                  <div className="absolute right-4 top-8 z-50 bg-gray-900 border border-white/10 rounded-lg shadow-2xl overflow-hidden w-40 flex flex-col p-1 animate-in fade-in zoom-in-95 duration-150">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleRename(playlist); }}
+                      className="w-full text-left px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-md transition-colors"
+                    >
+                      Rename
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setPlaylistToDelete(playlist); setOpenMenuId(null); }}
+                      className="w-full text-left px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md transition-colors"
+                    >
+                      Delete
+                    </button>
                   </div>
-                );
-              })}
-            </div>
-          </>
-        )}
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="p-4 border-t border-white/5 mt-auto space-y-4">
-        {user && (
-          <button 
-            onClick={onCreatePlaylist}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/10 hover:bg-white/5 text-gray-300 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            <span className="font-medium">New Playlist</span>
-          </button>
-        )}
-
-        <div className="flex items-center justify-between pt-2">
-          {user ? (
-            <div className="flex items-center gap-3 overflow-hidden">
-              {user.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-8 h-8 rounded-full border border-white/10 shrink-0" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white shrink-0">
-                  <User className="w-4 h-4" />
-                </div>
-              )}
-              <div className="flex flex-col overflow-hidden text-sm">
-                <span className="text-gray-200 font-medium truncate">{user.user_metadata?.full_name || 'User'}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
-                <User className="w-4 h-4" />
-              </div>
-              <span className="text-gray-400 font-medium text-sm">Guest</span>
-            </div>
-          )}
-          
-          {user && (
-            <button 
-              onClick={signOut}
-              className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-              title="Sign Out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+      <div className="p-4 border-t border-white/5 mt-auto">
+        <button 
+          onClick={onCreatePlaylist}
+          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-white/10 hover:bg-white/5 text-gray-300 transition-colors mt-auto"
+        >
+          <Plus className="w-5 h-5" />
+          <span className="font-medium">New Playlist</span>
+        </button>
       </div>
 
       {openMenuId && (

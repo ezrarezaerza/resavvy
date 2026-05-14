@@ -1,347 +1,185 @@
 import { useState, useEffect } from "react";
 import { PlaylistGroup, Song } from "../types";
 import { useToast } from "../context/ToastContext";
-import { useAuth, supabase } from "../context/AuthContext";
 
-/*
-  =========================================
-  SUPABASE SQL SCHEMA & RLS POLICIES
-  =========================================
-  -- Run this in the Supabase SQL Editor:
-  
-  -- Create profiles table
-  create table profiles (
-    id uuid references auth.users on delete cascade not null primary key,
-    full_name text,
-    avatar_url text
-  );
-  
-  alter table profiles enable row level security;
-  create policy "Public profiles are viewable by everyone." on profiles for select using (true);
-  create policy "Users can insert their own profile." on profiles for insert with check (auth.uid() = id);
-  create policy "Users can update own profile." on profiles for update using (auth.uid() = id);
-
-  -- Create playlists table
-  create table playlists (
-    id uuid default gen_random_uuid() primary key,
-    user_id uuid references profiles(id) on delete cascade not null,
-    name text not null,
-    cover_type text default 'random',
-    custom_cover_url text,
-    created_at timestamp with time zone default timezone('utc'::text, now()) not null
-  );
-
-  alter table playlists enable row level security;
-  create policy "Users can view their own playlists." on playlists for select using (auth.uid() = user_id);
-  create policy "Users can insert their own playlists." on playlists for insert with check (auth.uid() = user_id);
-  create policy "Users can update their own playlists." on playlists for update using (auth.uid() = user_id);
-  create policy "Users can delete their own playlists." on playlists for delete using (auth.uid() = user_id);
-
-  -- Create songs table
-  create table songs (
-    id uuid default gen_random_uuid() primary key,
-    playlist_id uuid references playlists(id) on delete cascade not null,
-    youtube_id text not null,
-    title text not null,
-    artist text,
-    thumbnail_url text,
-    duration text,
-    play_count integer default 0,
-    added_at timestamp with time zone default timezone('utc'::text, now()) not null
-  );
-
-  alter table songs enable row level security;
-  create policy "Users can view songs in their playlists." on songs for select using (
-    exists (select 1 from playlists where playlists.id = songs.playlist_id and playlists.user_id = auth.uid())
-  );
-  create policy "Users can insert songs to their playlists." on songs for insert with check (
-    exists (select 1 from playlists where playlists.id = songs.playlist_id and playlists.user_id = auth.uid())
-  );
-  create policy "Users can update songs in their playlists." on songs for update using (
-    exists (select 1 from playlists where playlists.id = songs.playlist_id and playlists.user_id = auth.uid())
-  );
-  create policy "Users can delete songs from their playlists." on songs for delete using (
-    exists (select 1 from playlists where playlists.id = songs.playlist_id and playlists.user_id = auth.uid())
-  );
-  =========================================
-*/
+const LOCAL_STORAGE_KEY = "resavvy_data";
 
 export function usePlaylistData() {
   const { addToast } = useToast();
-  const { user } = useAuth();
-  const [groups, setGroups] = useState<PlaylistGroup[]>([]);
-
-  const fetchPlaylists = async () => {
-    if (!user) {
-      setGroups([]);
-      return;
-    }
-    
+  const [groups, setGroups] = useState<PlaylistGroup[]>(() => {
     try {
-      const { data: playlistsData, error: playlistsError } = await supabase
-        .from('playlists')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (playlistsError) throw playlistsError;
-
-      if (!playlistsData) {
-        setGroups([]);
-        return;
+      const item = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (item) {
+        return JSON.parse(item);
       }
-
-      const playlistIds = playlistsData.map(p => p.id);
-      
-      const { data: songsData, error: songsError } = await supabase
-        .from('songs')
-        .select('*')
-        .in('playlist_id', playlistIds)
-        .order('added_at', { ascending: true });
-
-      if (songsError) throw songsError;
-
-      const formattedGroups: PlaylistGroup[] = playlistsData.map(p => ({
-        id: p.id,
-        name: p.name,
-        coverType: p.cover_type,
-        customCoverUrl: p.custom_cover_url,
-        createdAt: new Date(p.created_at).getTime(),
-        songs: (songsData || [])
-          .filter(s => s.playlist_id === p.id)
-          .map(s => ({
-            id: s.youtube_id, // we map youtube_id back to application 'id' property
-            title: s.title,
-            artist: s.artist || '',
-            thumbnailUrl: s.thumbnail_url || '',
-            duration: s.duration || '',
-            playCount: s.play_count || 0,
-            addedAt: new Date(s.added_at).getTime()
-          }))
-      }));
-
-      setGroups(formattedGroups);
     } catch (error) {
-      console.error("Error fetching playlists:", error);
-      addToast("Failed to load playlists", "error");
+      console.error("Failed to parse playlists from localStorage:", error);
     }
-  };
+    return [];
+  });
 
   useEffect(() => {
-    fetchPlaylists();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const createGroup = async (name: string) => {
-    if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('playlists')
-        .insert([{ user_id: user.id, name }])
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      if (data) {
-        setGroups(prev => [...prev, {
-          id: data.id,
-          name: data.name,
-          coverType: data.cover_type,
-          customCoverUrl: data.custom_cover_url,
-          createdAt: new Date(data.created_at).getTime(),
-          songs: []
-        }]);
-        addToast(`Created playlist "${name}"`, 'success');
-      }
+      window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(groups));
     } catch (error) {
-      console.error("Error creating playlist:", error);
-      addToast("Failed to create playlist", "error");
+      console.error("Failed to save playlists to localStorage:", error);
     }
+  }, [groups]);
+
+  const createGroup = (name: string) => {
+    const newGroup: PlaylistGroup = {
+      id: crypto.randomUUID(),
+      name,
+      createdAt: Date.now(),
+      songs: [],
+    };
+    setGroups((prevGroups) => [...prevGroups, newGroup]);
+    addToast(`Created playlist "${name}"`, 'success');
   };
 
-  const deleteGroup = async (groupId: string) => {
-    if (!user) return;
+  const deleteGroup = (groupId: string) => {
     setGroups((prevGroups) => prevGroups.filter((g) => g.id !== groupId));
-    try {
-      const { error } = await supabase.from('playlists').delete().eq('id', groupId);
-      if (error) throw error;
-      addToast('Playlist deleted', 'info');
-    } catch (error) {
-      console.error("Error deleting playlist:", error);
-      addToast("Failed to delete playlist", "error");
-      fetchPlaylists(); // Revert local state on error
-    }
+    addToast('Playlist deleted', 'info');
   };
 
-  const addSong = async (groupId: string, song: Omit<Song, "addedAt">) => {
-    if (!user) return;
-    
-    // Optimistic UI check for duplicates
-    const group = groups.find(g => g.id === groupId);
-    if (!group) return;
-    if (group.songs.some(s => s.id === song.id)) {
-      addToast('Song already exists in playlist', 'error');
-      return;
-    }
+  const addSong = (groupId: string, song: Omit<Song, "addedAt">) => {
+    let wasAdded = false;
+    let wasDuplicate = false;
 
-    // Optimistic update
-    const newSong: Song = { ...song, addedAt: Date.now() };
-    setGroups(prevGroups => prevGroups.map(g => 
-      g.id === groupId ? { ...g, songs: [...g.songs, newSong] } : g
-    ));
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        if (group.id === groupId) {
+          // Prevent duplicate YouTube IDs within the same group
+          const isDuplicate = group.songs.some((s) => s.id === song.id);
+          if (isDuplicate) {
+            wasDuplicate = true;
+            return group;
+          }
 
-    try {
-      const { error } = await supabase
-        .from('songs')
-        .insert([{
-          playlist_id: groupId,
-          youtube_id: song.id,
-          title: song.title,
-          artist: song.artist,
-          thumbnail_url: song.thumbnailUrl,
-          duration: song.duration,
-          play_count: song.playCount || 0
-        }]);
-
-      if (error) {
-        if (error.code === '23505') { // unique violation error code
-            addToast('Song already exists in playlist', 'error');
-        } else {
-            throw error;
+          const newSong: Song = {
+            ...song,
+            addedAt: Date.now(),
+          };
+          wasAdded = true;
+          return {
+            ...group,
+            songs: [...group.songs, newSong],
+          };
         }
-      } else {
-        addToast('Song added to playlist', 'success');
-      }
-    } catch (error) {
-      console.error("Error adding song:", error);
-      addToast("Failed to add song", "error");
-      fetchPlaylists(); // Revert
+        return group;
+      })
+    );
+
+    if (wasDuplicate) {
+      addToast('Song already exists in playlist', 'error');
+    } else if (wasAdded) {
+      addToast('Song added to playlist', 'success');
     }
   };
 
-  const removeSong = async (groupId: string, songId: string) => {
-    if (!user) return;
-
-    // Optimistic update
-    setGroups(prevGroups => prevGroups.map(g => 
-      g.id === groupId ? { ...g, songs: g.songs.filter(s => s.id !== songId) } : g
-    ));
-
-    try {
-      const { error } = await supabase
-        .from('songs')
-        .delete()
-        .match({ playlist_id: groupId, youtube_id: songId });
-        
-      if (error) throw error;
-      addToast('Removed from playlist', 'info');
-    } catch (error) {
-      console.error("Error removing song:", error);
-      addToast("Failed to remove song", "error");
-      fetchPlaylists(); // Revert
-    }
+  const removeSong = (groupId: string, songId: string) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            songs: group.songs.filter((song) => song.id !== songId),
+          };
+        }
+        return group;
+      })
+    );
+    addToast('Removed from playlist', 'info');
   };
 
-  const renameGroup = async (groupId: string, newName: string) => {
-    if (!user) return;
-
-    setGroups(prevGroups => prevGroups.map(g => g.id === groupId ? { ...g, name: newName } : g));
-    
-    try {
-      const { error } = await supabase
-        .from('playlists')
-        .update({ name: newName })
-        .eq('id', groupId);
-        
-      if (error) throw error;
-      addToast(`Playlist renamed to "${newName}"`, 'success');
-    } catch (error) {
-      console.error("Error renaming playlist:", error);
-      addToast("Failed to rename playlist", "error");
-      fetchPlaylists(); // Revert
-    }
+  const renameGroup = (groupId: string, newName: string) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        if (group.id === groupId) {
+          return { ...group, name: newName };
+        }
+        return group;
+      })
+    );
+    addToast(`Playlist renamed to "${newName}"`, 'success');
   };
 
-  const reorderSongs = async (groupId: string, newSongs: Song[]) => {
-    if (!user) return;
-    
-    // We only update locally, full sync requires a more complex index logic
-    setGroups(prevGroups => prevGroups.map(g => g.id === groupId ? { ...g, songs: newSongs } : g));
-    addToast('Reordering is only persisted locally for now', 'info');
+  const reorderSongs = (groupId: string, newSongs: Song[]) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        if (group.id === groupId) {
+          return { ...group, songs: newSongs };
+        }
+        return group;
+      })
+    );
   };
 
-  const editSong = async (groupId: string, songId: string, updates: { title: string, artist: string }) => {
-    if (!user) return;
-
-    setGroups(prevGroups => prevGroups.map(g => g.id === groupId ? {
-      ...g, songs: g.songs.map(s => s.id === songId ? { ...s, ...updates } : s)
-    } : g));
-
-    try {
-      const { error } = await supabase
-        .from('songs')
-        .update({ title: updates.title, artist: updates.artist })
-        .match({ playlist_id: groupId, youtube_id: songId });
-        
-      if (error) throw error;
-      addToast('Song updated successfully', 'success');
-    } catch (error) {
-      console.error("Error updating song:", error);
-      addToast("Failed to update song", "error");
-      fetchPlaylists(); // Revert
-    }
+  const editSong = (groupId: string, songId: string, updates: { title: string, artist: string }) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            songs: group.songs.map((song) => {
+              if (song.id === songId) {
+                return { ...song, title: updates.title, artist: updates.artist };
+              }
+              return song;
+            }),
+          };
+        }
+        return group;
+      })
+    );
+    addToast('Song updated successfully', 'success');
   };
 
   const updateSongDuration = (songId: string, durationStr: string) => {
-    setGroups(prevGroups => prevGroups.map(g => ({
-      ...g, songs: g.songs.map(s => s.id === songId ? { ...s, duration: durationStr } : s)
-    })));
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        return {
+          ...group,
+          songs: group.songs.map((song) => {
+            if (song.id === songId) {
+              return { ...song, duration: durationStr };
+            }
+            return song;
+          }),
+        };
+      })
+    );
   };
 
-  const incrementPlayCount = async (groupId: string | undefined, songId: string) => {
-    if (!user || !groupId) return;
-
-    setGroups(prevGroups => prevGroups.map(g => g.id === groupId ? {
-      ...g, songs: g.songs.map(s => s.id === songId ? { ...s, playCount: (s.playCount || 0) + 1 } : s)
-    } : g));
-
-    try {
-      // For proper incrementing we should use an rpc call or just get/set, 
-      // but simplistic approach for now:
-      const group = groups.find(g => g.id === groupId);
-      if (!group) return;
-      const song = group.songs.find(s => s.id === songId);
-      if (!song) return;
-
-      const { error } = await supabase
-        .from('songs')
-        .update({ play_count: (song.playCount || 0) + 1 })
-        .match({ playlist_id: groupId, youtube_id: songId });
-        
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error updating play count:", error);
-    }
+  const incrementPlayCount = (groupId: string | undefined, songId: string) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        if (group.id === groupId || !groupId) {
+          return {
+            ...group,
+            songs: group.songs.map((song) => {
+              if (song.id === songId) {
+                return { ...song, playCount: (song.playCount || 0) + 1 };
+              }
+              return song;
+            }),
+          };
+        }
+        return group;
+      })
+    );
   };
 
-  const updatePlaylistCover = async (groupId: string, type: 'random' | 'custom', url?: string) => {
-    if (!user) return;
-
-    setGroups(prevGroups => prevGroups.map(g => g.id === groupId ? { ...g, coverType: type, customCoverUrl: url } : g));
-
-    try {
-      const { error } = await supabase
-        .from('playlists')
-        .update({ cover_type: type, custom_cover_url: url || null })
-        .eq('id', groupId);
-        
-      if (error) throw error;
-      addToast('Playlist cover updated', 'success');
-    } catch (error) {
-      console.error("Error updating playlist cover:", error);
-      addToast("Failed to update playlist cover", "error");
-      fetchPlaylists(); // Revert
-    }
+  const updatePlaylistCover = (groupId: string, type: 'random' | 'custom', url?: string) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        if (group.id === groupId) {
+          return { ...group, coverType: type, customCoverUrl: url };
+        }
+        return group;
+      })
+    );
+    addToast('Playlist cover updated', 'success');
   };
 
   return {
