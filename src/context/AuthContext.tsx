@@ -2,8 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { createClient, Session, User } from '@supabase/supabase-js';
 
 export const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co',
-  import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder'
+  import.meta.env.VITE_SUPABASE_URL || 'https://bdaayqtxnqmpnniiukbr.supabase.co',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJkYWF5cXR4bnFtcG5uaWl1a2JyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg3MzkxMTQsImV4cCI6MjA5NDMxNTExNH0.9jyaP1xS2XUf12TS-pGCVZUeto-fEGq6az8WvhR3G4I'
 );
 
 interface AuthContextType {
