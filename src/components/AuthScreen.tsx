@@ -26,7 +26,13 @@ export function AuthScreen() {
         body: JSON.stringify(body),
       });
 
-      const data = await res.json();
+      const resText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(resText);
+      } catch (e) {
+        throw new Error(res.ok ? 'Failed to parse response' : resText || 'Authentication failed');
+      }
 
       if (!res.ok) {
         throw new Error(data.error || 'Authentication failed');
