@@ -170,6 +170,18 @@ export function usePlaylistData() {
     );
   };
 
+  const updatePlaylistDetails = (groupId: string, details: Partial<Pick<PlaylistGroup, 'name' | 'description' | 'tags' | 'visibility'>>) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        if (group.id === groupId) {
+          return { ...group, ...details };
+        }
+        return group;
+      })
+    );
+    addToast(`Playlist details updated`, 'success');
+  };
+
   const updatePlaylistCover = (groupId: string, type: 'random' | 'custom', url?: string) => {
     setGroups((prevGroups) =>
       prevGroups.map((group) => {
@@ -193,6 +205,7 @@ export function usePlaylistData() {
     updateSongDuration,
     editSong,
     incrementPlayCount,
+    updatePlaylistDetails,
     updatePlaylistCover,
   };
 }

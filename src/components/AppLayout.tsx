@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Tracklist } from "./Tracklist";
 import { PlayerBar } from "./PlayerBar";
@@ -10,6 +10,10 @@ import { PlaylistHero } from "./PlaylistHero";
 import { MobileHeader } from "./MobileHeader";
 import { FullscreenPlayer } from "./FullscreenPlayer";
 import { HomeDashboard } from "./HomeDashboard";
+import { LibraryDashboard } from "./LibraryDashboard";
+import { DiscoveryDashboard } from "./DiscoveryDashboard";
+import { AnalyticsDashboard } from "./AnalyticsDashboard";
+import { LikedDashboard } from "./LikedDashboard";
 
 import { usePlayer } from "../context/PlayerContext";
 
@@ -48,7 +52,7 @@ export function AppLayout() {
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   useEffect(() => {
-    if (activeGroupId && !groups.find(g => g.id === activeGroupId)) {
+    if (activeGroupId && activeGroupId !== 'library' && activeGroupId !== 'discovery' && activeGroupId !== 'liked' && activeGroupId !== 'analytics' && !groups.find(g => g.id === activeGroupId)) {
        setActiveGroupId(null);
     }
   }, [groups, activeGroupId]);
@@ -122,7 +126,15 @@ export function AppLayout() {
           <FullscreenPlayer />
 
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-transparent relative no-scrollbar">
-            {activeGroup ? (
+            {activeGroupId === 'discovery' ? (
+              <DiscoveryDashboard onSelectGroup={setActiveGroupId} />
+            ) : activeGroupId === 'analytics' ? (
+              <AnalyticsDashboard onSelectGroup={setActiveGroupId} />
+            ) : activeGroupId === 'liked' ? (
+              <LikedDashboard />
+            ) : activeGroupId === 'library' ? (
+              <LibraryDashboard />
+            ) : activeGroup ? (
               <div className="w-full flex-1 flex flex-col pb-32">
                 <PlaylistHero 
                   activeGroup={activeGroup} 

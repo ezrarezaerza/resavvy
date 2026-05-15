@@ -1,16 +1,19 @@
 import React, { useRef, memo, useCallback, useState, useEffect } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { Clock, Play, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { Clock, Play, MoreVertical, Edit2, Trash2, Heart } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { Song, PlaylistGroup } from "../types";
 import { useSettings } from "../context/SettingsContext";
 import { usePlaylist } from "../context/PlaylistContext";
+import { useAuth } from "../context/AuthContext";
 import { EmptyState } from "./EmptyState";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditSongModal } from "./EditSongModal";
 
 gsap.registerPlugin(useGSAP);
+
+import { QuickAddMenu } from "./QuickAddMenu";
 
 interface SongRowProps {
   song: Song;
@@ -26,15 +29,26 @@ interface SongRowProps {
   onDrop: (e: React.DragEvent<HTMLDivElement>, index: number) => void;
   dragOverIndex: number | null;
   draggedIndex: number | null;
+  isSelectable?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (songId: string) => void;
+  variant?: 'default' | 'explore';
 }
 
 const SongRow = memo(function SongRow({ 
   song, index, isCurrentSong, isPlaying, onPlay, onRemove, onEdit,
-  onDragStart, onDragOver, onDragEnd, onDrop, dragOverIndex, draggedIndex
+  onDragStart, onDragOver, onDragEnd, onDrop, dragOverIndex, draggedIndex,
+  isSelectable, isSelected, onToggleSelect, variant = 'default'
 }: SongRowProps) {
   const { lowDataMode } = useSettings();
+  const { token } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLiked, setIsLiked] = useState(song.isLiked || false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsLiked(song.isLiked || false);
+  }, [song.isLiked]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -48,9 +62,35 @@ const SongRow = memo(function SongRow({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMenuOpen]);
 
+  const toggleLike = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!token || !song.id) return;
+    
+    // optimism
+    setIsLiked(!isLiked);
+    
+    try {
+      const res = await fetch(`/api/songs/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ songId: song.id })
+      });
+      if (!res.ok) {
+         setIsLiked(isLiked); // revert
+      }
+    } catch(err) {
+       setIsLiked(isLiked); // revert
+    }
+  };
+
   const getThumbnailSrc = (url: string) => {
     if (!lowDataMode && url.includes('mqdefault.jpg')) {
-      return url.replace('mqdefault.jpg', 'hqdefault.jpg');
+      return variant === 'explore' 
+        ? url.replace('mqdefault.jpg', 'maxresdefault.jpg') 
+        : url.replace('mqdefault.jpg', 'hqdefault.jpg');
     }
     return url;
   };
@@ -83,13 +123,14 @@ const SongRow = memo(function SongRow({
 
   return (
     <div 
-      draggable
+      draggable={!isSelectable}
       onDragStart={(e) => onDragStart(e, index)}
       onDragOver={(e) => onDragOver(e, index)}
       onDragEnd={onDragEnd}
       onDrop={(e) => onDrop(e, index)}
       onClick={handlePlayClick}
-      className={`song-row grid grid-cols-[40px_minmax(0,1fr)_32px] sm:grid-cols-[40px_minmax(0,1fr)_48px_32px] md:grid-cols-[40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_64px_32px] gap-4 px-4 py-2.5 items-center rounded-lg group transition-colors cursor-pointer relative ${isMenuOpen ? 'z-50' : 'z-0'} ${
+      className={`song-row grid ${isSelectable ? 'grid-cols-[40px_40px_minmax(0,1fr)_auto_32px] sm:grid-cols-[40px_40px_minmax(0,1fr)_auto_32px] md:grid-cols-[40px_40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_80px_32px] gap-2 px-2' : 'grid-cols-[40px_minmax(0,1fr)_auto_32px] sm:grid-cols-[40px_minmax(0,1fr)_auto_32px] md:grid-cols-[40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_80px_32px] gap-2 px-2 sm:gap-4 sm:px-4'} py-2.5 items-center rounded-lg group transition-colors cursor-pointer relative ${isMenuOpen ? 'z-50' : 'z-0'} ${
+        isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' :
         isCurrentSong 
           ? 'bg-white/40 dark:bg-white/10 shadow-sm backdrop-blur-sm' 
           : 'hover:bg-white/30 dark:hover:bg-white/5'
@@ -99,6 +140,23 @@ const SongRow = memo(function SongRow({
         borderBottom: isDragOverBottom ? '2px solid #818cf8' : '2px solid transparent',
       }}
     >
+      {isSelectable && (
+        <div className="flex items-center justify-center shrink-0">
+          <div 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onToggleSelect) onToggleSelect(song.id);
+            }}
+            className={`w-5 h-5 rounded border flex items-center justify-center cursor-pointer transition-colors ${isSelected ? 'bg-indigo-600 border-indigo-600 dark:bg-indigo-500 dark:border-indigo-500' : 'border-gray-400 dark:border-gray-500 hover:border-indigo-500 dark:hover:border-indigo-400'}`}
+          >
+            {isSelected && (
+              <svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </div>
+        </div>
+      )}
       <div className={`w-10 text-center font-medium flex items-center justify-center shrink-0 ${isCurrentSong ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`}>
         {isCurrentSong && isPlaying ? (
           <div className="flex justify-center items-end gap-[3px] h-4 w-4">
@@ -108,7 +166,7 @@ const SongRow = memo(function SongRow({
           </div>
         ) : (
           <>
-            <span className="group-hover:hidden">{index + 1}</span>
+            <span className="group-hover:hidden">{variant === 'explore' ? song.globalRank : index + 1}</span>
             <Play className="w-4 h-4 hidden group-hover:block fill-current" />
           </>
         )}
@@ -130,49 +188,83 @@ const SongRow = memo(function SongRow({
       <div className="hidden md:block truncate text-gray-400 dark:text-gray-500 pointer-events-none text-right pr-4 font-mono text-xs">
         {song.playCount || 0}
       </div>
-      <div className="hidden sm:block text-right font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap pointer-events-none">
-        {song.duration || '--:--'}
+      <div className="flex items-center justify-end gap-2 sm:gap-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+        <button
+          onClick={toggleLike}
+          className={`focus:outline-none transition-colors ${isLiked ? 'text-red-500' : 'text-gray-400 dark:text-gray-500 hover:text-red-400'}`}
+          title={isLiked ? "Unlike" : "Like"}
+        >
+          <Heart className={`w-5 h-5 sm:w-4 sm:h-4 ${isLiked ? 'fill-current' : ''}`} />
+        </button>
+        <span className="hidden sm:inline-block pointer-events-none flex-shrink-0 text-right font-medium min-w-[3rem]">
+          {variant === 'explore' ? `In ${song.playlistCount || 1} Playlists` : (song.duration || '--:--')}
+        </span>
       </div>
       <div className="w-8 flex justify-end shrink-0 relative" ref={menuRef}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsMenuOpen(!isMenuOpen);
-          }}
-          className="song-menu-button opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-gray-900 dark:hover:text-white text-gray-500 transition-all p-1 rounded-md focus:opacity-100"
-          title="More options"
-        >
-          <MoreVertical className="w-5 h-5" />
-        </button>
-        {isMenuOpen && (
-          <div className="song-menu-dropdown absolute right-0 top-10 z-50 w-48 bg-white dark:bg-gray-800 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col">
+        {variant === 'explore' ? (
+          <QuickAddMenu song={song} />
+        ) : (
+          <>
             <button
-              onClick={handleEditClick}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left w-full"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen(!isMenuOpen);
+              }}
+              className="song-menu-button opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-gray-900 dark:hover:text-white text-gray-500 transition-all p-1 rounded-md focus:opacity-100"
+              title="More options"
             >
-              <Edit2 className="w-4 h-4" />
-              Edit Song Details
+              <MoreVertical className="w-5 h-5" />
             </button>
-            <button
-              onClick={handleRemoveClick}
-              className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left w-full"
-            >
-              <Trash2 className="w-4 h-4" />
-              Remove from Playlist
-            </button>
-          </div>
+            {isMenuOpen && (
+              <div className="song-menu-dropdown absolute right-0 top-10 z-50 w-48 bg-white dark:bg-gray-800 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col">
+                <button
+                  onClick={handleEditClick}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left w-full"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Edit Song Details
+                </button>
+                <button
+                  onClick={handleRemoveClick}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left w-full"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Remove from Playlist
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
   );
 });
 
+import { TracklistHeader, SortConfig, SortKey } from "./TracklistHeader";
+
 interface TracklistProps {
   activeGroup: PlaylistGroup;
   removeSong: (songId: string) => void;
+  selectionMode?: boolean;
+  selectedSongs?: string[];
+  onToggleSongSelect?: (songId: string) => void;
+  onToggleSelectAll?: () => void;
+  sortConfig?: SortConfig;
+  onSort?: (key: SortKey) => void;
+  variant?: 'default' | 'explore';
 }
 
-export function Tracklist({ activeGroup, removeSong }: TracklistProps) {
+export function Tracklist({ 
+  activeGroup, 
+  removeSong,
+  selectionMode,
+  selectedSongs = [],
+  onToggleSongSelect,
+  onToggleSelectAll,
+  sortConfig,
+  onSort,
+  variant = 'default'
+}: TracklistProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { playSong, currentSong, isPlaying } = usePlayer();
   const { reorderSongs, editSong } = usePlaylist();
@@ -258,14 +350,15 @@ export function Tracklist({ activeGroup, removeSong }: TracklistProps) {
         <EmptyState />
       ) : (
         <div className="flex flex-col relative min-w-0">
-          <div className="sticky top-0 z-20 hidden md:grid grid-cols-[40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_64px_32px] gap-4 px-4 py-3 border-b border-gray-200/50 dark:border-gray-800/50 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest bg-white/40 dark:bg-gray-950/40 backdrop-blur-xl mb-2 shadow-sm dark:shadow-none">
-            <div className="text-center font-bold">#</div>
-            <div>Title</div>
-            <div>Artist</div>
-            <div className="text-right pr-4 tracking-wider flex items-center justify-end gap-1"><Play className="w-3 h-3"/> PLAYS</div>
-            <div className="text-right flex items-center justify-end"><Clock className="w-4 h-4 inline-block" /></div>
-            <div className="w-8"></div>
-          </div>
+          <TracklistHeader 
+            selectionMode={selectionMode}
+            selectedCount={selectedSongs.length}
+            totalCount={activeGroup.songs.length}
+            onToggleSelectAll={onToggleSelectAll}
+            sortConfig={sortConfig}
+            onSort={onSort}
+            variant={variant}
+          />
 
           <div className="flex flex-col gap-1">
             {activeGroup.songs.map((song, index) => (
@@ -284,6 +377,10 @@ export function Tracklist({ activeGroup, removeSong }: TracklistProps) {
                 onDrop={handleDrop}
                 dragOverIndex={dragOverIndex}
                 draggedIndex={draggedIndex}
+                isSelectable={selectionMode}
+                isSelected={selectedSongs.includes(song.id)}
+                onToggleSelect={onToggleSongSelect}
+                variant={variant}
               />
             ))}
           </div>

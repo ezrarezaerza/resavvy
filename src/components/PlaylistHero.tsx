@@ -1,10 +1,12 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon, Share2 } from "lucide-react";
 import { PlaylistGroup } from "../types";
 import { usePlaylist } from "../context/PlaylistContext";
 import { usePlayer } from "../context/PlayerContext";
+import { useToast } from "../context/ToastContext";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditCoverModal } from "./EditCoverModal";
+import { EditPlaylistModal } from "./EditPlaylistModal";
 
 interface PlaylistHeroProps {
   activeGroup: PlaylistGroup;
@@ -12,13 +14,15 @@ interface PlaylistHeroProps {
 }
 
 export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
-  const { renameGroup, deleteGroup, updatePlaylistCover } = usePlaylist();
+  const { renameGroup, deleteGroup, updatePlaylistCover, updatePlaylistDetails } = usePlaylist();
   const { playSong } = usePlayer();
+  const { addToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(activeGroup.name);
   const [showOptions, setShowOptions] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCoverModal, setShowCoverModal] = useState(false);
+  const [showEditDetailsModal, setShowEditDetailsModal] = useState(false);
   const [displayImage, setDisplayImage] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
@@ -88,6 +92,27 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/p/${activeGroup.id}`);
+      addToast("Link Copied!", "success");
+      if (activeGroup.visibility === "private" || !activeGroup.visibility) {
+        addToast("This playlist is private. Change visibility to share.", "info");
+      }
+    } catch (e) {
+      addToast("Failed to copy link", "error");
+    }
+    setShowOptions(false);
+  };
+
+// Handle user click for public profiles
+  const handleUserClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (activeGroup.user?.username) {
+      window.location.href = `/u/${activeGroup.user.username}`;
+    }
+  };
+
   return (
     <>
       <div className="relative w-full h-[50vh] md:h-[60vh] flex-shrink-0 flex flex-col justify-end group/hero bg-gray-900">
@@ -139,14 +164,21 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
                       {showOptions && (
                         <div className="absolute right-0 top-full mt-2 w-48 origin-top-right z-[90] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 animate-in fade-in zoom-in-95 duration-150">
                           <button
+                            onClick={handleShare}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
+                          >
+                            <Share2 className="w-4 h-4" />
+                            Share Playlist
+                          </button>
+                          <button
                             onClick={() => {
-                              setIsEditing(true);
+                              setShowEditDetailsModal(true);
                               setShowOptions(false);
                             }}
                             className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
                           >
                             <Edit2 className="w-4 h-4" />
-                            Rename Playlist
+                            Edit Details
                           </button>
                           <button
                             onClick={() => {
@@ -174,9 +206,22 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
                   </>
                 )}
               </div>
-              <p className="text-lg font-medium text-gray-200 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-2">
-                {activeGroup.songs.length} {activeGroup.songs.length === 1 ? 'song' : 'songs'}
-              </p>
+              <div className="flex items-center gap-2 text-lg font-medium text-gray-200 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] mt-2">
+                <span>
+                  {activeGroup.songs.length} {activeGroup.songs.length === 1 ? 'song' : 'songs'}
+                </span>
+                {activeGroup.user && activeGroup.user.name && (
+                   <>
+                     <span>•</span>
+                     <span 
+                       onClick={handleUserClick} 
+                       className="hover:underline hover:text-indigo-300 cursor-pointer transition-colors"
+                     >
+                       by {activeGroup.user.name}
+                     </span>
+                   </>
+                )}
+              </div>
             </div>
           </div>
           
@@ -217,6 +262,15 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
             updatePlaylistCover(activeGroup.id, type, url);
           }}
           onClose={() => setShowCoverModal(false)}
+        />
+      )}
+
+      {showEditDetailsModal && (
+        <EditPlaylistModal
+          isOpen={showEditDetailsModal}
+          onClose={() => setShowEditDetailsModal(false)}
+          playlist={activeGroup}
+          onSave={(details) => updatePlaylistDetails(activeGroup.id, details)}
         />
       )}
     </>

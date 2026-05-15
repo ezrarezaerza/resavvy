@@ -12,6 +12,8 @@ model User {
   name         String
   username     String     @unique
   passwordHash String
+  bio          String?
+  avatarUrl    String?
   createdAt    DateTime   @default(now())
   playlists    Playlist[]
 }
@@ -20,8 +22,13 @@ model Playlist {
   id             String   @id @default(uuid())
   userId         String
   name           String
+  description    String?
+  tags           String[]
+  visibility     String   @default("private")
   coverType      String   @default("random")
   customCoverUrl String?
+  likesCount     Int      @default(0)
+  forksCount     Int      @default(0)
   createdAt      DateTime @default(now())
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   songs          Song[]
@@ -36,5 +43,7 @@ model Song {
   thumbnailUrl String
   duration     String
   playCount    Int      @default(0)
+  createdAt    DateTime @default(now())
+  isLiked      Boolean  @default(false)
   playlist     Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
 }

@@ -13,6 +13,7 @@ interface PlaylistContextType {
   updateSongDuration: (songId: string, durationStr: string) => void;
   editSong: (groupId: string, songId: string, updates: { title: string, artist: string }) => void;
   incrementPlayCount: (groupId: string | undefined, songId: string) => void;
+  updatePlaylistDetails: (groupId: string, details: Partial<Pick<PlaylistGroup, 'name' | 'description' | 'tags' | 'visibility'>>) => void;
   updatePlaylistCover: (groupId: string, type: 'random' | 'custom', url?: string) => void;
 }
 

@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { Moon, Plus, Sun, AudioLines, MoreHorizontal, Trash2 } from "lucide-react";
+import { Moon, Plus, Sun, AudioLines, MoreHorizontal, Trash2, Settings, LogOut } from "lucide-react";
 import { PlaylistGroup } from "../types";
 import { ConfirmModal } from "./ConfirmModal";
 import { usePlaylist } from "../context/PlaylistContext";
+import { useAuth } from "../context/AuthContext";
+import { EditProfileModal } from "./EditProfileModal";
 
 interface SidebarProps {
   groups: PlaylistGroup[];
@@ -30,7 +32,9 @@ export function Sidebar({
 }: SidebarProps) {
   const [playlistToDelete, setPlaylistToDelete] = useState<PlaylistGroup | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const { renameGroup } = usePlaylist();
+  const { user, logout } = useAuth();
 
   const goHome = () => {
     setActiveGroupId(null);
@@ -74,6 +78,42 @@ export function Sidebar({
         </div>
       </div>
 
+      <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/50 flex flex-col gap-2">
+        {user && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 truncate">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-300 dark:border-gray-600" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center shrink-0 border border-indigo-400">
+                  <span className="text-xs font-bold text-white shrink-0">{user.name.charAt(0)}</span>
+                </div>
+              )}
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{user.name}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 truncate">@{user.username}</span>
+              </div>
+            </div>
+            <div className="flex shrink-0">
+              <button
+                onClick={() => setShowProfileModal(true)}
+                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+                title="Edit Profile"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+              <button
+                onClick={logout}
+                className="p-2 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-red-400 transition-colors"
+                title="Log Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="p-4 flex-1 overflow-y-auto mt-2 md:mt-0">
         <div className="space-y-0.5 mb-6">
           <div 
@@ -87,12 +127,59 @@ export function Sidebar({
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             <span>Home</span>
           </div>
+          <div 
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer ${
+              activeGroupId === 'discovery'
+                ? "bg-gray-200 dark:bg-gray-700/80 text-gray-900 dark:text-gray-100 font-bold"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 font-medium"
+            }`}
+            onClick={() => setActiveGroupId('discovery')}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+            <span>Discovery</span>
+          </div>
+          <div 
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer ${
+              activeGroupId === 'analytics'
+                ? "bg-gray-200 dark:bg-gray-700/80 text-gray-900 dark:text-gray-100 font-bold"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 font-medium"
+            }`}
+            onClick={() => setActiveGroupId('analytics')}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bar-chart-2"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+            <span>Analytics</span>
+          </div>
+          <div 
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer ${
+              activeGroupId === 'library'
+                ? "bg-gray-200 dark:bg-gray-700/80 text-gray-900 dark:text-gray-100 font-bold"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 font-medium"
+            }`}
+            onClick={() => setActiveGroupId('library')}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>
+            <span>My Library</span>
+          </div>
         </div>
 
         <div className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
           Your Playlists
         </div>
         <div className="space-y-0.5">
+          <div 
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer ${
+              activeGroupId === 'liked'
+                ? "bg-gray-200 dark:bg-gray-700/80 text-gray-900 dark:text-gray-100 font-bold"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 font-medium"
+            }`}
+            onClick={() => setActiveGroupId('liked')}
+          >
+            <div className="w-5 h-5 rounded overflow-hidden flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 flex-shrink-0">
+               <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-heart"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+            </div>
+            <span>Liked Songs</span>
+          </div>
+
           {groups.map((playlist) => {
             const isActive = playlist.id === activeGroupId;
             const isMenuOpen = openMenuId === playlist.id;
@@ -169,6 +256,14 @@ export function Sidebar({
         message={`Are you sure you want to delete "${playlistToDelete?.name}"? All songs in this playlist will be removed.`}
         confirmText="Delete Playlist"
       />
+      {user && (
+        <EditProfileModal 
+          isOpen={showProfileModal} 
+          onClose={() => setShowProfileModal(false)}
+          currentName={user.name}
+          currentUsername={user.username}
+        />
+      )}
     </aside>
   );
 }
