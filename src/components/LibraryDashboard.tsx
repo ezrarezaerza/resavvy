@@ -7,9 +7,11 @@ import { SortConfig, SortKey } from './TracklistHeader';
 import { DedupeModal } from './DedupeModal';
 import { Song, PlaylistGroup } from '../types';
 import { Library, Wand2 } from 'lucide-react';
+import { useOfflineLibrary } from '../hooks/useOfflineLibrary';
 
 export function LibraryDashboard() {
   const { token } = useAuth();
+  const { fetchWithOfflineFallback } = useOfflineLibrary();
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
@@ -25,7 +27,7 @@ export function LibraryDashboard() {
   const fetchLibrarySongs = async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/songs', {
+      const res = await fetchWithOfflineFallback('/api/songs', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {

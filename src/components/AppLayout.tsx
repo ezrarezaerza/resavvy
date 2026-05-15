@@ -14,18 +14,35 @@ import { LibraryDashboard } from "./LibraryDashboard";
 import { DiscoveryDashboard } from "./DiscoveryDashboard";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { LikedDashboard } from "./LikedDashboard";
+import { SettingsDashboard } from "./SettingsDashboard";
+import { CommandPalette } from "./CommandPalette";
+import { Toaster, toast } from 'sonner';
 
 import { usePlayer } from "../context/PlayerContext";
+import { useMediaSession } from "../hooks/useMediaSession";
+import { useOfflineLibrary } from "../hooks/useOfflineLibrary";
 
 export function AppLayout() {
   useKeyboardShortcuts();
   const { groups, createGroup, deleteGroup, addSong, removeSong } = usePlaylist();
   const { currentSong } = usePlayer();
+  useMediaSession(currentSong);
+  const { isOffline } = useOfflineLibrary();
+
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [isAddSongModalOpen, setIsAddSongModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
   const [isCreatingModalOpen, setIsCreatingModalOpen] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState("");
+
+  useEffect(() => {
+    const handleCloseModals = () => {
+      setIsAddSongModalOpen(false);
+      setIsCreatingModalOpen(false);
+    };
+    window.addEventListener("close-modals", handleCloseModals);
+    return () => window.removeEventListener("close-modals", handleCloseModals);
+  }, []);
 
   useEffect(() => {
     if (isSidebarOpen && window.innerWidth < 768) {
@@ -37,22 +54,11 @@ export function AppLayout() {
       document.body.style.overflow = 'unset';
     };
   }, [isSidebarOpen]);
-  
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle("dark");
-  };
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   useEffect(() => {
-    if (activeGroupId && activeGroupId !== 'library' && activeGroupId !== 'discovery' && activeGroupId !== 'liked' && activeGroupId !== 'analytics' && !groups.find(g => g.id === activeGroupId)) {
+    if (activeGroupId && activeGroupId !== 'settings' && activeGroupId !== 'library' && activeGroupId !== 'discovery' && activeGroupId !== 'liked' && activeGroupId !== 'analytics' && !groups.find(g => g.id === activeGroupId)) {
        setActiveGroupId(null);
     }
   }, [groups, activeGroupId]);
@@ -96,10 +102,9 @@ export function AppLayout() {
       <div className="relative z-10 flex flex-col w-full h-full">
         <MobileHeader 
           onMenuClick={toggleSidebar} 
-          isDark={isDark} 
-          toggleTheme={toggleTheme} 
           isSidebarOpen={isSidebarOpen}
           onLogoClick={() => handleGroupSelect(null)}
+          activePlaylistId={activeGroup?.id}
         />
         <div className="flex flex-1 overflow-hidden relative">
           <Sidebar 
@@ -109,8 +114,6 @@ export function AppLayout() {
             createGroup={createGroup}
             deleteGroup={deleteGroup}
             isOpen={isSidebarOpen}
-            isDark={isDark}
-            toggleTheme={toggleTheme}
             onMenuClick={toggleSidebar}
             onCreatePlaylist={() => setIsCreatingModalOpen(true)}
           />
@@ -126,6 +129,11 @@ export function AppLayout() {
           <FullscreenPlayer />
 
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-transparent relative no-scrollbar">
+            {isOffline && (
+              <div className="absolute top-4 right-4 z-50">
+                <div className="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-xs font-medium shadow-sm border border-amber-500/10 backdrop-blur-md">Offline Mode</div>
+              </div>
+            )}
             {activeGroupId === 'discovery' ? (
               <DiscoveryDashboard onSelectGroup={setActiveGroupId} />
             ) : activeGroupId === 'analytics' ? (
@@ -134,6 +142,8 @@ export function AppLayout() {
               <LikedDashboard />
             ) : activeGroupId === 'library' ? (
               <LibraryDashboard />
+            ) : activeGroupId === 'settings' ? (
+              <SettingsDashboard />
             ) : activeGroup ? (
               <div className="w-full flex-1 flex flex-col pb-32">
                 <PlaylistHero 
@@ -194,6 +204,9 @@ export function AppLayout() {
             </div>
           </form>
         </Modal>
+        
+        <CommandPalette onNavigate={handleGroupSelect} />
+        <Toaster theme="dark" position="top-center" toastOptions={{ className: 'bg-[#1a1f2e] border border-white/10 text-white backdrop-blur-md' }} />
       </div>
     </div>
   );

@@ -107,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              title: item.title,
              artist: item.artist,
              thumbnailUrl: item.thumbnailUrl,
-             duration: item.duration || '0:00'
+             duration: item.duration !== undefined ? String(item.duration) : '0:00'
            }));
 
            await prisma.song.createMany({ data: dataToInsert });
@@ -146,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        if (!playlist || playlist.userId !== user.id) return res.status(403).json({ error: 'Forbidden' });
        
        const song = await prisma.song.create({
-         data: { playlistId, youtubeId, title, artist, thumbnailUrl, duration }
+         data: { playlistId, youtubeId, title, artist, thumbnailUrl, duration: duration !== undefined ? String(duration) : '0:00' }
        });
        return res.status(201).json(song);
      } catch(error) {

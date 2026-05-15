@@ -4,9 +4,10 @@ import { useGSAP } from "@gsap/react";
 import { Clock, Play, MoreVertical, Edit2, Trash2, Heart } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { Song, PlaylistGroup } from "../types";
-import { useSettings } from "../context/SettingsContext";
+import { useSettings } from "../hooks/useSettings";
 import { usePlaylist } from "../context/PlaylistContext";
 import { useAuth } from "../context/AuthContext";
+import { triggerHaptic } from "../utils/nativeCapabilities";
 import { EmptyState } from "./EmptyState";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditSongModal } from "./EditSongModal";
@@ -66,6 +67,8 @@ const SongRow = memo(function SongRow({
     e.stopPropagation();
     if (!token || !song.id) return;
     
+    triggerHaptic();
+    
     // optimism
     setIsLiked(!isLiked);
     
@@ -116,6 +119,20 @@ const SongRow = memo(function SongRow({
 
   const formatDateString = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatTime = (duration: string | number | undefined) => {
+    if (duration === undefined || duration === null || duration === '--:--') return '--:--';
+    // If it's already in mm:ss format, return it
+    if (typeof duration === 'string' && duration.includes(':')) {
+      return duration;
+    }
+    const seconds = typeof duration === 'string' ? parseInt(duration, 10) : duration;
+    if (isNaN(seconds)) return '--:--';
+    
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   const isDragOverTop = dragOverIndex === index && draggedIndex !== null && draggedIndex > index;
@@ -197,7 +214,7 @@ const SongRow = memo(function SongRow({
           <Heart className={`w-5 h-5 sm:w-4 sm:h-4 ${isLiked ? 'fill-current' : ''}`} />
         </button>
         <span className="hidden sm:inline-block pointer-events-none flex-shrink-0 text-right font-medium min-w-[3rem]">
-          {variant === 'explore' ? `In ${song.playlistCount || 1} Playlists` : (song.duration || '--:--')}
+          {variant === 'explore' ? `In ${song.playlistCount || 1} Playlists` : formatTime(song.duration)}
         </span>
       </div>
       <div className="w-8 flex justify-end shrink-0 relative" ref={menuRef}>

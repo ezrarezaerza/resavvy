@@ -1,6 +1,6 @@
 import { Shuffle, SkipBack, Play, Pause, SkipForward, Repeat, Repeat1, Volume2 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
-import { useSettings } from "../context/SettingsContext";
+import { useSettings } from "../hooks/useSettings";
 import { PlaybackProgressBar } from "./PlaybackProgressBar";
 
 export function PlayerBar() {

@@ -5,7 +5,7 @@
 
 import { AppLayout } from "./components/AppLayout";
 import { PlayerProvider } from "./context/PlayerContext";
-import { SettingsProvider } from "./context/SettingsContext";
+import { SettingsProvider } from "./hooks/useSettings";
 import { PlaylistProvider } from "./context/PlaylistContext";
 import { HiddenYouTubePlayer } from "./components/HiddenYouTubePlayer";
 import { ToastProvider } from "./context/ToastContext";

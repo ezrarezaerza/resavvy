@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { extractYouTubeId, fetchYouTubeMetadata } from '../utils/youtube';
 import { parseYouTubeTitle } from '../utils/metadata';
 import { Song } from '../types';
+import { toast } from 'sonner';
+import { triggerHaptic } from '../utils/nativeCapabilities';
 
 interface FetchedMetadata {
   videoId: string;
@@ -37,6 +39,7 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
   const [metadata, setMetadata] = useState<FetchedMetadata | null>(null);
   const [artist, setArtist] = useState('');
   const [title, setTitle] = useState('');
+  const [stagedDuration, setStagedDuration] = useState<string | number>('');
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -50,10 +53,22 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
       }
       setResults(data);
     } catch (err: any) {
-      setError(err instanceof Error ? err.message : 'Search error');
+      const msg = err instanceof Error ? err.message : 'Search error';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const formatTime = (duration: string | number | undefined) => {
+    if (duration === undefined || duration === null || duration === '--:--') return '--:--';
+    if (typeof duration === 'string' && duration.includes(':')) return duration;
+    const seconds = typeof duration === 'string' ? parseInt(duration, 10) : duration;
+    if (isNaN(seconds)) return '--:--';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   const handleFetch = async () => {
@@ -87,7 +102,9 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
       setTitle(parsed.title);
       setIsStaging(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch video metadata.');
+      const msg = err instanceof Error ? err.message : 'Failed to fetch video metadata.';
+      setError(msg);
+      toast.error(msg);
     } finally {
       setIsLoading(false);
     }
@@ -95,25 +112,53 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
 
   const handleConfirmAdd = () => {
     if (metadata) {
+      triggerHaptic();
       onAdd({
         id: metadata.videoId,
         title: title.trim() || 'Unknown Title',
         artist: artist.trim() || 'Unknown Artist',
         thumbnailUrl: metadata.thumbnailUrl,
-      });
+        duration: stagedDuration as string // Pass the duration along
+      } as any);
       resetForm();
     }
   };
 
+  const cleanYouTubeTitle = (rawTitle: string, defaultArtist: string) => {
+    let cleaned = rawTitle.replace(/\[.*?\]|\(.*?\)|official(?: music)? video|lyric(?:s| video)?/gi, '').trim();
+    // Attempt to split by '-' if it exists
+    if (cleaned.includes(' - ')) {
+      const parts = cleaned.split(' - ');
+      return {
+        artist: parts[0].trim(),
+        title: parts.slice(1).join(' - ').trim()
+      };
+    } else if (cleaned.includes('-')) {
+      const parts = cleaned.split('-');
+      return {
+        artist: parts[0].trim(),
+        title: parts.slice(1).join('-').trim()
+      };
+    }
+    return { title: cleaned, artist: defaultArtist };
+  };
+
   const handleResultClick = (result: SearchResult) => {
-    onAdd({
-      id: result.id,
-      title: result.title,
-      artist: result.artist,
-      thumbnailUrl: result.thumbnail,
-      duration: result.duration
-    } as any);
-    resetForm();
+    setMode('manual');
+    setUrl('https://www.youtube.com/watch?v=' + result.id);
+    
+    const { title: newTitle, artist: newArtist } = cleanYouTubeTitle(result.title, result.artist);
+
+    setTitle(newTitle);
+    setArtist(newArtist);
+    setStagedDuration(result.duration);
+    
+    setMetadata({
+      videoId: result.id,
+      originalTitle: result.title,
+      thumbnailUrl: result.thumbnail
+    });
+    setIsStaging(true);
   };
 
   const resetForm = () => {
@@ -124,6 +169,7 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
     setIsStaging(false);
     setArtist('');
     setTitle('');
+    setStagedDuration('');
     setError(null);
   };
 
@@ -185,7 +231,7 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
                     <p className="text-gray-400 text-xs truncate mt-0.5">{result.artist}</p>
                   </div>
                   <div className="text-xs font-mono text-gray-500 shrink-0">
-                    {result.duration}
+                    {formatTime(result.duration)}
                   </div>
                 </div>
               ))}

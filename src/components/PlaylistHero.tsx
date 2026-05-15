@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon, Share2 } from "lucide-react";
+import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon } from "lucide-react";
 import { PlaylistGroup } from "../types";
 import { usePlaylist } from "../context/PlaylistContext";
 import { usePlayer } from "../context/PlayerContext";
-import { useToast } from "../context/ToastContext";
+import { toast } from 'sonner';
 import { ConfirmModal } from "./ConfirmModal";
 import { EditCoverModal } from "./EditCoverModal";
 import { EditPlaylistModal } from "./EditPlaylistModal";
@@ -16,7 +16,6 @@ interface PlaylistHeroProps {
 export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
   const { renameGroup, deleteGroup, updatePlaylistCover, updatePlaylistDetails } = usePlaylist();
   const { playSong } = usePlayer();
-  const { addToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(activeGroup.name);
   const [showOptions, setShowOptions] = useState(false);
@@ -87,22 +86,10 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
   };
 
   const handlePlayAll = () => {
+    triggerHaptic();
     if (activeGroup.songs.length > 0) {
       playSong(activeGroup.songs[0], activeGroup.songs);
     }
-  };
-
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/p/${activeGroup.id}`);
-      addToast("Link Copied!", "success");
-      if (activeGroup.visibility === "private" || !activeGroup.visibility) {
-        addToast("This playlist is private. Change visibility to share.", "info");
-      }
-    } catch (e) {
-      addToast("Failed to copy link", "error");
-    }
-    setShowOptions(false);
   };
 
 // Handle user click for public profiles
@@ -162,14 +149,7 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
                       </button>
 
                       {showOptions && (
-                        <div className="absolute right-0 top-full mt-2 w-48 origin-top-right z-[90] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 animate-in fade-in zoom-in-95 duration-150">
-                          <button
-                            onClick={handleShare}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
-                          >
-                            <Share2 className="w-4 h-4" />
-                            Share Playlist
-                          </button>
+                        <div className="absolute right-0 top-full mt-2 w-48 origin-top-right z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 animate-in fade-in zoom-in-95 duration-150">
                           <button
                             onClick={() => {
                               setShowEditDetailsModal(true);
@@ -236,7 +216,7 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
               </button>
             )}
             <button
-              onClick={onAddSong}
+              onClick={(e) => { triggerHaptic(); onAddSong(); }}
               className="p-3 md:px-5 md:py-3 flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white rounded-full font-medium shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-white/50 border border-white/10 hover:scale-105 active:scale-95"
             >
               <Plus className="w-5 h-5" />

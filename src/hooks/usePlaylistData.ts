@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { PlaylistGroup, Song } from "../types";
-import { useToast } from "../context/ToastContext";
+import { toast } from 'sonner';
 
 const LOCAL_STORAGE_KEY = "resavvy_data";
 
 export function usePlaylistData() {
-  const { addToast } = useToast();
   const [groups, setGroups] = useState<PlaylistGroup[]>(() => {
     try {
       const item = window.localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -34,12 +33,12 @@ export function usePlaylistData() {
       songs: [],
     };
     setGroups((prevGroups) => [...prevGroups, newGroup]);
-    addToast(`Created playlist "${name}"`, 'success');
+    toast.success(`Created playlist "${name}"`);
   };
 
   const deleteGroup = (groupId: string) => {
     setGroups((prevGroups) => prevGroups.filter((g) => g.id !== groupId));
-    addToast('Playlist deleted', 'info');
+    toast.info('Playlist deleted');
   };
 
   const addSong = (groupId: string, song: Omit<Song, "addedAt">) => {
@@ -71,9 +70,9 @@ export function usePlaylistData() {
     );
 
     if (wasDuplicate) {
-      addToast('Song already exists in playlist', 'error');
+      toast.error('Song already exists in playlist');
     } else if (wasAdded) {
-      addToast('Song added to playlist', 'success');
+      toast.success('Song added to playlist');
     }
   };
 
@@ -89,7 +88,7 @@ export function usePlaylistData() {
         return group;
       })
     );
-    addToast('Removed from playlist', 'info');
+    toast.info('Removed from playlist');
   };
 
   const renameGroup = (groupId: string, newName: string) => {
@@ -101,7 +100,7 @@ export function usePlaylistData() {
         return group;
       })
     );
-    addToast(`Playlist renamed to "${newName}"`, 'success');
+    toast.success(`Playlist renamed to "${newName}"`);
   };
 
   const reorderSongs = (groupId: string, newSongs: Song[]) => {
@@ -132,7 +131,7 @@ export function usePlaylistData() {
         return group;
       })
     );
-    addToast('Song updated successfully', 'success');
+    toast.success('Song updated successfully');
   };
 
   const updateSongDuration = (songId: string, durationStr: string) => {
@@ -179,7 +178,7 @@ export function usePlaylistData() {
         return group;
       })
     );
-    addToast(`Playlist details updated`, 'success');
+    toast.success(`Playlist details updated`);
   };
 
   const updatePlaylistCover = (groupId: string, type: 'random' | 'custom', url?: string) => {
@@ -191,7 +190,7 @@ export function usePlaylistData() {
         return group;
       })
     );
-    addToast('Playlist cover updated', 'success');
+    toast.success('Playlist cover updated');
   };
 
   return {

@@ -13,8 +13,6 @@ interface SidebarProps {
   createGroup: (name: string) => void;
   deleteGroup: (id: string) => void;
   isOpen: boolean;
-  isDark: boolean;
-  toggleTheme: () => void;
   onMenuClick: () => void;
   onCreatePlaylist: () => void;
 }
@@ -25,8 +23,6 @@ export function Sidebar({
   setActiveGroupId, 
   deleteGroup, 
   isOpen, 
-  isDark, 
-  toggleTheme,
   onMenuClick,
   onCreatePlaylist
 }: SidebarProps) {
@@ -62,13 +58,6 @@ export function Sidebar({
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={toggleTheme}
-            className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
-            aria-label="Toggle Theme"
-          >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          <button
             onClick={onMenuClick}
             className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors"
             aria-label="Close Sidebar"
@@ -81,7 +70,7 @@ export function Sidebar({
       <div className="p-4 border-b border-gray-200/50 dark:border-gray-700/50 flex flex-col gap-2">
         {user && (
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 truncate">
+            <div className="flex items-center gap-2 truncate cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowProfileModal(true)}>
               {user.avatarUrl ? (
                 <img src={user.avatarUrl} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-300 dark:border-gray-600" />
               ) : (
@@ -95,13 +84,6 @@ export function Sidebar({
               </div>
             </div>
             <div className="flex shrink-0">
-              <button
-                onClick={() => setShowProfileModal(true)}
-                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
-                title="Edit Profile"
-              >
-                <Settings className="w-4 h-4" />
-              </button>
               <button
                 onClick={logout}
                 className="p-2 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-red-400 transition-colors"
@@ -159,6 +141,17 @@ export function Sidebar({
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>
             <span>My Library</span>
+          </div>
+          <div 
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors cursor-pointer ${
+              activeGroupId === 'settings'
+                ? "bg-gray-200 dark:bg-gray-700/80 text-gray-900 dark:text-gray-100 font-bold"
+                : "text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-gray-700/50 font-medium"
+            }`}
+            onClick={() => setActiveGroupId('settings')}
+          >
+            <Settings className="w-[18px] h-[18px]" />
+            <span>Settings</span>
           </div>
         </div>
 
