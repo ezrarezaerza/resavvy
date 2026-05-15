@@ -19,12 +19,12 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
 
   useEffect(() => {
     if (token) {
-      fetch('/api/smart/heavy-rotation', { headers: { 'Authorization': `Bearer ${token}` } })
+      fetch('/api/social?type=rotation', { headers: { 'Authorization': `Bearer ${token}` } })
         .then(res => res.json())
         .then(data => { if (Array.isArray(data)) setHeavyRotation(data); })
         .catch(console.error);
 
-      fetch('/api/smart/trending', { headers: { 'Authorization': `Bearer ${token}` } })
+      fetch('/api/social?type=trending', { headers: { 'Authorization': `Bearer ${token}` } })
         .then(res => res.json())
         .then(data => { if (Array.isArray(data)) setTrending(data); })
         .catch(console.error);

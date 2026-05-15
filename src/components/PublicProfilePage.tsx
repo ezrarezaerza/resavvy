@@ -21,7 +21,7 @@ export function PublicProfilePage({ username }: PublicProfilePageProps) {
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch(`/api/users/${username}`);
+      const res = await fetch(`/api/social?type=profile&username=${username}`);
       if (!res.ok) {
         throw new Error(res.status === 404 ? 'User not found' : 'Failed to fetch profile');
       }

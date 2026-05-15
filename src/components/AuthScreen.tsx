@@ -17,7 +17,7 @@ export function AuthScreen() {
     setIsLoading(true);
 
     try {
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      const endpoint = isLogin ? '/api/auth?action=login' : '/api/auth?action=register';
       const body = isLogin ? { username, password } : { name, username, password };
 
       const res = await fetch(endpoint, {

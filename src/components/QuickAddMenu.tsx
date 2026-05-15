@@ -43,7 +43,7 @@ export function QuickAddMenu({ song }: QuickAddMenuProps) {
     });
 
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/songs`, {
+      const res = await fetch(`/api/songs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

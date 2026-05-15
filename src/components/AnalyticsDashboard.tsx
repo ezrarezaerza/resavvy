@@ -34,7 +34,7 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
   const fetchAnalytics = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/analytics/stats', {
+      const res = await fetch('/api/social?type=stats', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {

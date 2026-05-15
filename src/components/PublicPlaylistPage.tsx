@@ -26,7 +26,7 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
         const headers: Record<string, string> = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const res = await fetch(`/api/playlists/${playlistId}`, { headers });
+        const res = await fetch(`/api/playlists?id=${playlistId}`, { headers });
         if (!res.ok) {
           throw new Error('Failed to fetch playlist');
         }
@@ -49,7 +49,7 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
 
     setIsImporting(true);
     try {
-      const res = await fetch(`/api/playlists/${playlistId}/import`, {
+      const res = await fetch(`/api/playlists?action=import&id=${playlistId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

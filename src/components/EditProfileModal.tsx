@@ -31,7 +31,7 @@ export function EditProfileModal({ isOpen, onClose, currentName, currentUsername
     setIsSubmitting(true);
     
     try {
-      const res = await fetch('/api/users/update-profile', {
+      const res = await fetch('/api/auth?action=update-profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

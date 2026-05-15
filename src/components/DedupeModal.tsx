@@ -37,7 +37,7 @@ export function DedupeModal({ isOpen, onClose, onRefresh }: DedupeModalProps) {
     if (!token) return;
     setIsLoading(true);
     try {
-      const res = await fetch('/api/library/dedupe', {
+      const res = await fetch('/api/songs?action=dedupe', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
@@ -56,7 +56,7 @@ export function DedupeModal({ isOpen, onClose, onRefresh }: DedupeModalProps) {
     if (!token) return;
     setIsMerging(true);
     try {
-      const res = await fetch('/api/library/dedupe/merge', {
+      const res = await fetch('/api/songs?action=dedupe-merge', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

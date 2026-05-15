@@ -70,7 +70,7 @@ const SongRow = memo(function SongRow({
     setIsLiked(!isLiked);
     
     try {
-      const res = await fetch(`/api/songs/like`, {
+      const res = await fetch(`/api/songs?action=like`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

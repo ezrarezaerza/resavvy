@@ -25,7 +25,7 @@ export function LibraryDashboard() {
   const fetchLibrarySongs = async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/library/songs', {
+      const res = await fetch('/api/songs', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {

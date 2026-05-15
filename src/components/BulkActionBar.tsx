@@ -45,7 +45,7 @@ export function BulkActionBar({ selectedSongs, onClear, onComplete }: BulkAction
       // But creating a playlist isn't easily done locally without knowing its ID sync.
       // So we will just proceed. We need `createGroup` exposed or just wait for refresh.
 
-      const bulkRes = await fetch('/api/library/bulk', {
+      const bulkRes = await fetch('/api/songs?action=bulk', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,7 +84,7 @@ export function BulkActionBar({ selectedSongs, onClear, onComplete }: BulkAction
         });
       });
 
-      const bulkRes = await fetch('/api/library/bulk', {
+      const bulkRes = await fetch('/api/songs?action=bulk', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

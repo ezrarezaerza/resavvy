@@ -22,7 +22,8 @@ export function ExploreDashboard() {
     if (!token) return;
     setIsLoading(true);
     try {
-      const url = new URL('/api/explore/songs', window.location.origin);
+      const url = new URL('/api/social', window.location.origin);
+      url.searchParams.append('type', 'explore');
       if (searchQuery) url.searchParams.append('query', searchQuery);
       
       const res = await fetch(url.toString(), {

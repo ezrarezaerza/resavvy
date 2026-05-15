@@ -22,7 +22,8 @@ export function DiscoveryDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
   const fetchDiscoveryData = async () => {
     setIsLoading(true);
     try {
-      const url = new URL('/api/discovery', window.location.origin);
+      const url = new URL('/api/social', window.location.origin);
+      url.searchParams.append('type', 'discovery');
       if (selectedTag) url.searchParams.append('tag', selectedTag);
       
       const headers: Record<string, string> = {};

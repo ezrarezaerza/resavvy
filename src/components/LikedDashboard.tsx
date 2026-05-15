@@ -22,7 +22,7 @@ export function LikedDashboard() {
     if (!token) return;
     setIsLoading(true);
     try {
-      const res = await fetch('/api/library/liked', {
+      const res = await fetch('/api/songs?action=liked', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.ok) {
