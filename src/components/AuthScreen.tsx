@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { AudioLines } from 'lucide-react';
+import { clearOfflineCache } from '../hooks/useOfflineLibrary';
 
 export function AuthScreen() {
   const { login } = useAuth();
@@ -38,7 +39,10 @@ export function AuthScreen() {
         throw new Error(data.error || 'Authentication failed');
       }
 
+      await clearOfflineCache();
+      localStorage.removeItem('prototype_id'); // Completely clears any old prototype identifiers
       login(data.token, data.user);
+      window.location.href = '/'; // Trigger global re-render / redirect to dashboard
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {

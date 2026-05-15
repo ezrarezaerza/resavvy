@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Info, Save, Database, Trash2, Download } from 'lucide-react';
+import { Settings, Info, Save, Database, Trash2, Download, Upload } from 'lucide-react';
 import { useSettings, Theme } from '../hooks/useSettings';
 import { ToggleSwitch } from './ToggleSwitch';
 import { SegmentedControl } from './SegmentedControl';
-import { getStorageEstimate, exportLibrary, clearAppCache } from '../utils/storageManager';
+import { getStorageEstimate, exportLibrary, clearAppCache, importLibrary } from '../utils/storageManager';
 import { ConfirmModal } from './ConfirmModal';
+import { toast } from 'sonner';
 
 export function SettingsDashboard() {
   const { theme, setTheme, autoplay, setAutoplay, dataSaver, setDataSaver } = useSettings();
   const [storageData, setStorageData] = useState({ usage: 0, quota: 0, percentage: 0 });
   const [isConfirmingClear, setIsConfirmingClear] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   useEffect(() => {
     getStorageEstimate().then(setStorageData);
@@ -18,6 +20,35 @@ export function SettingsDashboard() {
   const handleClearCache = async () => {
     setIsConfirmingClear(false);
     await clearAppCache();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const token = localStorage.getItem('token');
+    
+    // Using toast.promise instead of just info
+    const importPromise = new Promise(async (resolve, reject) => {
+      try {
+        if (!token) throw new Error('You must be logged in to import a library.');
+        const result = await importLibrary(file, token);
+        resolve(result);
+        setTimeout(() => window.location.reload(), 1500);
+      } catch (err) {
+        reject(err);
+      } finally {
+        setIsImporting(false);
+        if (e.target) e.target.value = '';
+      }
+    });
+
+    toast.promise(importPromise, {
+      loading: 'Importing library...',
+      success: (data: any) => `Successfully restored ${data.added || 0} songs!`,
+      error: (err: any) => `Failed to import: ${err.message}`
+    });
   };
 
   return (
@@ -118,6 +149,16 @@ export function SettingsDashboard() {
                 >
                   <Download className="w-4 h-4" />
                   Export Library Data (JSON)
+                </button>
+
+                <input type="file" accept=".json" id="import-upload" className="hidden" onChange={handleFileUpload} />
+                <button
+                  disabled={isImporting}
+                  onClick={() => document.getElementById('import-upload')?.click()}
+                  className="w-full py-3 px-4 flex items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 font-medium rounded-xl transition-colors border border-indigo-200 dark:border-indigo-500/20 shadow-sm disabled:opacity-50"
+                >
+                  <Upload className="w-4 h-4" />
+                  {isImporting ? 'Importing...' : 'Restore Library (JSON)'}
                 </button>
 
                 <button

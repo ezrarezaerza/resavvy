@@ -97,7 +97,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
      
      if (action === 'bulk') {
          try {
-           const { playlistId, items } = req.body;
+           const { playlistId, items, songs } = req.body;
+           
+           if (songs) {
+               let targetPlaylistId = playlistId;
+               if (!targetPlaylistId) {
+                  let p = await prisma.playlist.findFirst({ where: { userId: user.id } });
+                  if (!p) p = await prisma.playlist.create({ data: { userId: user.id, name: 'Imported Library' }});
+                  targetPlaylistId = p.id;
+               }
+
+               const dataToInsert = songs.map((item: any) => ({
+                 playlistId: targetPlaylistId,
+                 youtubeId: item.youtubeId || item.id,
+                 title: item.title,
+                 artist: item.artist || 'Unknown',
+                 thumbnailUrl: item.thumbnailUrl,
+                 duration: item.duration !== undefined ? String(item.duration) : '0:00'
+               }));
+
+               await prisma.song.createMany({ data: dataToInsert, skipDuplicates: true });
+               return res.status(201).json({ added: dataToInsert.length });
+           }
+
            const playlist = await prisma.playlist.findUnique({ where: { id: playlistId }});
            if (!playlist || playlist.userId !== user.id) return res.status(403).json({ error: 'Forbidden' });
            
@@ -110,7 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              duration: item.duration !== undefined ? String(item.duration) : '0:00'
            }));
 
-           await prisma.song.createMany({ data: dataToInsert });
+           await prisma.song.createMany({ data: dataToInsert, skipDuplicates: true });
            return res.status(201).json({ added: dataToInsert.length });
          } catch(error) {
            return res.status(500).json({ error: 'Failed' });
