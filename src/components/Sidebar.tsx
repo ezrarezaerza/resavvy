@@ -5,6 +5,7 @@ import { ConfirmModal } from "./ConfirmModal";
 import { usePlaylist } from "../context/PlaylistContext";
 import { useAuth } from "../context/AuthContext";
 import { EditProfileModal } from "./EditProfileModal";
+import { clearUserData } from "../utils/storageManager";
 
 interface SidebarProps {
   groups: PlaylistGroup[];
@@ -31,6 +32,12 @@ export function Sidebar({
   const [showProfileModal, setShowProfileModal] = useState(false);
   const { renameGroup } = usePlaylist();
   const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await clearUserData();
+    logout();
+    window.location.href = '/';
+  };
 
   const goHome = () => {
     setActiveGroupId(null);
@@ -85,7 +92,7 @@ export function Sidebar({
             </div>
             <div className="flex shrink-0">
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="p-2 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-red-400 transition-colors"
                 title="Log Out"
               >

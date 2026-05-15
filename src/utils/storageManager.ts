@@ -36,6 +36,16 @@ export async function exportLibrary() {
   }
 }
 
+export async function clearUserData() {
+  try {
+    await clear();
+    localStorage.removeItem('resavvy_token');
+    localStorage.removeItem('prototype_id');
+  } catch (error) {
+    console.error('Clear user data error:', error);
+  }
+}
+
 export async function clearAppCache() {
   try {
     await clear();

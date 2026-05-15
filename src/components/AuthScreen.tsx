@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { AudioLines } from 'lucide-react';
-import { clearOfflineCache } from '../hooks/useOfflineLibrary';
+import { clearUserData } from '../utils/storageManager';
 
 export function AuthScreen() {
   const { login } = useAuth();
@@ -18,6 +18,8 @@ export function AuthScreen() {
     setIsLoading(true);
 
     try {
+      await clearUserData();
+
       const endpoint = isLogin ? '/api/auth?action=login' : '/api/auth?action=register';
       const body = isLogin ? { username, password } : { name, username, password };
 
@@ -39,8 +41,6 @@ export function AuthScreen() {
         throw new Error(data.error || 'Authentication failed');
       }
 
-      await clearOfflineCache();
-      localStorage.removeItem('prototype_id'); // Completely clears any old prototype identifiers
       login(data.token, data.user);
       window.location.href = '/'; // Trigger global re-render / redirect to dashboard
     } catch (err: any) {
