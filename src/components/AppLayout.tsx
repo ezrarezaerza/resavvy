@@ -104,7 +104,6 @@ export function AppLayout() {
           onMenuClick={toggleSidebar} 
           isSidebarOpen={isSidebarOpen}
           onLogoClick={() => handleGroupSelect(null)}
-          activePlaylistId={activeGroup?.id}
         />
         <div className="flex flex-1 overflow-hidden relative">
           <Sidebar 

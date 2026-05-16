@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon } from "lucide-react";
+import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon, Share2 } from "lucide-react";
 import { PlaylistGroup } from "../types";
 import { usePlaylist } from "../context/PlaylistContext";
 import { usePlayer } from "../context/PlayerContext";
@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { ConfirmModal } from "./ConfirmModal";
 import { EditCoverModal } from "./EditCoverModal";
 import { EditPlaylistModal } from "./EditPlaylistModal";
+import { nativeShare } from "../utils/nativeCapabilities";
 
 interface PlaylistHeroProps {
   activeGroup: PlaylistGroup;
@@ -92,6 +93,18 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
     }
   };
 
+  const handleShare = async () => {
+    try {
+      if (activeGroup.visibility === "private" || !activeGroup.visibility) {
+        toast.info("This playlist is private. Change visibility to share.");
+      }
+      await nativeShare(`Playlist: ${activeGroup.name}`, `${window.location.origin}/p/${activeGroup.id}`);
+    } catch (e) {
+      toast.error("Failed to copy link");
+    }
+    setShowOptions(false);
+  };
+
 // Handle user click for public profiles
   const handleUserClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -149,7 +162,14 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
                       </button>
 
                       {showOptions && (
-                        <div className="absolute right-0 top-full mt-2 w-48 origin-top-right z-50 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 animate-in fade-in zoom-in-95 duration-150">
+                        <div className="absolute right-0 top-full mt-2 w-48 origin-top-right z-[90] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 animate-in fade-in zoom-in-95 duration-150">
+                          <button
+                            onClick={handleShare}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
+                          >
+                            <Share2 className="w-4 h-4" />
+                            Share Playlist
+                          </button>
                           <button
                             onClick={() => {
                               setShowEditDetailsModal(true);

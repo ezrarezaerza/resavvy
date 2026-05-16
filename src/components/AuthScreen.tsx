@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { AudioLines } from 'lucide-react';
-import { clearUserData } from '../utils/storageManager';
 
 export function AuthScreen() {
   const { login } = useAuth();
@@ -18,8 +17,6 @@ export function AuthScreen() {
     setIsLoading(true);
 
     try {
-      await clearUserData();
-
       const endpoint = isLogin ? '/api/auth?action=login' : '/api/auth?action=register';
       const body = isLogin ? { username, password } : { name, username, password };
 
@@ -42,7 +39,6 @@ export function AuthScreen() {
       }
 
       login(data.token, data.user);
-      window.location.href = '/'; // Trigger global re-render / redirect to dashboard
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {

@@ -26,14 +26,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { name, username, password } = req.body;
         if (!name || !username || !password) return res.status(400).json({ error: 'Missing fields' });
         
-        const sanitizedUsername = username.toLowerCase().trim();
-        const existing = await prisma.user.findUnique({ where: { username: sanitizedUsername } });
+        const existing = await prisma.user.findUnique({ where: { username } });
         if (existing) return res.status(409).json({ error: 'Username taken' });
 
         const salt = await bcrypt.genSalt(10);
         const passwordHash = await bcrypt.hash(password, salt);
 
-        const user = await prisma.user.create({ data: { name, username: sanitizedUsername, passwordHash } });
+        const user = await prisma.user.create({ data: { name, username, passwordHash } });
         const token = jwt.sign({ id: user.id, name: user.name, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
 
         return res.status(201).json({ token, user: { id: user.id, name: user.name, username: user.username } });
@@ -47,8 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { username, password } = req.body;
         if (!username || !password) return res.status(400).json({ error: 'Missing credentials' });
 
-        const sanitizedUsername = username.toLowerCase().trim();
-        const user = await prisma.user.findUnique({ where: { username: sanitizedUsername } });
+        const user = await prisma.user.findUnique({ where: { username } });
         if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
         const isMatch = await bcrypt.compare(password, user.passwordHash);

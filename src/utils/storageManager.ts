@@ -36,16 +36,6 @@ export async function exportLibrary() {
   }
 }
 
-export async function clearUserData() {
-  try {
-    await clear();
-    localStorage.removeItem('resavvy_token');
-    localStorage.removeItem('prototype_id');
-  } catch (error) {
-    console.error('Clear user data error:', error);
-  }
-}
-
 export async function clearAppCache() {
   try {
     await clear();
@@ -62,52 +52,5 @@ export async function clearAppCache() {
   } catch (error) {
     console.error('Clear cache error:', error);
     toast.error('Failed to clear cache');
-  }
-}
-
-export async function importLibrary(file: File, token: string) {
-  try {
-    const text = await file.text();
-    const parsed = JSON.parse(text);
-
-    let allSongs: any[] = [];
-    if (Array.isArray(parsed)) {
-      for (const item of parsed) {
-        if (item.songs && Array.isArray(item.songs)) {
-          allSongs.push(...item.songs);
-        } else if (item.youtubeId) {
-          allSongs.push(item);
-        }
-      }
-    } else if (parsed && Array.isArray(parsed.songs)) {
-      allSongs.push(...parsed.songs);
-    } else {
-      throw new Error('Invalid library format');
-    }
-
-    if (allSongs.length === 0) {
-      throw new Error('No valid songs found in file');
-    }
-
-    const res = await fetch('/api/songs?action=bulk', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ songs: allSongs })
-    });
-
-    if (!res.ok) {
-         const d = await res.json().catch(() => ({}));
-         throw new Error(d.error || 'Failed to import');
-    }
-
-    // clear cache on success
-    await clear();
-    return await res.json();
-  } catch (error: any) {
-    console.error('Import error:', error);
-    throw error;
   }
 }
