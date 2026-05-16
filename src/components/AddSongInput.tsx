@@ -57,11 +57,14 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
     }
   };
 
-  const formatTime = (duration: string | number | undefined) => {
-    if (duration === undefined || duration === null || duration === '--:--') return '--:--';
-    if (typeof duration === 'string' && duration.includes(':')) return duration;
-    const seconds = typeof duration === 'string' ? parseInt(duration, 10) : duration;
+  const formatTime = (secondsVal: string | number | undefined) => {
+    if (secondsVal === undefined || secondsVal === null || secondsVal === '--:--') return '--:--';
+    if (typeof secondsVal === 'string' && secondsVal.includes(':')) return secondsVal;
+    
+    // Parse to ensure we have a valid number
+    const seconds = Number(secondsVal);
     if (isNaN(seconds)) return '--:--';
+    
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
     return `${m}:${s.toString().padStart(2, '0')}`;
@@ -87,7 +90,7 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
       const data = await fetchYouTubeMetadata(url);
       const parsed = parseYouTubeTitle(data.title);
       
-      const hqThumbnail = `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
+      const hqThumbnail = `https://i.ytimg.com/vi/${videoId}/hq720.jpg`;
       
       setMetadata({
         videoId,
@@ -117,8 +120,11 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
     }
   };
 
-  const cleanYouTubeTitle = (rawTitle: string, defaultArtist: string) => {
-    let cleaned = rawTitle.replace(/\[.*?\]|\(.*?\)|official(?: music)? video|lyric(?:s| video)?/gi, '').trim();
+  const cleanYouTubeTitle = (title: string) => {
+    let cleaned = title.replace(/official(?: music)? video|lyric(?:s| video)?/gi, '').trim();
+    cleaned = cleaned.replace(/\(\s*\)|\[\s*\]/g, '').trim();
+    cleaned = cleaned.replace(/-+$/, '').trim();
+
     // Attempt to split by '-' if it exists
     if (cleaned.includes(' - ')) {
       const parts = cleaned.split(' - ');
@@ -133,17 +139,17 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
         title: parts.slice(1).join('-').trim()
       };
     }
-    return { title: cleaned, artist: defaultArtist };
+    return { title: cleaned };
   };
 
   const handleResultClick = (result: SearchResult) => {
     setMode('manual');
-    setUrl('https://www.youtube.com/watch?v=' + result.id);
+    setUrl(`https://www.youtube.com/watch?v=${result.id}`);
     
-    const { title: newTitle, artist: newArtist } = cleanYouTubeTitle(result.title, result.artist);
+    const { title: newTitle, artist: newArtist } = cleanYouTubeTitle(result.title);
 
-    setTitle(newTitle);
-    setArtist(newArtist);
+    setTitle(newTitle || '');
+    setArtist(newArtist || result.artist); // user can edit this
     setStagedDuration(result.duration);
     
     setMetadata({

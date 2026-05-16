@@ -85,6 +85,16 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
     displayImage = playlist.songs[0].thumbnailUrl.replace('mqdefault.jpg', 'maxresdefault.jpg').replace('hqdefault.jpg', 'maxresdefault.jpg');
   }
 
+  const formatTime = (secondsVal: string | number | undefined) => {
+    if (secondsVal === undefined || secondsVal === null || secondsVal === '--:--') return '--:--';
+    if (typeof secondsVal === 'string' && secondsVal.includes(':')) return secondsVal;
+    const seconds = Number(secondsVal);
+    if (isNaN(seconds)) return '--:--';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
   return (
     <div className="h-screen flex flex-col bg-slate-50 dark:bg-[#0a0a0a] overflow-auto text-gray-900 dark:text-gray-100 font-sans">
       {/* Hero Section */}
@@ -161,7 +171,7 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
                   <h3 className="text-gray-900 dark:text-white font-bold truncate">{song.title}</h3>
                   <p className="text-gray-500 dark:text-gray-400 text-sm font-medium truncate">{song.artist || 'Unknown Artist'}</p>
                </div>
-               <div className="text-gray-400 dark:text-gray-500 font-medium text-sm">{song.duration}</div>
+               <div className="text-gray-400 dark:text-gray-500 font-medium text-sm">{formatTime(song.duration)}</div>
                <button 
                   onClick={() => playSong(song, playlist.songs)}
                   className="ml-4 p-2 text-indigo-500 dark:text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-indigo-600 dark:hover:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-transparent rounded-full"

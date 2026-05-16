@@ -118,13 +118,12 @@ const SongRow = memo(function SongRow({
     return new Date(timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  const formatTime = (duration: string | number | undefined) => {
-    if (duration === undefined || duration === null || duration === '--:--') return '--:--';
-    // If it's already in mm:ss format, return it
-    if (typeof duration === 'string' && duration.includes(':')) {
-      return duration;
-    }
-    const seconds = typeof duration === 'string' ? parseInt(duration, 10) : duration;
+  const formatTime = (secondsVal: string | number | undefined) => {
+    if (secondsVal === undefined || secondsVal === null || secondsVal === '--:--') return '--:--';
+    if (typeof secondsVal === 'string' && secondsVal.includes(':')) return secondsVal;
+    
+    // Parse to ensure it's a number
+    const seconds = Number(secondsVal);
     if (isNaN(seconds)) return '--:--';
     
     const m = Math.floor(seconds / 60);

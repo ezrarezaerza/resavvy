@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Download } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -17,12 +17,35 @@ export function EditProfileModal({ isOpen, onClose, currentName, currentUsername
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   useEffect(() => {
     // We could fetch the full profile here to pre-fill bio/avatar if we had context for it.
     // For now we just initialize it empty, user can overwrite.
     setName(currentName);
   }, [currentName]);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        addToast('App installing...', 'success');
+      }
+      setDeferredPrompt(null);
+    } else {
+      addToast('App is already installed or your browser does not support it.', 'info');
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -75,7 +98,7 @@ export function EditProfileModal({ isOpen, onClose, currentName, currentUsername
           <X className="w-6 h-6" />
         </button>
 
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Edit Profile</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Settings</h2>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
@@ -112,6 +135,17 @@ export function EditProfileModal({ isOpen, onClose, currentName, currentUsername
               className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-shadow"
               placeholder="https://..."
             />
+          </div>
+
+          <div className="pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <span className="text-sm text-gray-600 dark:text-gray-400">App</span>
+            <button
+              type="button"
+              onClick={handleInstallPWA}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+            >
+              <Download className="w-4 h-4" /> Install Desktop/Mobile App
+            </button>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
