@@ -12,20 +12,6 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        workbox: {
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: { cacheName: 'google-fonts-cache' }
-            },
-            {
-              urlPattern: /\.(?:png|jpg|jpeg|svg)$/,
-              handler: 'StaleWhileRevalidate',
-              options: { cacheName: 'image-cache' }
-            }
-          ]
-        },
         manifest: {
           name: 'Resavvy',
           short_name: 'Resavvy',
@@ -47,6 +33,9 @@ export default defineConfig(({mode}) => {
         }
       })
     ],
+    define: {
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

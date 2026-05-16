@@ -1,13 +1,16 @@
 import React from "react";
-import { Menu, AudioLines } from "lucide-react";
+import { Menu, AudioLines, Moon, Sun } from "lucide-react";
+import { useSettings } from "../context/SettingsContext";
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
+  isDark: boolean;
+  toggleTheme: () => void;
   isSidebarOpen: boolean;
   onLogoClick: () => void;
 }
 
-export function MobileHeader({ onMenuClick, isSidebarOpen, onLogoClick }: MobileHeaderProps) {
+export function MobileHeader({ onMenuClick, isDark, toggleTheme, isSidebarOpen, onLogoClick }: MobileHeaderProps) {
   return (
     <div className={`flex items-center justify-between p-4 bg-white/60 dark:bg-gray-900/60 backdrop-blur-2xl border-b border-white/20 dark:border-gray-700/30 shrink-0 z-20 ${isSidebarOpen ? 'md:hidden' : ''}`}>
       <button 
@@ -28,7 +31,13 @@ export function MobileHeader({ onMenuClick, isSidebarOpen, onLogoClick }: Mobile
         <span>Resavvy</span>
       </div>
 
-      <div className="w-6 h-6" aria-hidden="true" />
+      <button
+        onClick={toggleTheme}
+        className="p-3 -m-3 rounded-full active:bg-gray-200 dark:active:bg-gray-800 transition-colors focus:outline-none"
+        aria-label="Toggle Theme"
+      >
+        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </button>
     </div>
   );
 }

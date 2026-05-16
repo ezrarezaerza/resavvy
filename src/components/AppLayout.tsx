@@ -14,19 +14,15 @@ import { LibraryDashboard } from "./LibraryDashboard";
 import { DiscoveryDashboard } from "./DiscoveryDashboard";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { LikedDashboard } from "./LikedDashboard";
-import { SettingsDashboard } from "./SettingsDashboard";
 import { CommandPalette } from "./CommandPalette";
 import { Toaster, toast } from 'sonner';
 
 import { usePlayer } from "../context/PlayerContext";
-import { useMediaSession } from "../hooks/useMediaSession";
 
 export function AppLayout() {
   useKeyboardShortcuts();
   const { groups, createGroup, deleteGroup, addSong, removeSong } = usePlaylist();
   const { currentSong } = usePlayer();
-  useMediaSession(currentSong);
-
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [isAddSongModalOpen, setIsAddSongModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
@@ -53,10 +49,22 @@ export function AppLayout() {
     };
   }, [isSidebarOpen]);
 
+  
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    document.documentElement.classList.add("dark");
+  }, []);
+
+  const toggleTheme = () => {
+    setIsDark(!isDark);
+    document.documentElement.classList.toggle("dark");
+  };
+
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   useEffect(() => {
-    if (activeGroupId && activeGroupId !== 'settings' && activeGroupId !== 'library' && activeGroupId !== 'discovery' && activeGroupId !== 'liked' && activeGroupId !== 'analytics' && !groups.find(g => g.id === activeGroupId)) {
+    if (activeGroupId && activeGroupId !== 'library' && activeGroupId !== 'discovery' && activeGroupId !== 'liked' && activeGroupId !== 'analytics' && !groups.find(g => g.id === activeGroupId)) {
        setActiveGroupId(null);
     }
   }, [groups, activeGroupId]);
@@ -100,6 +108,8 @@ export function AppLayout() {
       <div className="relative z-10 flex flex-col w-full h-full">
         <MobileHeader 
           onMenuClick={toggleSidebar} 
+          isDark={isDark} 
+          toggleTheme={toggleTheme} 
           isSidebarOpen={isSidebarOpen}
           onLogoClick={() => handleGroupSelect(null)}
         />
@@ -111,6 +121,8 @@ export function AppLayout() {
             createGroup={createGroup}
             deleteGroup={deleteGroup}
             isOpen={isSidebarOpen}
+            isDark={isDark}
+            toggleTheme={toggleTheme}
             onMenuClick={toggleSidebar}
             onCreatePlaylist={() => setIsCreatingModalOpen(true)}
           />
@@ -134,8 +146,6 @@ export function AppLayout() {
               <LikedDashboard />
             ) : activeGroupId === 'library' ? (
               <LibraryDashboard />
-            ) : activeGroupId === 'settings' ? (
-              <SettingsDashboard />
             ) : activeGroup ? (
               <div className="w-full flex-1 flex flex-col pb-32">
                 <PlaylistHero 

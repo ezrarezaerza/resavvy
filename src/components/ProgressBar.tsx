@@ -1,7 +1,6 @@
 import React from 'react';
 
 interface ProgressBarProps {
-  key?: React.Key;
   label: string;
   value: number;
   percentage: number;

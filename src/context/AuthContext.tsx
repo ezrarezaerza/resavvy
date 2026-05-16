@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { clearUserSession } from '../utils/sessionManager';
 
 export interface User {
   id: string;
@@ -57,8 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    clearUserSession();
-    window.location.href = '/login';
+    localStorage.removeItem('resavvy_token');
+    setToken(null);
+    setUser(null);
   };
 
   return (

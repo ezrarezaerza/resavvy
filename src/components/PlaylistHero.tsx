@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { ConfirmModal } from "./ConfirmModal";
 import { EditCoverModal } from "./EditCoverModal";
 import { EditPlaylistModal } from "./EditPlaylistModal";
-import { nativeShare, triggerHaptic } from "../utils/nativeCapabilities";
 
 interface PlaylistHeroProps {
   activeGroup: PlaylistGroup;
@@ -87,7 +86,6 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
   };
 
   const handlePlayAll = () => {
-    triggerHaptic();
     if (activeGroup.songs.length > 0) {
       playSong(activeGroup.songs[0], activeGroup.songs);
     }
@@ -95,10 +93,11 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
 
   const handleShare = async () => {
     try {
+      await navigator.clipboard.writeText(`${window.location.origin}/p/${activeGroup.id}`);
+      toast.success("Link Copied!");
       if (activeGroup.visibility === "private" || !activeGroup.visibility) {
         toast.info("This playlist is private. Change visibility to share.");
       }
-      await nativeShare(`Playlist: ${activeGroup.name}`, `${window.location.origin}/p/${activeGroup.id}`);
     } catch (e) {
       toast.error("Failed to copy link");
     }
@@ -236,7 +235,7 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
               </button>
             )}
             <button
-              onClick={(e) => { triggerHaptic(); onAddSong(); }}
+              onClick={onAddSong}
               className="p-3 md:px-5 md:py-3 flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white rounded-full font-medium shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-white/50 border border-white/10 hover:scale-105 active:scale-95"
             >
               <Plus className="w-5 h-5" />

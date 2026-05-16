@@ -5,7 +5,7 @@
 
 import { AppLayout } from "./components/AppLayout";
 import { PlayerProvider } from "./context/PlayerContext";
-import { SettingsProvider } from "./hooks/useSettings";
+import { SettingsProvider } from "./context/SettingsContext";
 import { PlaylistProvider } from "./context/PlaylistContext";
 import { HiddenYouTubePlayer } from "./components/HiddenYouTubePlayer";
 import { ToastProvider } from "./context/ToastContext";
@@ -22,14 +22,6 @@ export default function App() {
     const onPopState = () => setCurrentPath(window.location.pathname);
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, []);
-
-  useEffect(() => {
-    const token = localStorage.getItem('resavvy_token');
-    const isPublic = window.location.pathname.startsWith('/p/') || window.location.pathname.startsWith('/u/') || window.location.pathname === '/login';
-    if (!token && !isPublic) {
-      window.location.href = '/login';
-    }
   }, []);
 
   const isPublicPlaylist = currentPath.startsWith('/p/');

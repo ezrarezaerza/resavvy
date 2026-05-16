@@ -3,7 +3,6 @@ import { extractYouTubeId, fetchYouTubeMetadata } from '../utils/youtube';
 import { parseYouTubeTitle } from '../utils/metadata';
 import { Song } from '../types';
 import { toast } from 'sonner';
-import { triggerHaptic } from '../utils/nativeCapabilities';
 
 interface FetchedMetadata {
   videoId: string;
@@ -112,7 +111,6 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
 
   const handleConfirmAdd = () => {
     if (metadata) {
-      triggerHaptic();
       onAdd({
         id: metadata.videoId,
         title: title.trim() || 'Unknown Title',

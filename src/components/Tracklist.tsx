@@ -4,10 +4,9 @@ import { useGSAP } from "@gsap/react";
 import { Clock, Play, MoreVertical, Edit2, Trash2, Heart } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { Song, PlaylistGroup } from "../types";
-import { useSettings } from "../hooks/useSettings";
+import { useSettings } from "../context/SettingsContext";
 import { usePlaylist } from "../context/PlaylistContext";
 import { useAuth } from "../context/AuthContext";
-import { triggerHaptic } from "../utils/nativeCapabilities";
 import { EmptyState } from "./EmptyState";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditSongModal } from "./EditSongModal";
@@ -66,8 +65,6 @@ const SongRow = memo(function SongRow({
   const toggleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!token || !song.id) return;
-    
-    triggerHaptic();
     
     // optimism
     setIsLiked(!isLiked);

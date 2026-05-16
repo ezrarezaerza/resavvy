@@ -47,7 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              occurrences: group.map((g: any) => ({
                songId: g.id,
                playlistName: g.playlist.name,
-               createdAt: g.createdAt
+               addedAt: g.addedAt
              }))
            }));
          return res.status(200).json(duplicates);
@@ -69,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        try {
          const songs = await prisma.song.findMany({
            where: { playlist: { userId: user.id } },
-           orderBy: { createdAt: 'desc' }
+           orderBy: { addedAt: 'desc' }
          });
          return res.status(200).json(songs);
        } catch(error) {
