@@ -3,7 +3,7 @@ import { Plus, Check } from 'lucide-react';
 import { Song } from '../types';
 import { usePlaylist } from '../context/PlaylistContext';
 import { useAuth } from '../context/AuthContext';
-import { toast } from 'sonner';
+import { useToast } from '../context/ToastContext';
 
 interface QuickAddMenuProps {
   song: Song;
@@ -15,6 +15,7 @@ export function QuickAddMenu({ song }: QuickAddMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const { groups, addSong } = usePlaylist();
   const { token } = useAuth();
+  const { addToast } = useToast();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -63,7 +64,8 @@ export function QuickAddMenu({ song }: QuickAddMenuProps) {
       setTimeout(() => setIsSuccess(false), 2000);
       setIsOpen(false);
     } catch (error) {
-       toast.error('Failed to add song to backend');
+       // if fails, the user is still shown a success toast from local context mostly
+       console.error(error);
     }
   };
 

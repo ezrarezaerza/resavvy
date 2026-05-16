@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { toast } from 'sonner';
+import { useToast } from '../context/ToastContext';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -12,6 +12,7 @@ interface EditProfileModalProps {
 
 export function EditProfileModal({ isOpen, onClose, currentName, currentUsername }: EditProfileModalProps) {
   const { token, user, login } = useAuth();
+  const { addToast } = useToast();
   const [name, setName] = useState(currentName);
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
@@ -53,10 +54,10 @@ export function EditProfileModal({ isOpen, onClose, currentName, currentUsername
          // if auth context updates manually:
          window.location.reload(); 
       }
-      toast.success('Profile updated');
+      addToast('Profile updated', 'success');
       onClose();
     } catch (err) {
-      toast.error('Error updating profile');
+      addToast('Error updating profile', 'error');
     } finally {
       setIsSubmitting(false);
     }

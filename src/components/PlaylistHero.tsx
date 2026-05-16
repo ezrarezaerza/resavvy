@@ -3,7 +3,7 @@ import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon, Share2 } from "lu
 import { PlaylistGroup } from "../types";
 import { usePlaylist } from "../context/PlaylistContext";
 import { usePlayer } from "../context/PlayerContext";
-import { toast } from 'sonner';
+import { useToast } from "../context/ToastContext";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditCoverModal } from "./EditCoverModal";
 import { EditPlaylistModal } from "./EditPlaylistModal";
@@ -16,6 +16,7 @@ interface PlaylistHeroProps {
 export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
   const { renameGroup, deleteGroup, updatePlaylistCover, updatePlaylistDetails } = usePlaylist();
   const { playSong } = usePlayer();
+  const { addToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(activeGroup.name);
   const [showOptions, setShowOptions] = useState(false);
@@ -94,12 +95,12 @@ export function PlaylistHero({ activeGroup, onAddSong }: PlaylistHeroProps) {
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/p/${activeGroup.id}`);
-      toast.success("Link Copied!");
+      addToast("Link Copied!", "success");
       if (activeGroup.visibility === "private" || !activeGroup.visibility) {
-        toast.info("This playlist is private. Change visibility to share.");
+        addToast("This playlist is private. Change visibility to share.", "info");
       }
     } catch (e) {
-      toast.error("Failed to copy link");
+      addToast("Failed to copy link", "error");
     }
     setShowOptions(false);
   };

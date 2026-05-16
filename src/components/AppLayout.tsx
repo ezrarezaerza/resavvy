@@ -14,8 +14,6 @@ import { LibraryDashboard } from "./LibraryDashboard";
 import { DiscoveryDashboard } from "./DiscoveryDashboard";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { LikedDashboard } from "./LikedDashboard";
-import { CommandPalette } from "./CommandPalette";
-import { Toaster, toast } from 'sonner';
 
 import { usePlayer } from "../context/PlayerContext";
 
@@ -30,15 +28,6 @@ export function AppLayout() {
   const [newPlaylistName, setNewPlaylistName] = useState("");
 
   useEffect(() => {
-    const handleCloseModals = () => {
-      setIsAddSongModalOpen(false);
-      setIsCreatingModalOpen(false);
-    };
-    window.addEventListener("close-modals", handleCloseModals);
-    return () => window.removeEventListener("close-modals", handleCloseModals);
-  }, []);
-
-  useEffect(() => {
     if (isSidebarOpen && window.innerWidth < 768) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -48,7 +37,6 @@ export function AppLayout() {
       document.body.style.overflow = 'unset';
     };
   }, [isSidebarOpen]);
-
   
   const [isDark, setIsDark] = useState(true);
 
@@ -206,9 +194,6 @@ export function AppLayout() {
             </div>
           </form>
         </Modal>
-        
-        <CommandPalette onNavigate={handleGroupSelect} />
-        <Toaster theme="dark" position="top-center" toastOptions={{ className: 'bg-[#1a1f2e] border border-white/10 text-white backdrop-blur-md' }} />
       </div>
     </div>
   );

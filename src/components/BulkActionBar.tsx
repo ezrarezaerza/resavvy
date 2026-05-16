@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Plus, FolderPlus } from 'lucide-react';
 import { usePlaylist } from '../context/PlaylistContext';
-import { toast } from 'sonner';
+import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { Modal } from './Modal';
 import { Song } from '../types';
@@ -12,8 +12,9 @@ interface BulkActionBarProps {
   onComplete: () => void;
 }
 
-  export function BulkActionBar({ selectedSongs, onClear, onComplete }: BulkActionBarProps) {
+export function BulkActionBar({ selectedSongs, onClear, onComplete }: BulkActionBarProps) {
   const { groups, addSong } = usePlaylist();
+  const { addToast } = useToast();
   const { token } = useAuth();
   
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -54,13 +55,13 @@ interface BulkActionBarProps {
       });
       if (!bulkRes.ok) throw new Error('Failed to add songs');
       
-      toast.success(`Created playlist and added ${selectedSongs.length} songs`);
+      addToast(`Created playlist and added ${selectedSongs.length} songs`, 'success');
       // local context updates...
       setShowCreateModal(false);
       setNewPlaylistName('');
       onComplete();
     } catch (error) {
-      toast.error('Failed to perform bulk action');
+      addToast('Failed to perform bulk action', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -99,7 +100,7 @@ interface BulkActionBarProps {
       setSelectedPlaylistId('');
       onComplete();
     } catch (error) {
-      toast.error('Failed to add to existing playlist');
+      console.error(error);
     } finally {
       setIsSubmitting(false);
     }

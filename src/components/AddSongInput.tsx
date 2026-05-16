@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { extractYouTubeId, fetchYouTubeMetadata } from '../utils/youtube';
 import { parseYouTubeTitle } from '../utils/metadata';
 import { Song } from '../types';
-import { toast } from 'sonner';
 
 interface FetchedMetadata {
   videoId: string;
@@ -52,9 +51,7 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
       }
       setResults(data);
     } catch (err: any) {
-      const msg = err instanceof Error ? err.message : 'Search error';
-      setError(msg);
-      toast.error(msg);
+      setError(err instanceof Error ? err.message : 'Search error');
     } finally {
       setIsSearching(false);
     }
@@ -101,9 +98,7 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
       setTitle(parsed.title);
       setIsStaging(true);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to fetch video metadata.';
-      setError(msg);
-      toast.error(msg);
+      setError(err instanceof Error ? err.message : 'Failed to fetch video metadata.');
     } finally {
       setIsLoading(false);
     }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from './Modal';
 import { useAuth } from '../context/AuthContext';
-import { toast } from 'sonner';
+import { useToast } from '../context/ToastContext';
 import { AlertTriangle, Music, Loader2 } from 'lucide-react';
 
 interface DuplicateGroup {
@@ -20,6 +20,7 @@ interface DedupeModalProps {
 
 export function DedupeModal({ isOpen, onClose, onRefresh }: DedupeModalProps) {
   const { token } = useAuth();
+  const { addToast } = useToast();
   const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
@@ -44,7 +45,8 @@ export function DedupeModal({ isOpen, onClose, onRefresh }: DedupeModalProps) {
         setDuplicates(data);
       }
     } catch (e) {
-      toast.error('Failed to fetch duplicates');
+      console.error(e);
+      addToast('Failed to fetch duplicates', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -65,14 +67,15 @@ export function DedupeModal({ isOpen, onClose, onRefresh }: DedupeModalProps) {
       
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message || 'Duplicates merged successfully');
+        addToast(data.message || 'Duplicates merged successfully', 'success');
         onRefresh();
         onClose();
       } else {
         throw new Error(data.error);
       }
     } catch (e: any) {
-      toast.error(e.message || 'Failed to merge duplicates');
+      console.error(e);
+      addToast(e.message || 'Failed to merge duplicates', 'error');
     } finally {
       setIsMerging(false);
       setShowConfirm(false);

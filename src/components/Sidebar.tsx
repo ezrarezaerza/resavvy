@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Moon, Plus, Sun, AudioLines, MoreHorizontal, Trash2, Settings, LogOut } from "lucide-react";
+import { Moon, Plus, Sun, AudioLines, MoreHorizontal, Trash2, Settings, LogOut, RefreshCw } from "lucide-react";
 import { PlaylistGroup } from "../types";
 import { ConfirmModal } from "./ConfirmModal";
 import { usePlaylist } from "../context/PlaylistContext";
@@ -95,6 +95,19 @@ export function Sidebar({
               </div>
             </div>
             <div className="flex shrink-0">
+              <button
+                onClick={() => {
+                  const token = localStorage.getItem('resavvy_token');
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  if (token) localStorage.setItem('resavvy_token', token);
+                  window.location.reload();
+                }}
+                className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+                title="Clear Cache & Resync Data"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
               <button
                 onClick={() => setShowProfileModal(true)}
                 className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"

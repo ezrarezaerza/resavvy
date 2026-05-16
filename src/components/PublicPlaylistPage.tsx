@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { PlaylistGroup } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
-import { toast } from 'sonner';
+import { useToast } from '../context/ToastContext';
 import { Play } from 'lucide-react';
 import { AuthScreen } from './AuthScreen';
 
@@ -17,6 +17,7 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
   const [isImporting, setIsImporting] = useState(false);
   const { token, user } = useAuth();
   const { playSong } = usePlayer();
+  const { addToast } = useToast();
   const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
@@ -55,10 +56,10 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
         }
       });
       if (!res.ok) throw new Error('Failed to import');
-      toast.success('Playlist imported successfully!');
+      addToast('Playlist imported successfully!', 'success');
       window.location.href = '/'; // redirect home
     } catch (e) {
-      toast.error('Error importing playlist');
+      addToast('Error importing playlist', 'error');
     } finally {
       setIsImporting(false);
     }
