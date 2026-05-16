@@ -21,7 +21,6 @@
     "dotenv": "^17.4.2",
     "express": "^4.22.2",
     "gsap": "^3.15.0",
-    "idb-keyval": "^6.2.2",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",

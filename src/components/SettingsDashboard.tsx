@@ -1,24 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Settings, Info, Save, Database, Trash2, Download } from 'lucide-react';
 import { useSettings, Theme } from '../hooks/useSettings';
 import { ToggleSwitch } from './ToggleSwitch';
 import { SegmentedControl } from './SegmentedControl';
-import { getStorageEstimate, exportLibrary, clearAppCache } from '../utils/storageManager';
-import { ConfirmModal } from './ConfirmModal';
+import { exportLibrary } from '../utils/storageManager';
 
 export function SettingsDashboard() {
   const { theme, setTheme, autoplay, setAutoplay, dataSaver, setDataSaver } = useSettings();
-  const [storageData, setStorageData] = useState({ usage: 0, quota: 0, percentage: 0 });
-  const [isConfirmingClear, setIsConfirmingClear] = useState(false);
-
-  useEffect(() => {
-    getStorageEstimate().then(setStorageData);
-  }, []);
-
-  const handleClearCache = async () => {
-    setIsConfirmingClear(false);
-    await clearAppCache();
-  };
 
   return (
     <div className="w-full flex-1 flex flex-col pb-32 animate-in fade-in duration-300">
@@ -92,25 +80,9 @@ export function SettingsDashboard() {
           {/* Section 3: Data & Storage */}
           <section className="space-y-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              Data & Storage
+              Data Management
             </h2>
             <div className="p-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 shadow-sm space-y-6">
-              
-              <div>
-                <div className="flex items-end justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">Storage limit</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {storageData.usage.toFixed(2)} MB of {storageData.quota > 1000 ? (storageData.quota/1000).toFixed(2) + ' GB' : storageData.quota.toFixed(2) + ' MB'} used
-                  </span>
-                </div>
-                <div className="w-full h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-indigo-500 transition-all duration-500" 
-                    style={{ width: `${Math.min(storageData.percentage, 100)}%` }} 
-                  />
-                </div>
-              </div>
-
               <div className="space-y-3 pt-2">
                 <button
                   onClick={exportLibrary}
@@ -119,14 +91,6 @@ export function SettingsDashboard() {
                   <Download className="w-4 h-4" />
                   Export Library Data (JSON)
                 </button>
-
-                <button
-                  onClick={() => setIsConfirmingClear(true)}
-                  className="w-full py-3 px-4 flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 font-medium rounded-xl transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Clear Local Cache
-                </button>
               </div>
 
             </div>
@@ -134,16 +98,6 @@ export function SettingsDashboard() {
 
         </div>
       </div>
-
-      <ConfirmModal
-        isOpen={isConfirmingClear}
-        onClose={() => setIsConfirmingClear(false)}
-        onConfirm={handleClearCache}
-        title="Clear Local Cache"
-        description="Are you sure? This will delete all cached data and unregister service workers. You should export your library first if you have unsaved changes."
-        confirmText="Clear Cache"
-        isDestructive={true}
-      />
     </div>
   );
 }

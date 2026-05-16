@@ -20,14 +20,12 @@ import { Toaster, toast } from 'sonner';
 
 import { usePlayer } from "../context/PlayerContext";
 import { useMediaSession } from "../hooks/useMediaSession";
-import { useOfflineLibrary } from "../hooks/useOfflineLibrary";
 
 export function AppLayout() {
   useKeyboardShortcuts();
   const { groups, createGroup, deleteGroup, addSong, removeSong } = usePlaylist();
   const { currentSong } = usePlayer();
   useMediaSession(currentSong);
-  const { isOffline } = useOfflineLibrary();
 
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
   const [isAddSongModalOpen, setIsAddSongModalOpen] = useState(false);
@@ -128,11 +126,6 @@ export function AppLayout() {
           <FullscreenPlayer />
 
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-transparent relative no-scrollbar">
-            {isOffline && (
-              <div className="absolute top-4 right-4 z-50">
-                <div className="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-xs font-medium shadow-sm border border-amber-500/10 backdrop-blur-md">Offline Mode</div>
-              </div>
-            )}
             {activeGroupId === 'discovery' ? (
               <DiscoveryDashboard onSelectGroup={setActiveGroupId} />
             ) : activeGroupId === 'analytics' ? (

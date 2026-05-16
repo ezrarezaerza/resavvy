@@ -1,20 +1,14 @@
-import { get, clear } from 'idb-keyval';
 import { toast } from 'sonner';
-
-export async function getStorageEstimate() {
-  if (navigator.storage && navigator.storage.estimate) {
-    const estimate = await navigator.storage.estimate();
-    const usage = (estimate.usage || 0) / (1024 * 1024);
-    const quota = (estimate.quota || 0) / (1024 * 1024);
-    const percentage = quota > 0 ? (usage / quota) * 100 : 0;
-    return { usage, quota, percentage };
-  }
-  return { usage: 0, quota: 0, percentage: 0 };
-}
 
 export async function exportLibrary() {
   try {
-    const libraryData = await get('resavvy_library');
+    const token = localStorage.getItem('resavvy_token');
+    const res = await fetch('/api/playlists', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Failed to fetch library');
+    const libraryData = await res.json();
+    
     if (!libraryData) {
       toast.error('No library data found to export');
       return;
@@ -36,21 +30,3 @@ export async function exportLibrary() {
   }
 }
 
-export async function clearAppCache() {
-  try {
-    await clear();
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const registration of registrations) {
-        await registration.unregister();
-      }
-    }
-    toast.success('Cache cleared, reloading...');
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
-  } catch (error) {
-    console.error('Clear cache error:', error);
-    toast.error('Failed to clear cache');
-  }
-}

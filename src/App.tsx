@@ -24,6 +24,14 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
+  useEffect(() => {
+    const token = localStorage.getItem('resavvy_token');
+    const isPublic = window.location.pathname.startsWith('/p/') || window.location.pathname.startsWith('/u/') || window.location.pathname === '/login';
+    if (!token && !isPublic) {
+      window.location.href = '/login';
+    }
+  }, []);
+
   const isPublicPlaylist = currentPath.startsWith('/p/');
   const playlistId = isPublicPlaylist ? currentPath.split('/p/')[1] : null;
 

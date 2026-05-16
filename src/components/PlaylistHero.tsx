@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { ConfirmModal } from "./ConfirmModal";
 import { EditCoverModal } from "./EditCoverModal";
 import { EditPlaylistModal } from "./EditPlaylistModal";
-import { nativeShare } from "../utils/nativeCapabilities";
+import { nativeShare, triggerHaptic } from "../utils/nativeCapabilities";
 
 interface PlaylistHeroProps {
   activeGroup: PlaylistGroup;
