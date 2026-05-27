@@ -50,36 +50,47 @@ export function HiddenYouTubePlayer() {
     function initPlayer() {
       if (!containerRef.current) return;
       
+      console.log('[Player Engine] Initializing YouTube Player for container...');
+
       playerRef.current = new window.YT.Player(containerRef.current, {
-        height: '1',
-        width: '1',
+        height: '200',
+        width: '200',
         playerVars: {
-          autoplay: 0,
+          autoplay: 1,
           controls: 0,
           disablekb: 1,
           fs: 0,
           rel: 0,
           modestbranding: 1,
           playsinline: 1,
+          enablejsapi: 1,
+          origin: window.location.origin,
           vq: dataSaver ? 'tiny' : 'auto'
         },
         events: {
           onReady: () => {
+            console.log('[Player Engine] Player Ready.');
             isReadyRef.current = true;
             if (playerRef.current && playerRef.current.setVolume) {
               playerRef.current.setVolume(volume);
             }
             if (currentSongRef.current) {
-              playerRef.current.loadVideoById(currentSongRef.current.id);
+              const videoId = currentSongRef.current.youtubeId || currentSongRef.current.id;
+              console.log('[Player Engine] Loading video on ready:', videoId);
+              playerRef.current.loadVideoById(videoId);
               if (isPlaying) {
+                console.log('[Player Engine] Playing video (was marked as playing).');
                 playerRef.current.playVideo();
               }
             }
           },
           onStateChange: (event: any) => {
+            console.log('[Player Engine] State changed to:', event.data);
             if (event.data === window.YT.PlayerState.ENDED) {
+              console.log('[Player Engine] Status: ENDED. Playing next...');
               playNextRef.current();
             } else if (event.data === window.YT.PlayerState.PLAYING) {
+              console.log('[Player Engine] Status: PLAYING.');
               const song = currentSongRef.current;
               if (song && (!song.duration || song.duration === '--:--')) {
                 const durationSeconds = playerRef.current?.getDuration();
@@ -90,7 +101,16 @@ export function HiddenYouTubePlayer() {
                   updateSongDurationRef.current(song.id, formattedDuration);
                 }
               }
+            } else if (event.data === window.YT.PlayerState.PAUSED) {
+              console.log('[Player Engine] Status: PAUSED.');
+            } else if (event.data === window.YT.PlayerState.BUFFERING) {
+              console.log('[Player Engine] Status: BUFFERING.');
+            } else if (event.data === window.YT.PlayerState.UNSTARTED) {
+              console.log('[Player Engine] Status: UNSTARTED.');
             }
+          },
+          onError: (event: any) => {
+            console.error('[Player Engine] Player ERROR:', event.data);
           }
         }
       });
@@ -120,10 +140,20 @@ export function HiddenYouTubePlayer() {
   // We specify queue in context, so currentSong changes when we go next/prev
   useEffect(() => {
     if (isReadyRef.current && playerRef.current && currentSong) {
-      playerRef.current.loadVideoById(currentSong.id);
-      if (isPlaying) {
-        playerRef.current.playVideo();
+      const videoId = currentSong.youtubeId || currentSong.id;
+      
+      // Check if this video is already loaded
+      const currentLoadedUrl = playerRef.current.getVideoUrl ? playerRef.current.getVideoUrl() : '';
+      if (currentLoadedUrl && currentLoadedUrl.includes(videoId)) {
+         console.log('[Player Engine] Video already loaded, skipping loadVideoById');
+         if (isPlaying) playerRef.current.playVideo();
+         return;
       }
+      
+      console.log('[Player Engine] currentSong changed, loading video by id:', videoId, currentSong.title);
+      playerRef.current.loadVideoById(videoId);
+      // Note: loadVideoById will typically autoplay.
+      // We don't call playVideo immediately to avoid interrupting the load cycle.
     }
   }, [currentSong]); // Depends on currentSong reference
 
@@ -131,8 +161,10 @@ export function HiddenYouTubePlayer() {
   useEffect(() => {
     if (isReadyRef.current && playerRef.current && currentSong) {
       if (isPlaying) {
+        console.log('[Player Engine] isPlaying changed to TRUE, calling playVideo');
         playerRef.current.playVideo();
       } else {
+        console.log('[Player Engine] isPlaying changed to FALSE, calling pauseVideo');
         playerRef.current.pauseVideo();
       }
     }

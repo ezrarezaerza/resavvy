@@ -11,7 +11,7 @@ interface PlayerContextType {
   volume: number;
   isExpanded: boolean;
   setIsExpanded: (expanded: boolean) => void;
-  playSong: (song: Song, groupQueue: Song[], groupId?: string) => void;
+  playSong: (song: Song, groupQueue?: Song[], groupId?: string) => void;
   togglePlayPause: () => void;
   playNext: () => void;
   playPrevious: () => void;
@@ -99,9 +99,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const playSong = useCallback((song: Song, groupQueue: Song[], groupId?: string) => {
+  const playSong = useCallback((song: Song, groupQueue?: Song[], groupId?: string) => {
+    const queueToUse = groupQueue || [song];
+    console.log('[Player Engine] playSong called with:', { songTitle: song.title, queueLength: queueToUse.length, groupId });
     setCurrentSong(song);
-    setQueue(groupQueue);
+    setQueue(queueToUse);
     setIsPlaying(true);
     if (groupId) {
       setCurrentGroupId(groupId);
