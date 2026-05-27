@@ -159,8 +159,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setIsPlaying(true);
       incrementPlayCount(currentGroupId || undefined, nextSong.id);
     } else {
-      if (repeatMode === 'all') {
-        const nextSong = queue[0];
+      let isAutoplayEnabled = true;
+      try {
+        const stored = window.localStorage.getItem('resavvy_autoplay');
+        if (stored !== null) isAutoplayEnabled = JSON.parse(stored);
+      } catch {}
+
+      if (repeatMode === 'all' || isAutoplayEnabled) {
+        // If autoplay is enabled, just loop the queue for now or pick random
+        const nextSong = isAutoplayEnabled && !isShuffle ? queue[Math.floor(Math.random() * queue.length)] : queue[0];
         setCurrentSong(nextSong);
         setIsPlaying(true);
         incrementPlayCount(currentGroupId || undefined, nextSong.id);

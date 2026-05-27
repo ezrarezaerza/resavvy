@@ -14,7 +14,9 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, c
       return playlist.customCoverUrl;
     } else if (playlist.songs.length > 0) {
       let url = playlist.songs[0].thumbnailUrl;
-      return url.replace('mqdefault.jpg', 'maxresdefault.jpg').replace('hqdefault.jpg', 'maxresdefault.jpg');
+      if (url) {
+        return url.replace('mqdefault.jpg', 'maxresdefault.jpg').replace('hqdefault.jpg', 'maxresdefault.jpg');
+      }
     }
     return null;
   }, [playlist.coverType, playlist.customCoverUrl, playlist.songs]);

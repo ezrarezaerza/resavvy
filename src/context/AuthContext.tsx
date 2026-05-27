@@ -4,6 +4,8 @@ export interface User {
   id: string;
   name: string;
   username: string;
+  bio?: string;
+  avatarUrl?: string;
 }
 
 interface AuthContextType {
@@ -12,6 +14,10 @@ interface AuthContextType {
   isLoading: boolean;
   login: (token: string, user: User) => void;
   logout: () => void;
+  updateProfile: (updatedData: Partial<User>) => Promise<void>;
+  deleteAccount: () => Promise<void>;
+  showLoginModal: boolean;
+  setShowLoginModal: (show: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,33 +26,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('resavvy_token');
-    if (storedToken) {
-      try {
-        // Decode payload from JWT
-        const base64Url = storedToken.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-        }).join(''));
-
-        const decoded = JSON.parse(jsonPayload);
-        
-        // rudimentary validation of expiry
-        if (decoded.exp * 1000 > Date.now()) {
-          setToken(storedToken);
-          setUser({ id: decoded.id, name: decoded.name, username: decoded.username });
-        } else {
+    const initAuth = async () => {
+      const storedToken = localStorage.getItem('resavvy_token');
+      if (storedToken) {
+        try {
+          const res = await fetch('/api/auth?action=me', {
+            headers: { Authorization: `Bearer ${storedToken}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setToken(storedToken);
+            setUser(data);
+          } else {
+            localStorage.removeItem('resavvy_token');
+          }
+        } catch (e) {
+          console.error('Failed to authenticate token with backend', e);
           localStorage.removeItem('resavvy_token');
         }
-      } catch (e) {
-        console.error('Failed to parse token', e);
-        localStorage.removeItem('resavvy_token');
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+    initAuth();
   }, []);
 
   const login = (newToken: string, newUser: User) => {
@@ -61,8 +65,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const updateProfile = async (updatedData: Partial<User>) => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/auth?action=update-profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ displayName: updatedData.name, bio: updatedData.bio, avatarUrl: updatedData.avatarUrl })
+      });
+      if (!res.ok) throw new Error('Failed to update profile');
+      const data = await res.json();
+      setUser(data);
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (!token) return;
+    try {
+       const res = await fetch('/api/auth?action=delete-account', {
+         method: 'DELETE',
+         headers: { Authorization: `Bearer ${token}` }
+       });
+       if (!res.ok) throw new Error('Failed to delete account');
+       logout();
+    } catch (e) {
+       console.error(e);
+       throw e;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateProfile, deleteAccount, showLoginModal, setShowLoginModal }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { usePlayer } from '../context/PlayerContext';
 import { usePlaylist } from '../context/PlaylistContext';
+import { useSettings } from '../hooks/useSettings';
+import { useToast } from '../context/ToastContext';
 
 declare global {
   interface Window {
@@ -12,23 +14,23 @@ declare global {
 export function HiddenYouTubePlayer() {
   const { currentSong, isPlaying, playNext, playerRef, volume } = usePlayer();
   const { updateSongDuration } = usePlaylist();
+  const { dataSaver, autoplay } = useSettings();
+  const { addToast } = useToast();
   const isReadyRef = useRef<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
   
   const playNextRef = useRef(playNext);
+  const currentSongRef = useRef(currentSong);
+  const updateSongDurationRef = useRef(updateSongDuration);
+  const addToastRef = useRef(addToast);
+  const lastErrorTimeRef = useRef<number>(0);
+
   useEffect(() => {
     playNextRef.current = playNext;
-  }, [playNext]);
-
-  const currentSongRef = useRef(currentSong);
-  useEffect(() => {
     currentSongRef.current = currentSong;
-  }, [currentSong]);
-
-  const updateSongDurationRef = useRef(updateSongDuration);
-  useEffect(() => {
     updateSongDurationRef.current = updateSongDuration;
-  }, [updateSongDuration]);
+    addToastRef.current = addToast;
+  }, [playNext, currentSong, updateSongDuration, addToast]);
 
   useEffect(() => {
     // Load YouTube IFrame API script
@@ -58,7 +60,8 @@ export function HiddenYouTubePlayer() {
           fs: 0,
           rel: 0,
           modestbranding: 1,
-          playsinline: 1
+          playsinline: 1,
+          vq: dataSaver ? 'tiny' : 'auto'
         },
         events: {
           onReady: () => {
@@ -88,6 +91,24 @@ export function HiddenYouTubePlayer() {
                 }
               }
             }
+          },
+          onError: (event: any) => {
+            console.error("YouTube Player Error:", event.data);
+            // 2: invalid parameter, 5: HTML5 error, 100: not found/private, 101/150: embedded playback disabled
+            // Skip to the next track if there's a playback error mapping to the current video
+            const now = Date.now();
+            if (now - lastErrorTimeRef.current > 3000) {
+              let errorMessage = "Unable to play this track (Video unavailable or blocked).";
+              if (event.data === 101 || event.data === 150) {
+                 errorMessage = "The owner of this video restricted playback on external sites.";
+              } else if (event.data === 100) {
+                 errorMessage = "This video was deleted or made private.";
+              }
+              
+              addToastRef.current(errorMessage, 'error');
+            }
+            lastErrorTimeRef.current = now;
+            playNextRef.current();
           }
         }
       });
@@ -101,6 +122,17 @@ export function HiddenYouTubePlayer() {
       isReadyRef.current = false;
     };
   }, []); // Empty dependency array to only initialize once
+
+  // Update playback quality dynamically when dataSaver changes
+  useEffect(() => {
+    if (isReadyRef.current && playerRef.current && playerRef.current.setPlaybackQuality) {
+      if (dataSaver) {
+        playerRef.current.setPlaybackQuality('small'); // 'tiny' or 'small' for 144p/240p
+      } else {
+        playerRef.current.setPlaybackQuality('auto'); // or 'hd720'
+      }
+    }
+  }, [dataSaver]);
 
   // Separate effect to handle playing the current song
   // We specify queue in context, so currentSong changes when we go next/prev

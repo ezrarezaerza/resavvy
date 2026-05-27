@@ -71,17 +71,13 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
     }
   };
 
-  if (showAuth) {
-    return <AuthScreen onLogin={() => setShowAuth(false)} />;
-  }
-
   if (isLoading) return <div className="flex h-screen items-center justify-center text-white">Loading...</div>;
   if (error || !playlist) return <div className="flex h-screen items-center justify-center text-red-500">Error: {error || 'Playlist not found'}</div>;
 
   let displayImage = '';
   if (playlist.coverType === 'custom' && playlist.customCoverUrl) {
     displayImage = playlist.customCoverUrl;
-  } else if (playlist.songs.length > 0) {
+  } else if (playlist.songs.length > 0 && playlist.songs[0].thumbnailUrl) {
     displayImage = playlist.songs[0].thumbnailUrl.replace('mqdefault.jpg', 'maxresdefault.jpg').replace('hqdefault.jpg', 'maxresdefault.jpg');
   }
 
@@ -97,6 +93,8 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 dark:bg-[#0a0a0a] overflow-auto text-gray-900 dark:text-gray-100 font-sans">
+      {showAuth && <AuthScreen onClose={() => setShowAuth(false)} />}
+      
       {/* Hero Section */}
       <div className="relative w-full h-[50vh] md:h-[60vh] shrink-0 flex flex-col justify-end bg-slate-200 dark:bg-gray-900 group">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">

@@ -36,6 +36,11 @@ async function startServer() {
     return handler.default(req, res);
   }) as any);
 
+  app.all("/api/search/global", (async (req: any, res: any) => {
+    const handler = await import("./api/search/global.js");
+    return handler.default(req, res);
+  }) as any);
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

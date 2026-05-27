@@ -7,23 +7,28 @@ import { usePlaylist } from "../context/PlaylistContext";
 import { Modal } from "./Modal";
 import { AddSongInput } from "./AddSongInput";
 import { PlaylistHero } from "./PlaylistHero";
-import { MobileHeader } from "./MobileHeader";
+import { TopNav } from "./TopNav";
 import { FullscreenPlayer } from "./FullscreenPlayer";
 import { HomeDashboard } from "./HomeDashboard";
 import { LibraryDashboard } from "./LibraryDashboard";
 import { DiscoveryDashboard } from "./DiscoveryDashboard";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { LikedDashboard } from "./LikedDashboard";
+import { MobileBottomNav } from "./MobileBottomNav";
 
 import { usePlayer } from "../context/PlayerContext";
+import { useAuth } from "../context/AuthContext";
 
 export function AppLayout() {
   useKeyboardShortcuts();
   const { groups, createGroup, deleteGroup, addSong, removeSong } = usePlaylist();
   const { currentSong } = usePlayer();
+  const { user, setShowLoginModal } = useAuth();
   const [activeGroupId, setActiveGroupId] = useState<string | null>(null);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState("");
   const [isAddSongModalOpen, setIsAddSongModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth >= 768);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isCreatingModalOpen, setIsCreatingModalOpen] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState("");
 
@@ -38,18 +43,13 @@ export function AppLayout() {
     };
   }, [isSidebarOpen]);
   
-  const [isDark, setIsDark] = useState(true);
-
-  useEffect(() => {
-    document.documentElement.classList.add("dark");
-  }, []);
-
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle("dark");
+  const toggleSidebar = () => {
+    if (window.innerWidth < 768) {
+      setIsSidebarOpen(!isSidebarOpen);
+    } else {
+      setIsSidebarCollapsed(!isSidebarCollapsed);
+    }
   };
-
-  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   useEffect(() => {
     if (activeGroupId && activeGroupId !== 'library' && activeGroupId !== 'discovery' && activeGroupId !== 'liked' && activeGroupId !== 'analytics' && !groups.find(g => g.id === activeGroupId)) {
@@ -66,8 +66,26 @@ export function AppLayout() {
     }
   };
 
-  const handleGroupSelect = (id: string | null) => {
+  const handleGroupSelect = (id: string | null, searchPrefix?: string) => {
+    if (!user && (id === 'library' || id === 'analytics' || id === 'liked')) {
+      setShowLoginModal(true);
+      return;
+    }
+    
+    if (id && id !== 'library' && id !== 'discovery' && id !== 'liked' && id !== 'analytics') {
+       if (!groups.find(g => g.id === id)) {
+          // It's a public playlist not in our local library
+          window.history.pushState(null, '', `/p/${id}`);
+          window.dispatchEvent(new Event("popstate"));
+          return;
+       }
+    }
     setActiveGroupId(id);
+    if (searchPrefix) {
+      setGlobalSearchQuery(searchPrefix);
+    } else if (id !== 'discovery') {
+      setGlobalSearchQuery(""); // Clear if navigating away without one
+    }
     setIsSidebarOpen(false);
   };
 
@@ -78,6 +96,14 @@ export function AppLayout() {
       setNewPlaylistName("");
       setIsCreatingModalOpen(false);
     }
+  };
+
+  const openCreatePlaylistModal = () => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    setIsCreatingModalOpen(true);
   };
 
   return (
@@ -94,14 +120,13 @@ export function AppLayout() {
       )}
       
       <div className="relative z-10 flex flex-col w-full h-full">
-        <MobileHeader 
+        <TopNav 
           onMenuClick={toggleSidebar} 
-          isDark={isDark} 
-          toggleTheme={toggleTheme} 
-          isSidebarOpen={isSidebarOpen}
           onLogoClick={() => handleGroupSelect(null)}
+          onNavigate={handleGroupSelect}
+          isSidebarCollapsed={isSidebarCollapsed}
         />
-        <div className="flex flex-1 overflow-hidden relative">
+        <div className="flex flex-1 w-full overflow-hidden relative">
           <Sidebar 
             groups={groups}
             activeGroupId={activeGroupId}
@@ -109,25 +134,24 @@ export function AppLayout() {
             createGroup={createGroup}
             deleteGroup={deleteGroup}
             isOpen={isSidebarOpen}
-            isDark={isDark}
-            toggleTheme={toggleTheme}
+            isCollapsed={isSidebarCollapsed}
             onMenuClick={toggleSidebar}
-            onCreatePlaylist={() => setIsCreatingModalOpen(true)}
+            onCreatePlaylist={openCreatePlaylistModal}
           />
           
           {/* Mobile Overlay */}
           {isSidebarOpen && (
             <div 
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] transition-opacity md:hidden"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] md:hidden transition-opacity"
               onClick={() => setIsSidebarOpen(false)}
             />
           )}
 
           <FullscreenPlayer />
 
-          <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-transparent relative no-scrollbar">
+          <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-transparent relative no-scrollbar pb-[150px] md:pb-[100px]">
             {activeGroupId === 'discovery' ? (
-              <DiscoveryDashboard onSelectGroup={setActiveGroupId} />
+              <DiscoveryDashboard onSelectGroup={setActiveGroupId} initialSearchQuery={globalSearchQuery} />
             ) : activeGroupId === 'analytics' ? (
               <AnalyticsDashboard onSelectGroup={setActiveGroupId} />
             ) : activeGroupId === 'liked' ? (
@@ -148,11 +172,12 @@ export function AppLayout() {
                 </div>
               </div>
             ) : (
-              <HomeDashboard groups={groups} onSelectGroup={handleGroupSelect} onCreatePlaylist={() => setIsCreatingModalOpen(true)} />
+              <HomeDashboard groups={groups} onSelectGroup={handleGroupSelect} onCreatePlaylist={openCreatePlaylistModal} />
             )}
           </main>
         </div>
         <PlayerBar />
+        <MobileBottomNav activeGroupId={activeGroupId} onSelect={handleGroupSelect} onCreatePlaylist={openCreatePlaylistModal} />
 
         <Modal 
           isOpen={isAddSongModalOpen} 
@@ -168,7 +193,7 @@ export function AppLayout() {
           title="New Playlist"
         >
           <form onSubmit={handleCreateSubmit} className="flex flex-col gap-4 mt-2">
-            <input 
+             <input 
               autoFocus
               type="text" 
               placeholder="E.g., Workout Mix, Chill Vibes..." 

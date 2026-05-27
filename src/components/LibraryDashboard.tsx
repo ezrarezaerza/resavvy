@@ -102,16 +102,16 @@ export function LibraryDashboard() {
   const selectedSongs = songs.filter(s => selectedSongIds.includes(s.id));
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-[#0a0a0a] min-h-screen pb-32">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-24">
+    <div className="w-full h-full p-6 md:p-8 overflow-y-auto pb-32 no-scrollbar">
+      <div className="mt-4">
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <Library className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
             <div>
-              <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-none mb-2">
+              <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-none mb-2 flex items-center gap-3">
+                <Library className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
                 My Library
-              </h1>
-              <p className="text-lg text-gray-600 dark:text-gray-400 font-medium">
+              </h2>
+              <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 font-medium">
                 {isLoading ? 'Loading...' : `${songs.length} unique tracks in your collection`}
               </p>
             </div>

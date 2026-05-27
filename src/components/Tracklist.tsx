@@ -4,7 +4,7 @@ import { useGSAP } from "@gsap/react";
 import { Clock, Play, MoreVertical, Edit2, Trash2, Heart } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { Song, PlaylistGroup } from "../types";
-import { useSettings } from "../context/SettingsContext";
+import { useSettings } from "../hooks/useSettings";
 import { usePlaylist } from "../context/PlaylistContext";
 import { useAuth } from "../context/AuthContext";
 import { EmptyState } from "./EmptyState";
@@ -41,7 +41,7 @@ const SongRow = memo(function SongRow({
   isSelectable, isSelected, onToggleSelect, variant = 'default'
 }: SongRowProps) {
   const { lowDataMode } = useSettings();
-  const { token } = useAuth();
+  const { token, setShowLoginModal } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLiked, setIsLiked] = useState(song.isLiked || false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -64,7 +64,11 @@ const SongRow = memo(function SongRow({
 
   const toggleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!token || !song.id) return;
+    if (!token) {
+      setShowLoginModal(true);
+      return;
+    }
+    if (!song.id) return;
     
     // optimism
     setIsLiked(!isLiked);
@@ -87,6 +91,7 @@ const SongRow = memo(function SongRow({
   };
 
   const getThumbnailSrc = (url: string) => {
+    if (!url) return '';
     if (!lowDataMode && url.includes('mqdefault.jpg')) {
       return variant === 'explore' 
         ? url.replace('mqdefault.jpg', 'maxresdefault.jpg') 
@@ -229,7 +234,7 @@ const SongRow = memo(function SongRow({
               <MoreVertical className="w-5 h-5" />
             </button>
             {isMenuOpen && (
-              <div className="song-menu-dropdown absolute right-0 top-10 z-50 w-48 bg-white dark:bg-gray-800 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col">
+              <div className="song-menu-dropdown absolute right-0 top-10 z-50 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col">
                 <button
                   onClick={handleEditClick}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left w-full"

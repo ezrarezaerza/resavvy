@@ -121,6 +121,7 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
   };
 
   const cleanYouTubeTitle = (title: string) => {
+    if (!title) return { artist: '', title: '' };
     let cleaned = title.replace(/official(?: music)? video|lyric(?:s| video)?/gi, '').trim();
     cleaned = cleaned.replace(/\(\s*\)|\[\s*\]/g, '').trim();
     cleaned = cleaned.replace(/-+$/, '').trim();
@@ -174,16 +175,16 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
 
   return (
     <div className="w-full font-sans pb-2">
-      <div className="flex gap-2 mb-6 bg-black/20 p-1 rounded-xl w-fit mx-auto border border-white/5">
+      <div className="flex gap-2 mb-6 bg-gray-100 dark:bg-black/20 p-1 rounded-xl w-fit mx-auto border border-gray-200 dark:border-white/5">
         <button
           onClick={() => { setMode('search'); resetForm(); }}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'search' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'search' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
         >
           Search YouTube
         </button>
         <button
           onClick={() => { setMode('manual'); resetForm(); }}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-white/10 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-white dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
         >
           Direct Link
         </button>
@@ -192,20 +193,20 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
       {mode === 'search' ? (
         <div className="flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row gap-2">
-            <input 
-              type="text" 
-              placeholder="Search for a song..." 
-              value={searchQuery}
-              autoFocus
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="flex-1 w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
-            />
-            <button 
-              onClick={handleSearch}
-              disabled={isSearching || !searchQuery.trim()}
-              className="px-5 py-3 bg-white text-black font-medium rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap text-sm shadow-md"
-            >
+              <input 
+                type="text" 
+                placeholder="Search for a song..." 
+                value={searchQuery}
+                autoFocus
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="flex-1 w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+              />
+              <button 
+                onClick={handleSearch}
+                disabled={isSearching || !searchQuery.trim()}
+                className="px-5 py-3 bg-indigo-600 dark:bg-white text-white dark:text-black font-medium rounded-xl hover:bg-indigo-700 dark:hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap text-sm shadow-md"
+              >
               {isSearching ? '...' : 'Search'}
             </button>
           </div>
@@ -218,16 +219,16 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
                 <div 
                   key={result.id}
                   onClick={() => handleResultClick(result)}
-                  className="hover:bg-white/5 cursor-pointer rounded-lg p-2 flex gap-4 items-center transition-colors border border-transparent hover:border-white/10"
+                  className="hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer rounded-lg p-2 flex gap-4 items-center transition-colors border border-transparent hover:border-gray-200 dark:hover:border-white/10"
                 >
                   <img 
                     src={result.thumbnail} 
                     alt={result.title}
-                    className="w-16 h-12 object-cover rounded shadow-sm bg-black/40"
+                    className="w-16 h-12 object-cover rounded shadow-sm bg-gray-200 dark:bg-black/40"
                   />
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-white text-sm font-medium truncate">{result.title}</h4>
-                    <p className="text-gray-400 text-xs truncate mt-0.5">{result.artist}</p>
+                    <h4 className="text-gray-900 dark:text-white text-sm font-medium truncate">{result.title}</h4>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs truncate mt-0.5">{result.artist}</p>
                   </div>
                   <div className="text-xs font-mono text-gray-500 shrink-0">
                     {formatTime(result.duration)}
@@ -249,12 +250,12 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
                   autoFocus
                   onChange={(e) => setUrl(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleFetch()}
-                  className="flex-1 w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+                  className="flex-1 w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
                 />
                 <button 
                   onClick={handleFetch}
                   disabled={isLoading || !url.trim()}
-                  className="px-5 py-3 bg-white text-black font-medium rounded-xl hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap text-sm shadow-md"
+                  className="px-5 py-3 bg-indigo-600 dark:bg-white text-white dark:text-black font-medium rounded-xl hover:bg-indigo-700 dark:hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap text-sm shadow-md"
                 >
                   {isLoading ? 'Fetching...' : 'Fetch'}
                 </button>
@@ -274,32 +275,32 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
                 />
                 <div className="flex-1 flex flex-col gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Artist</label>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Artist</label>
                     <input 
                       type="text" 
                       value={artist}
                       onChange={(e) => setArtist(e.target.value)}
                       placeholder="Artist name"
-                      className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+                      className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Title</label>
+                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Title</label>
                     <input 
                       type="text" 
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="Song title"
-                      className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+                      className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
                     />
                   </div>
                 </div>
               </div>
               
-              <div className="flex gap-2 justify-end pt-2 mt-4 border-t border-white/5">
+              <div className="flex gap-2 justify-end pt-2 mt-4 border-t border-gray-200 dark:border-white/5">
                 <button 
                   onClick={resetForm}
-                  className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white rounded-xl transition-colors focus:outline-none"
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white rounded-xl transition-colors focus:outline-none"
                 >
                   Cancel
                 </button>

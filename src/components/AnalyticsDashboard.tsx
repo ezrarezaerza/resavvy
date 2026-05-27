@@ -50,7 +50,7 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
 
   if (isLoading) {
     return (
-      <div className="flex-1 bg-slate-50 dark:bg-[#0a0a0a] min-h-screen flex items-center justify-center">
+      <div className="flex-1 bg-transparent min-h-screen flex items-center justify-center">
         <div className="text-gray-500 font-medium">Loading your analytics...</div>
       </div>
     );
@@ -62,16 +62,16 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
   const maxArtistPlays = listener.topArtists.length > 0 ? listener.topArtists[0].playCount : 0;
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-[#0a0a0a] min-h-screen pb-32 no-scrollbar">
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-24 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="w-full h-full p-6 md:p-8 overflow-y-auto pb-32 no-scrollbar">
+      <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
         <div className="flex items-center gap-4 mb-10">
-          <BarChart2 className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
           <div>
-            <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-none mb-2">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-none mb-2 flex items-center gap-3">
+              <BarChart2 className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
               Your Analytics
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400 font-medium">
+            </h2>
+            <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 font-medium">
               Dive into your listening and curating impact.
             </p>
           </div>
@@ -109,7 +109,7 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
               </div>
 
               {/* Top Artists column */}
-              <div className="flex-1 bg-white/5 dark:bg-[#1a1a1a] border border-gray-200/50 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+              <div className="flex-1 bg-white/60 dark:bg-[#1a1a1a]/60 backdrop-blur-md border border-gray-200/50 dark:border-white/10 rounded-2xl p-6 shadow-sm">
                  <h4 className="text-gray-500 dark:text-gray-400 font-semibold text-sm tracking-widest uppercase mb-6 flex items-center justify-between">
                     Top Artists
                     <Disc3 className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
@@ -153,7 +153,7 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
                 </div>
               </div>
 
-              <div className="flex-1 bg-white/5 dark:bg-[#1a1a1a] border border-gray-200/50 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+              <div className="flex-1 bg-white/60 dark:bg-[#1a1a1a]/60 backdrop-blur-md border border-gray-200/50 dark:border-white/10 rounded-2xl p-6 shadow-sm">
                  <h4 className="text-gray-500 dark:text-gray-400 font-semibold text-sm tracking-widest uppercase mb-6 flex items-center justify-between">
                     Most Popular Playlist
                  </h4>

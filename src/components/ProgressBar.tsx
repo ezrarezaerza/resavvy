@@ -6,7 +6,7 @@ interface ProgressBarProps {
   percentage: number;
 }
 
-export function ProgressBar({ label, value, percentage }: ProgressBarProps) {
+export const ProgressBar: React.FC<ProgressBarProps> = ({ label, value, percentage }) => {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-between text-sm font-medium">

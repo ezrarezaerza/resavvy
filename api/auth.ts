@@ -35,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const user = await prisma.user.create({ data: { name, username, passwordHash } });
         const token = jwt.sign({ id: user.id, name: user.name, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
 
-        return res.status(201).json({ token, user: { id: user.id, name: user.name, username: user.username } });
+        return res.status(201).json({ token, user: { id: user.id, name: user.name, username: user.username, bio: user.bio, avatarUrl: user.avatarUrl } });
       } catch (err) {
         return res.status(500).json({ error: 'Registration failed' });
       }
@@ -54,10 +54,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const token = jwt.sign({ id: user.id, name: user.name, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
 
-        return res.status(200).json({ token, user: { id: user.id, name: user.name, username: user.username } });
+        return res.status(200).json({ token, user: { id: user.id, name: user.name, username: user.username, bio: user.bio, avatarUrl: user.avatarUrl } });
       } catch (err) {
         return res.status(500).json({ error: 'Login failed' });
       }
+    }
+  }
+
+  if (req.method === 'GET' && action === 'me') {
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) return res.status(404).json({ error: 'User not found' });
+      return res.status(200).json({ id: user.id, name: user.name, username: user.username, bio: user.bio, avatarUrl: user.avatarUrl });
+    } catch {
+      return res.status(500).json({ error: 'Failed to find user' });
     }
   }
 
@@ -66,11 +78,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!userId) return res.status(401).json({ error: 'Unauthorized' });
       
       try {
-        const { name, bio, avatarUrl } = req.body;
+        const { name, displayName, bio, avatarUrl } = req.body;
+        const updatedName = displayName || name;
         const updated = await prisma.user.update({
           where: { id: userId },
           data: {
-             ...(name !== undefined && { name }),
+             ...(updatedName !== undefined && { name: updatedName }),
              ...(bio !== undefined && { bio }),
              ...(avatarUrl !== undefined && { avatarUrl }),
           },
@@ -79,6 +92,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json(updated);
       } catch (err) {
          return res.status(500).json({ error: 'Failed to update profile' });
+      }
+  }
+
+  if (req.method === 'DELETE' && action === 'delete-account') {
+      const userId = getUserId(req);
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+      try {
+        await prisma.user.delete({
+          where: { id: userId }
+        });
+        return res.status(200).json({ success: true });
+      } catch (err) {
+        return res.status(500).json({ error: 'Failed to delete account' });
       }
   }
 

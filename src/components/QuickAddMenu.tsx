@@ -14,7 +14,7 @@ export function QuickAddMenu({ song }: QuickAddMenuProps) {
   const [isSuccess, setIsSuccess] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const { groups, addSong } = usePlaylist();
-  const { token } = useAuth();
+  const { token, user, setShowLoginModal } = useAuth();
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -69,13 +69,19 @@ export function QuickAddMenu({ song }: QuickAddMenuProps) {
     }
   };
 
+  const handleOpenClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div className="relative" ref={menuRef}>
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsOpen(!isOpen);
-        }}
+        onClick={handleOpenClick}
         className="opacity-100 md:opacity-0 group-hover:opacity-100 p-1 rounded-md text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
         title="Quick Add to Playlist"
       >
@@ -83,7 +89,7 @@ export function QuickAddMenu({ song }: QuickAddMenuProps) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-8 z-50 w-48 bg-white dark:bg-gray-800 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col max-h-64 overflow-y-auto">
+        <div className="absolute right-0 top-8 z-50 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col max-h-64 overflow-y-auto">
           <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-widest border-b border-gray-100 dark:border-gray-700 mb-1">
             Add to Playlist
           </div>

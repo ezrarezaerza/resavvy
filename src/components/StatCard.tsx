@@ -9,7 +9,7 @@ interface StatCardProps {
 
 export function StatCard({ title, value, icon: Icon }: StatCardProps) {
   return (
-    <div className="bg-white/5 dark:bg-[#1a1a1a] border border-gray-200/50 dark:border-white/10 rounded-2xl p-6 shadow-sm">
+    <div className="bg-white/60 dark:bg-[#1a1a1a]/60 backdrop-blur-md border border-gray-200/50 dark:border-white/10 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <h4 className="text-gray-500 dark:text-gray-400 font-semibold text-sm tracking-widest uppercase">
           {title}

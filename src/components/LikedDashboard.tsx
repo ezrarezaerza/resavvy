@@ -75,7 +75,7 @@ export function LikedDashboard() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-[#0a0a0a] min-h-screen pb-32">
+    <div className="flex-1 overflow-y-auto bg-transparent min-h-screen pb-32">
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-12 md:py-24">
         <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
           <div className="flex items-center gap-4">

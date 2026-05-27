@@ -1,4 +1,5 @@
 export function parseYouTubeTitle(rawTitle: string): { title: string; artist: string } {
+  if (!rawTitle) return { title: '', artist: 'Unknown Artist' };
   // Use Regex to strip out common YouTube music video suffixes
   let cleanTitle = rawTitle.replace(/\[\s*(Official Video|Official Music Video|MV|Lyrics|Audio|Official Audio|Visualizer)\s*\]/gi, '').trim();
   cleanTitle = cleanTitle.replace(/\(\s*(Official Video|Official Music Video|MV|Lyrics|Audio|Official Audio|Visualizer)\s*\)/gi, '').trim();

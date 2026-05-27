@@ -1,15 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { AudioLines } from 'lucide-react';
+import { AudioLines, X } from 'lucide-react';
 
-export function AuthScreen() {
-  const { login } = useAuth();
+interface AuthScreenProps {
+  onClose?: () => void;
+}
+
+export function AuthScreen({ onClose }: AuthScreenProps) {
+  const { login, setShowLoginModal } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const FALLBACK_BACKGROUNDS = [
+    'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?auto=format&fit=crop&q=80&w=2000',
+    'https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?auto=format&fit=crop&q=80&w=2000',
+    'https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&q=80&w=2000'
+  ];
+
+  const [bgImages, setBgImages] = useState<string[]>(FALLBACK_BACKGROUNDS);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    let isMounted = true;
+    let intervalId: any;
+    
+    // Try picking random images from trending songs or fallback
+    fetch('/api/social?type=trending')
+      .then(res => res.json())
+      .then(data => {
+         if (!isMounted) return;
+         if (Array.isArray(data) && data.length > 0) {
+            // grab top 5 images
+            const images = data.slice(0, 5).map((song: any) => song.thumbnailUrl.replace('mqdefault.jpg', 'maxresdefault.jpg'));
+            setBgImages(images);
+            intervalId = setInterval(() => {
+              setCurrentIndex(prev => (prev + 1) % images.length);
+            }, 6000); // 6s Slideshow 
+         } else {
+            throw new Error('No trending data');
+         }
+      })
+      .catch((err) => {
+         if (!isMounted) return;
+         intervalId = setInterval(() => {
+            setCurrentIndex(prev => (prev + 1) % FALLBACK_BACKGROUNDS.length);
+         }, 6000);
+      });
+      
+      return () => {
+        isMounted = false;
+        if (intervalId) clearInterval(intervalId);
+      };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +84,8 @@ export function AuthScreen() {
       }
 
       login(data.token, data.user);
+      setShowLoginModal(false);
+      if (onClose) onClose();
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {
@@ -47,76 +94,98 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-      <div className="bg-[#0f111a] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-8 relative overflow-hidden flex flex-col items-center">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in zoom-in-[0.98] duration-300">
+      {/* Background Image & Glassmorphism Overlay */}
+      {bgImages.map((img, index) => (
+        <img 
+          key={img}
+          src={img}
+          alt=""
+          className={`absolute inset-0 w-full h-full object-cover z-0 transition-opacity duration-1000 ${
+            index === currentIndex ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      ))}
+      <div className="absolute inset-0 z-0 bg-black/40 backdrop-blur-md" onClick={() => { if (onClose) onClose(); setShowLoginModal(false); }} />
+
+      {/* Subtle floating spotlight behind the panel */}
+      <div className="absolute z-0 w-[500px] h-[500px] bg-indigo-500/30 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+
+      <div className="bg-white/30 dark:bg-black/60 backdrop-blur-2xl border border-white/40 dark:border-white/20 rounded-3xl shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] w-full max-w-md p-8 relative z-10 overflow-hidden flex flex-col items-center animate-in slide-in-from-bottom-8 duration-500 ease-out">
+        {/* Inner glare effect */}
+        <div className="absolute inset-0 rounded-3xl pointer-events-none border border-white/10 mix-blend-overlay" />
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-50" />
         
-        <div className="bg-indigo-500 p-2 rounded-xl shadow-lg flex items-center justify-center mb-6">
+        {onClose && (
+           <button onClick={() => { onClose(); setShowLoginModal(false); }} className="absolute top-4 right-4 p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors z-20">
+             <X className="w-5 h-5" />
+           </button>
+        )}
+
+        <div className="bg-indigo-500/80 backdrop-blur-md p-3 rounded-2xl shadow-lg flex items-center justify-center mb-6 relative z-20 ring-1 ring-white/30">
           <AudioLines className="w-8 h-8 text-white" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">
-          {isLogin ? 'Welcome back' : 'Create your account'}
+        <h2 className="text-3xl font-extrabold text-white mb-2 tracking-tight drop-shadow-md relative z-20">
+          {isLogin ? 'Welcome back' : 'Create an account'}
         </h2>
-        <p className="text-gray-400 text-sm mb-8 text-center">
+        <p className="text-white/80 text-sm mb-8 text-center drop-shadow-sm font-medium relative z-20">
           {isLogin 
-            ? 'Sign in to access your playlists and organize your music.'
+            ? 'Sign in to save playlists and organize your music.'
             : 'Join Resavvy to build your ultimate music library.'}
         </p>
 
         {error && (
-          <div className="w-full bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-xl text-sm mb-6 text-center">
+          <div className="w-full bg-red-500/20 backdrop-blur-md border border-red-500/50 text-white p-3 rounded-xl text-sm mb-6 text-center font-medium relative z-20 shadow-inner">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4 relative z-20">
           {!isLogin && (
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required={!isLogin}
-                placeholder="Your name"
-                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+                placeholder="Full Name"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-white/40 focus:bg-white/10 focus:ring-4 focus:ring-white/10 transition-all text-sm font-medium shadow-inner"
               />
             </div>
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Username</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              placeholder="username"
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+              placeholder="Username"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-white/40 focus:bg-white/10 focus:ring-4 focus:ring-white/10 transition-all text-sm font-medium shadow-inner"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              placeholder="••••••••"
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+              placeholder="Password"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-white/40 focus:bg-white/10 focus:ring-4 focus:ring-white/10 transition-all text-sm font-medium shadow-inner"
             />
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full mt-4 py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl transition-all shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed"
+            className="w-full mt-4 py-3 px-4 bg-white/90 backdrop-blur-md text-indigo-950 font-bold rounded-xl hover:bg-white transition-all shadow-[0_4px_14px_0_rgba(255,255,255,0.39)] hover:shadow-[0_6px_20px_rgba(255,255,255,0.23)] hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
           >
             {isLoading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
           </button>
         </form>
 
-        <div className="mt-6 text-sm text-gray-500">
+        <div className="mt-6 text-sm text-white/80 font-medium drop-shadow-sm relative z-20">
           {isLogin ? "Don't have an account?" : "Already have an account?"}{' '}
           <button
             type="button"
@@ -124,7 +193,7 @@ export function AuthScreen() {
               setIsLogin(!isLogin);
               setError('');
             }}
-            className="text-indigo-400 hover:text-indigo-300 font-medium transition-colors focus:outline-none"
+            className="text-white hover:text-gray-200 font-bold transition-colors focus:outline-none underline decoration-white/40 underline-offset-4"
           >
             {isLogin ? 'Sign up' : 'Log in'}
           </button>

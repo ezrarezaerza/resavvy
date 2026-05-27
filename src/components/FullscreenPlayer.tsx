@@ -40,7 +40,9 @@ export function FullscreenPlayer() {
 
   if (!currentSong) return null;
 
-  const hqThumbnail = currentSong.thumbnailUrl.replace('mqdefault.jpg', 'maxresdefault.jpg');
+  const hqThumbnail = currentSong.thumbnailUrl 
+    ? currentSong.thumbnailUrl.replace('mqdefault.jpg', 'maxresdefault.jpg')
+    : '';
 
   return (
     <div 

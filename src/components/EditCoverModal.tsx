@@ -31,8 +31,8 @@ export function EditCoverModal({ group, onSave, onClose }: EditCoverModalProps) 
 
   const modalContent = (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 text-left">
-      <div className="bg-[#0f111a] dark:bg-[#0f111a] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6 relative overflow-hidden z-[101]">
-        <h2 className="text-xl font-bold text-white mb-6">Customize Playlist Cover</h2>
+      <div className="bg-white/90 dark:bg-[#1e293b]/90 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6 relative overflow-hidden z-[101]">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Customize Playlist Cover</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-3">
             <label className="flex items-center gap-3 cursor-pointer">
@@ -42,9 +42,9 @@ export function EditCoverModal({ group, onSave, onClose }: EditCoverModalProps) 
                 value="random"
                 checked={coverType === 'random'}
                 onChange={() => setCoverType('random')}
-                className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-gray-900 bg-black/20"
+                className="w-4 h-4 text-indigo-600 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 bg-gray-50 dark:bg-black/20"
               />
-              <span className="text-sm font-medium text-gray-300">Random Track Art</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Random Track Art</span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <input
@@ -53,15 +53,15 @@ export function EditCoverModal({ group, onSave, onClose }: EditCoverModalProps) 
                 value="custom"
                 checked={coverType === 'custom'}
                 onChange={() => setCoverType('custom')}
-                className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 focus:ring-offset-gray-900 bg-black/20"
+                className="w-4 h-4 text-indigo-600 border-gray-300 dark:border-gray-600 focus:ring-indigo-500 bg-gray-50 dark:bg-black/20"
               />
-              <span className="text-sm font-medium text-gray-300">Custom Image Link</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Custom Image Link</span>
             </label>
           </div>
           
           {coverType === 'custom' && (
             <div className="mt-2 text-left">
-              <label htmlFor="customUrl" className="block text-sm font-medium text-gray-300 mb-1">
+              <label htmlFor="customUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Image URL
               </label>
               <input
@@ -70,7 +70,7 @@ export function EditCoverModal({ group, onSave, onClose }: EditCoverModalProps) 
                 value={customUrl}
                 onChange={(e) => setCustomUrl(e.target.value)}
                 placeholder="https://example.com/image.jpg"
-                className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                 required={coverType === 'custom'}
               />
             </div>
@@ -80,7 +80,7 @@ export function EditCoverModal({ group, onSave, onClose }: EditCoverModalProps) 
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white rounded-xl transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
             >
               Cancel
             </button>

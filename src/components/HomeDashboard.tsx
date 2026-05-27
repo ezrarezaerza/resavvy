@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { PlaylistGroup, Song } from '../types';
 import { PlaylistCard } from './PlaylistCard';
-import { Plus, Disc3, Play, Clock } from 'lucide-react';
+import { DiscoveryShelf } from './DiscoveryShelf';
+import { Plus, Disc3, Play, Clock, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
 
@@ -16,27 +17,32 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
   const { playSong } = usePlayer();
   const [heavyRotation, setHeavyRotation] = useState<Song[]>([]);
   const [trending, setTrending] = useState<Song[]>([]);
+  const [trendingCurations, setTrendingCurations] = useState<PlaylistGroup[]>([]);
+  const [freshCurations, setFreshCurations] = useState<PlaylistGroup[]>([]);
 
   useEffect(() => {
+    // Fetch global trending unconditionally for public discovery
+    fetch('/api/social?type=trending')
+      .then(res => res.json())
+      .then(data => { if (Array.isArray(data)) setTrending(data); })
+      .catch(console.error);
+
     if (token) {
       fetch('/api/social?type=rotation', { headers: { 'Authorization': `Bearer ${token}` } })
         .then(res => res.json())
         .then(data => { if (Array.isArray(data)) setHeavyRotation(data); })
         .catch(console.error);
-
-      fetch('/api/social?type=trending', { headers: { 'Authorization': `Bearer ${token}` } })
+    } else {
+      // Fetch public curations if not logged in
+      fetch('/api/social?type=discovery')
         .then(res => res.json())
-        .then(data => { if (Array.isArray(data)) setTrending(data); })
+        .then(data => {
+            if (data.trending) setTrendingCurations(data.trending);
+            if (data.fresh) setFreshCurations(data.fresh);
+        })
         .catch(console.error);
     }
   }, [token]);
-
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "Good morning";
-    if (hour >= 12 && hour < 17) return "Good afternoon";
-    return "Good evening";
-  };
 
   const getHighResThumbnail = (url: string) => {
     if (url && url.includes('mqdefault.jpg')) return url.replace('mqdefault.jpg', 'hqdefault.jpg');
@@ -82,16 +88,27 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
 
   return (
     <div className="w-full h-full p-6 md:p-8 overflow-y-auto pb-32 no-scrollbar">
-      <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-10">
-        {getGreeting()}
-      </h2>
-      
-      {/* Shelf 1: Your Curations */}
-      <div className="mb-14">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-2">
+      {/* Guest Welcome Banner */}
+      {!token && (
+        <div className="mb-14 mt-4 bg-indigo-600/10 dark:bg-indigo-500/10 border border-indigo-600/20 dark:border-indigo-500/20 rounded-3xl p-8 backdrop-blur-xl">
+          <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-4">
+            Welcome to <span className="text-indigo-600 dark:text-indigo-500">Resavvy</span>
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 text-lg md:text-xl font-medium max-w-2xl leading-relaxed mb-6">
+            Discover trending music, curations, and build your own library. 
+            Sign in to start organizing your ultimate collection.
+          </p>
+        </div>
+      )}
+
+      {/* Shelf 1: Your Curations (Hidden for Guests if empty) */}
+      {(token || groups.length > 0) && (
+        <div className="mb-14 mt-4">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
+            <Sparkles className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
             Your Curations
-          </h3>
+          </h2>
           {groups.length === 0 && (
              <button
                onClick={onCreatePlaylist}
@@ -125,6 +142,7 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
           </div>
         )}
       </div>
+      )}
 
       {/* Shelf 2: Heavy Rotation */}
       {heavyRotation.length > 0 && (
@@ -148,6 +166,22 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
             {trending.map((song, i) => renderSongCard(song, 'trending', i))}
           </div>
         </div>
+      )}
+
+      {/* Guest Discovery Extensions */}
+      {!token && trendingCurations.length > 0 && (
+          <DiscoveryShelf
+            title="Trending Curations"
+            playlists={trendingCurations}
+            onSelectPlaylist={onSelectGroup}
+          />
+      )}
+      {!token && freshCurations.length > 0 && (
+          <DiscoveryShelf
+            title="Fresh Finds"
+            playlists={freshCurations}
+            onSelectPlaylist={onSelectGroup}
+          />
       )}
     </div>
   );

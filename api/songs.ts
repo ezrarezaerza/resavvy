@@ -69,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        try {
          const songs = await prisma.song.findMany({
            where: { playlist: { userId: user.id } },
-           orderBy: { addedAt: 'desc' }
+           orderBy: { createdAt: 'desc' }
          });
          return res.status(200).json(songs);
        } catch(error) {

@@ -1,6 +1,6 @@
 import { Shuffle, SkipBack, Play, Pause, SkipForward, Repeat, Repeat1, Volume2 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
-import { useSettings } from "../context/SettingsContext";
+import { useSettings } from "../hooks/useSettings";
 import { PlaybackProgressBar } from "./PlaybackProgressBar";
 
 export function PlayerBar() {
@@ -21,6 +21,7 @@ export function PlayerBar() {
   const { lowDataMode } = useSettings();
 
   const getThumbnailSrc = (url: string) => {
+    if (!url) return '';
     if (!lowDataMode && url.includes('mqdefault.jpg')) {
       return url.replace('mqdefault.jpg', 'hqdefault.jpg');
     }
@@ -30,7 +31,7 @@ export function PlayerBar() {
   return (
     <footer 
       onClick={() => setIsExpanded(true)}
-      className="h-20 md:h-24 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border-t border-white/20 dark:border-gray-700/30 flex items-center justify-between px-4 md:px-6 w-full shrink-0 z-50 transition-colors cursor-pointer group"
+      className="fixed bottom-16 pb-[env(safe-area-inset-bottom)] md:bottom-0 md:pb-0 w-full z-40 h-20 md:h-24 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl border-t border-white/20 dark:border-gray-700/30 flex items-center justify-between px-4 md:px-6 transition-colors cursor-pointer group"
     >
       {/* Now Playing - Mobile & Desktop */}
       <div className="flex flex-1 md:flex-none items-center gap-4 md:w-1/4 md:min-w-[180px]">

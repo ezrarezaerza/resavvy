@@ -49,13 +49,13 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       />
       <div 
         ref={modalRef}
-        className="relative bg-[#0f111a] dark:bg-[#0f111a] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6 overflow-hidden z-[101]"
+        className="relative bg-white/90 dark:bg-[#1e293b]/90 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6 overflow-hidden z-[101]"
       >
         <div className="flex items-center justify-between mb-6 relative z-10">
-          <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{title}</h2>
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-white/5 text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
