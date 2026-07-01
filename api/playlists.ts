@@ -26,24 +26,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        try {
          const playlist = await prisma.playlist.findUnique({
            where: { id: playlistId },
-           include: { songs: true, user: { select: { name: true, username: true } } }
+           include: { songs: { orderBy: { order: 'asc' } }, user: { select: { name: true, username: true } } }
          });
          if (!playlist) return res.status(404).json({ error: 'Not found' });
          if (playlist.visibility === 'private' && (!user || user.id !== playlist.userId)) {
            return res.status(403).json({ error: 'Forbidden' });
          }
-         return res.status(200).json(playlist);
+         let isSaved = false;
+         if (user) {
+           const savedRecord = await prisma.savedPlaylist.findUnique({
+             where: { userId_playlistId: { userId: user.id, playlistId } }
+           });
+           isSaved = !!savedRecord;
+         }
+         return res.status(200).json({ ...playlist, isSaved });
        } catch (error) {
          return res.status(500).json({ error: 'Failed to fetch playlist' });
        }
     } else {
        if (!user) return res.status(401).json({ error: 'Unauthorized' });
        try {
-         const playlists = await prisma.playlist.findMany({
+         const ownedPlaylists = await prisma.playlist.findMany({
            where: { userId: user.id },
-           include: { songs: true }
+           include: { songs: { orderBy: { order: 'asc' } } }
          });
-         return res.status(200).json(playlists);
+
+         const savedRecords = await prisma.savedPlaylist.findMany({
+           where: { userId: user.id },
+           include: {
+             playlist: {
+               include: { songs: { orderBy: { order: 'asc' } }, user: { select: { name: true, username: true } } }
+             }
+           }
+         });
+
+         const savedPlaylists = savedRecords.map(record => ({
+           ...record.playlist,
+           isSaved: true
+         }));
+
+         return res.status(200).json([...ownedPlaylists, ...savedPlaylists]);
        } catch (error) {
          return res.status(500).json({ error: 'Failed to fetch playlists' });
        }
@@ -55,9 +77,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // POST
   if (req.method === 'POST') {
-    if (action === 'import' && playlistId) {
+    if (action === 'save' && playlistId) {
       try {
-        const original = await prisma.playlist.findUnique({ where: { id: playlistId }, include: { songs: true } });
+        const original = await prisma.playlist.findUnique({ where: { id: playlistId } });
+        if (!original) return res.status(404).json({ error: 'Not found' });
+        if (original.visibility === 'private' && original.userId !== user.id) {
+          return res.status(403).json({ error: 'Forbidden' });
+        }
+        await prisma.savedPlaylist.create({
+          data: {
+            userId: user.id,
+            playlistId
+          }
+        });
+        return res.status(200).json({ success: true });
+      } catch (error) {
+        return res.status(500).json({ error: 'Failed to save playlist' });
+      }
+    } else if (action === 'unsave' && playlistId) {
+      try {
+        await prisma.savedPlaylist.delete({
+          where: {
+            userId_playlistId: {
+              userId: user.id,
+              playlistId
+            }
+          }
+        });
+        return res.status(200).json({ success: true });
+      } catch (error) {
+        return res.status(500).json({ error: 'Failed to unsave playlist' });
+      }
+    } else if (action === 'import' && playlistId) {
+      try {
+        const original = await prisma.playlist.findUnique({ where: { id: playlistId }, include: { songs: { orderBy: { order: 'asc' } } } });
         if (!original) return res.status(404).json({ error: 'Not found' });
         if (original.visibility === 'private' && original.userId !== user.id) {
           return res.status(403).json({ error: 'Forbidden' });
@@ -82,7 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                }))
             }
           },
-          include: { songs: true }
+          include: { songs: { orderBy: { order: 'asc' } } }
         });
 
         if (original.userId !== user.id) {
@@ -104,7 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             coverType: coverType || 'random', 
             customCoverUrl 
           },
-          include: { songs: true }
+          include: { songs: { orderBy: { order: 'asc' } } }
         });
         return res.status(201).json(newPlaylist);
       } catch (error) {
@@ -130,7 +183,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             ...(coverType !== undefined && { coverType }),
             ...(customCoverUrl !== undefined && { customCoverUrl }),
           },
-          include: { songs: true }
+          include: { songs: { orderBy: { order: 'asc' } } }
         });
         return res.status(200).json(updated);
      } catch (error) {

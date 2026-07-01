@@ -91,7 +91,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        }
        const globalTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).map(e => e[0]);
 
-       return res.status(200).json({ trending, fresh, globalTags });
+       const popularSongs = await prisma.song.findMany({
+         where: { playlist: { visibility: 'public' } },
+         orderBy: { playCount: 'desc' },
+         take: 9,
+         include: {
+           playlist: { select: { name: true, id: true, userId: true, visibility: true } }
+         }
+       });
+
+       const popularUsers = await prisma.user.findMany({
+         take: 8,
+         select: {
+            id: true,
+            name: true,
+            username: true,
+            avatarUrl: true,
+         }
+       });
+
+       return res.status(200).json({ trending, fresh, globalTags, popularSongs, popularUsers });
      } catch (err) {
        return res.status(500).json({ error: 'Failed discovery' });
      }
@@ -169,6 +188,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
         const totalPlays = totalPlaysData._sum.playCount || 0;
 
+        const totalLikedSongs = await prisma.song.count({
+          where: { playlist: { userId: user.id }, isLiked: true }
+        });
+
+        const playedSongs = await prisma.song.findMany({
+          where: { playlist: { userId: user.id }, playCount: { gt: 0 } },
+          select: { duration: true, playCount: true }
+        });
+
+        let totalListeningTimeSeconds = 0;
+        playedSongs.forEach(s => {
+          if (!s.duration) return;
+          const parts = s.duration.split(':').map(Number);
+          let seconds = 0;
+          if (parts.length === 1) seconds = parts[0] || 0;
+          else if (parts.length === 2) seconds = (parts[0] || 0) * 60 + (parts[1] || 0);
+          else if (parts.length === 3) seconds = (parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0);
+          totalListeningTimeSeconds += seconds * s.playCount;
+        });
+
         const topSong = await prisma.song.findFirst({
           where: { playlist: { userId: user.id }, playCount: { gt: 0 } },
           orderBy: { playCount: 'desc' }
@@ -188,6 +227,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
 
         const hasPublicPlaylists = allPlaylists.some(p => p.visibility === 'public');
+        const publicPlaylistsCount = allPlaylists.filter(p => p.visibility === 'public').length;
+        const totalPlaylists = allPlaylists.length;
+
+        let totalSongsSaved = 0;
+        const uniqueArtists = new Set<string>();
+        
+        allPlaylists.forEach(p => {
+          totalSongsSaved += p.songs.length;
+          p.songs.forEach(s => {
+            if (s.artist) uniqueArtists.add(s.artist.toLowerCase());
+          });
+        });
+
+        const library = {
+          totalPlaylists,
+          totalSongsSaved,
+          uniqueArtistsSaved: uniqueArtists.size
+        };
+
+        const curatorScore = (totalLikes * 10) + (totalForks * 25) + (publicPlaylistsCount * 50);
+        
+        let curatorLevel = "Novice";
+        if (curatorScore >= 1000) curatorLevel = "Icon";
+        else if (curatorScore >= 500) curatorLevel = "Expert Curator";
+        else if (curatorScore >= 200) curatorLevel = "Rising Curator";
+        else if (curatorScore >= 50) curatorLevel = "Local Tastemaker";
 
         let topPlaylist = null;
         if (allPlaylists.length > 0) {
@@ -202,8 +267,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         return res.status(200).json({
-          listener: { topArtists, topSong, totalPlays },
-          curator: { totalLikes, totalForks, topPlaylist, hasPublicPlaylists }
+          listener: { topArtists, topSong, totalPlays, totalLikedSongs, totalListeningTimeSeconds },
+          curator: { totalLikes, totalForks, topPlaylist, hasPublicPlaylists, publicPlaylistsCount, curatorScore, curatorLevel },
+          library
         });
      } catch(err) {
         return res.status(500).json({ error: 'Failed stats' });

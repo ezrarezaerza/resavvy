@@ -12,9 +12,12 @@ interface PlaylistContextType {
   reorderSongs: (groupId: string, newSongs: Song[]) => void;
   updateSongDuration: (songId: string, durationStr: string) => void;
   editSong: (groupId: string, songId: string, updates: { title: string, artist: string }) => void;
+  toggleSongLike: (groupId: string, songId: string) => void;
   incrementPlayCount: (groupId: string | undefined, songId: string) => void;
   updatePlaylistDetails: (groupId: string, details: Partial<Pick<PlaylistGroup, 'name' | 'description' | 'tags' | 'visibility'>>) => void;
   updatePlaylistCover: (groupId: string, type: 'random' | 'custom', url?: string) => void;
+  savePlaylist: (playlistId: string) => Promise<void>;
+  unsavePlaylist: (playlistId: string) => Promise<void>;
 }
 
 const PlaylistContext = createContext<PlaylistContextType | undefined>(undefined);

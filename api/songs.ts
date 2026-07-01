@@ -95,19 +95,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          }
      }
      
+     if (action === 'reorder') {
+         try {
+           const { playlistId, songIds } = req.body;
+           const playlist = await prisma.playlist.findUnique({ where: { id: playlistId } });
+           if (!playlist || playlist.userId !== user.id) return res.status(403).json({ error: 'Forbidden' });
+
+           const updates = songIds.map((id: string, index: number) => {
+             return prisma.song.update({
+               where: { id },
+               data: { order: index }
+             });
+           });
+           await prisma.$transaction(updates);
+           return res.status(200).json({ success: true });
+         } catch(error) {
+           return res.status(500).json({ error: 'Failed' });
+         }
+     }
+
      if (action === 'bulk') {
          try {
-           const { playlistId, items } = req.body;
+           const { playlistId: pid, targetPlaylistId, items: itm, songs } = req.body;
+           const playlistId = pid || targetPlaylistId;
+           const items = itm || songs;
            const playlist = await prisma.playlist.findUnique({ where: { id: playlistId }});
            if (!playlist || playlist.userId !== user.id) return res.status(403).json({ error: 'Forbidden' });
            
+           const maxOrderSong = await prisma.song.findFirst({ where: { playlistId }, orderBy: { order: "desc" }, select: { order: true }});
+           let nextOrder = maxOrderSong ? maxOrderSong.order + 1 : 0;
+
            const dataToInsert = items.map((item: any) => ({
              playlistId,
              youtubeId: item.youtubeId,
              title: item.title,
              artist: item.artist,
              thumbnailUrl: item.thumbnailUrl,
-             duration: item.duration !== undefined ? String(item.duration) : '0:00'
+             duration: item.duration !== undefined ? String(item.duration) : '0:00',
+             order: nextOrder++
            }));
 
            await prisma.song.createMany({ data: dataToInsert });
@@ -145,8 +170,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const playlist = await prisma.playlist.findUnique({ where: { id: playlistId }});
        if (!playlist || playlist.userId !== user.id) return res.status(403).json({ error: 'Forbidden' });
        
+       const maxOrderSong = await prisma.song.findFirst({ where: { playlistId }, orderBy: { order: "desc" }, select: { order: true }});
+       let nextOrder = maxOrderSong ? maxOrderSong.order + 1 : 0;
+
        const song = await prisma.song.create({
-         data: { playlistId, youtubeId, title, artist, thumbnailUrl, duration: duration !== undefined ? String(duration) : '0:00' }
+         data: { playlistId, youtubeId, title, artist, thumbnailUrl, duration: duration !== undefined ? String(duration) : '0:00', order: nextOrder }
        });
        return res.status(201).json(song);
      } catch(error) {

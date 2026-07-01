@@ -17,6 +17,8 @@ export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: D
   const [trending, setTrending] = useState<PlaylistGroup[]>([]);
   const [fresh, setFresh] = useState<PlaylistGroup[]>([]);
   const [globalTags, setGlobalTags] = useState<string[]>([]);
+  const [popularSongs, setPopularSongs] = useState<any[]>([]);
+  const [popularUsers, setPopularUsers] = useState<any[]>([]);
   const [taggedPlaylists, setTaggedPlaylists] = useState<PlaylistGroup[]>([]);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   
@@ -79,6 +81,8 @@ export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: D
           setTrending(data.trending || []);
           setFresh(data.fresh || []);
           setGlobalTags(data.globalTags || []);
+          setPopularSongs(data.popularSongs || []);
+          setPopularUsers(data.popularUsers || []);
         }
       }
     } catch (e) {
@@ -176,6 +180,10 @@ export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: D
                      {searchResults.users.map((u) => (
                         <div 
                           key={u.id}
+                          onClick={() => {
+                             window.history.pushState(null, '', `/u/${u.username}`);
+                             window.dispatchEvent(new Event("popstate"));
+                          }}
                           className="p-4 bg-white/60 dark:bg-white/5 backdrop-blur-md border border-gray-200/50 dark:border-white/10 rounded-xl flex items-center gap-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all shadow-sm cursor-pointer"
                         >
                            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0">
@@ -223,18 +231,76 @@ export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: D
             )}
           </div>
         ) : (
-          <>
+          <div className="space-y-12 animate-in fade-in duration-500">
+            {popularSongs.length > 0 && (
+               <div>
+                  <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-white/10 pb-4 flex items-center gap-2">
+                     <Music className="w-6 h-6 text-indigo-500" />
+                     Popular Songs
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                     {popularSongs.map((song) => (
+                        <div 
+                          key={song.id} 
+                          onClick={() => onSelectGroup(song.playlist.id)}
+                          className="p-4 bg-white/60 dark:bg-white/5 backdrop-blur-md border border-gray-200/50 dark:border-white/10 rounded-xl flex items-center gap-4 hover:border-indigo-500/50 hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer transition-all shadow-sm"
+                        >
+                           <img src={song.thumbnailUrl} alt="" className="w-16 h-12 object-cover rounded-lg shrink-0" />
+                           <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-gray-900 dark:text-white truncate">{song.title}</h4>
+                              <p className="text-sm text-gray-500 truncate">{song.artist}</p>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+
             <DiscoveryShelf
               title="Trending Curations"
               playlists={trending}
               onSelectPlaylist={onSelectGroup}
             />
+            
+            {popularUsers.length > 0 && (
+               <div>
+                  <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-6 border-b border-gray-200 dark:border-white/10 pb-4 flex items-center gap-2">
+                     <User className="w-6 h-6 text-indigo-500" />
+                     Popular Curators
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                     {popularUsers.map((u) => (
+                        <div 
+                          key={u.id}
+                          onClick={() => {
+                             window.history.pushState(null, '', `/u/${u.username}`);
+                             window.dispatchEvent(new Event("popstate"));
+                          }}
+                          className="p-4 bg-white/60 dark:bg-white/5 backdrop-blur-md border border-gray-200/50 dark:border-white/10 rounded-xl flex items-center gap-4 hover:bg-white/80 dark:hover:bg-white/10 transition-all shadow-sm cursor-pointer"
+                        >
+                           <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0">
+                              {u.avatarUrl ? (
+                                 <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                 <div className="w-full h-full flex items-center justify-center font-bold text-gray-500">{u.name.charAt(0).toUpperCase()}</div>
+                              )}
+                           </div>
+                           <div className="flex-1 min-w-0">
+                              <h4 className="font-semibold text-gray-900 dark:text-white truncate">{u.name}</h4>
+                              <p className="text-sm text-gray-500 truncate">@{u.username}</p>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+
             <DiscoveryShelf
               title="Fresh Finds"
               playlists={fresh}
               onSelectPlaylist={onSelectGroup}
             />
-          </>
+          </div>
         )}
       </div>
     </div>

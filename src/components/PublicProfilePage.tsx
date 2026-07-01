@@ -37,7 +37,8 @@ export function PublicProfilePage({ username }: PublicProfilePageProps) {
   };
 
   const handlePlaylistClick = (playlistId: string) => {
-    window.location.href = `/p/${playlistId}`;
+    window.history.pushState(null, '', `/p/${playlistId}`);
+    window.dispatchEvent(new Event("popstate"));
   };
 
   if (isLoading) {
@@ -54,7 +55,10 @@ export function PublicProfilePage({ username }: PublicProfilePageProps) {
         <div className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Oops!</div>
         <div className="text-lg text-gray-500 mb-8">{error || 'Something went wrong.'}</div>
         <button 
-          onClick={() => window.location.href = '/'}
+          onClick={() => {
+            window.history.pushState(null, '', '/');
+            window.dispatchEvent(new Event("popstate"));
+          }}
           className="px-6 py-2 bg-indigo-600 text-white rounded-full font-semibold hover:bg-indigo-700 transition"
         >
           Go Home
@@ -66,16 +70,8 @@ export function PublicProfilePage({ username }: PublicProfilePageProps) {
   const avatarUrl = profile.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.username}`;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0a0a0a] pb-32">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pt-8 pb-12">
-        <button 
-          onClick={() => window.location.href = '/'} 
-          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors mb-12"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Back Home
-        </button>
-
+    <div className="flex flex-col w-full text-gray-900 dark:text-gray-100 font-sans pb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pt-12 pb-12 w-full">
         <div className="flex flex-col items-center text-center">
           <img 
             src={avatarUrl} 
@@ -95,7 +91,7 @@ export function PublicProfilePage({ username }: PublicProfilePageProps) {
             </p>
           )}
 
-          <div className="mt-8 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20 font-bold text-sm shadow-sm hover:scale-105 transition-transform cursor-default">
+          <div className="mt-8 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20 font-bold text-sm shadow-sm hover:scale-105 transition-transform cursor-default">
              <Heart className="w-4 h-4 fill-current" />
              {totalLikes} Curator Score
           </div>

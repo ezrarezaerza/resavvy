@@ -26,10 +26,11 @@ export function usePlaylistData() {
     window.localStorage.removeItem(LOCAL_STORAGE_KEY);
     
     if (token) {
-      fetch('/api/playlists', {
+      fetch('/api/playlists?_t=' + Date.now(), {
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        cache: 'no-store'
       })
       .then(res => res.json())
       .then(data => {
@@ -195,9 +196,19 @@ export function usePlaylistData() {
     addToast(`Playlist renamed to "${newName}"`, 'success');
   };
 
-  const reorderSongs = (groupId: string, newSongs: Song[]) => {
-    // Left local: requires batched update logic in the actual app usually,
-    // assuming local state handles it temporarily.
+  const reorderSongs = async (groupId: string, newSongs: Song[]) => {
+    if (token) {
+      try {
+        await fetch(`/api/songs?action=reorder`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ playlistId: groupId, songIds: newSongs.map(s => s.id) })
+        });
+      } catch (err) {
+        console.error('Failed to reorder', err);
+      }
+    }
+    
     setGroups((prevGroups) =>
       prevGroups.map((group) => {
         if (group.id === groupId) {
@@ -226,6 +237,25 @@ export function usePlaylistData() {
       })
     );
     addToast('Song updated successfully', 'success');
+  };
+
+  const toggleSongLike = (groupId: string, songId: string) => {
+    setGroups((prevGroups) =>
+      prevGroups.map((group) => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            songs: group.songs.map((song) => {
+              if (song.id === songId) {
+                return { ...song, isLiked: !song.isLiked };
+              }
+              return song;
+            }),
+          };
+        }
+        return group;
+      })
+    );
   };
 
   const updateSongDuration = (songId: string, durationStr: string) => {
@@ -309,6 +339,49 @@ export function usePlaylistData() {
     addToast('Playlist cover updated', 'success');
   };
 
+  const savePlaylist = async (playlistId: string) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/playlists?id=${playlistId}&action=save`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        // Find it from API to get data
+        const getRes = await fetch(`/api/playlists?id=${playlistId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (getRes.ok) {
+          const playlist = await getRes.json();
+          setGroups(prev => [...prev, playlist]);
+          addToast('Playlist saved to library', 'success');
+        }
+      } else {
+        addToast('Failed to save playlist', 'error');
+      }
+    } catch (err) {
+      addToast('Failed to save playlist', 'error');
+    }
+  };
+
+  const unsavePlaylist = async (playlistId: string) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/playlists?id=${playlistId}&action=unsave`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        setGroups(prev => prev.filter(g => g.id !== playlistId || !g.isSaved));
+        addToast('Playlist removed from library', 'info');
+      } else {
+        addToast('Failed to unsave playlist', 'error');
+      }
+    } catch (err) {
+      addToast('Failed to unsave playlist', 'error');
+    }
+  };
+
   return {
     groups,
     createGroup,
@@ -319,8 +392,11 @@ export function usePlaylistData() {
     reorderSongs,
     updateSongDuration,
     editSong,
+    toggleSongLike,
     incrementPlayCount,
     updatePlaylistDetails,
     updatePlaylistCover,
+    savePlaylist,
+    unsavePlaylist,
   };
 }

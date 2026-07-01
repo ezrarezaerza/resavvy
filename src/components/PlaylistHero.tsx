@@ -239,7 +239,7 @@ export function PlaylistHero({ activeGroup, onAddSong, isReadOnly = false }: Pla
                 className="px-6 py-3 bg-indigo-600 dark:bg-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-400 text-white rounded-full font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-2 hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900"
               >
                 <Play className="w-5 h-5 fill-current" />
-                Play All
+                Play Now
               </button>
             )}
             {!isReadOnly && (

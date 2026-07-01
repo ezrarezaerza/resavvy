@@ -8,30 +8,44 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(uuid())
-  name         String
-  username     String     @unique
-  passwordHash String
-  bio          String?
-  avatarUrl    String?
-  createdAt    DateTime   @default(now())
-  playlists    Playlist[]
+  id             String          @id @default(uuid())
+  name           String
+  username       String          @unique
+  passwordHash   String
+  bio            String?
+  avatarUrl      String?
+  createdAt      DateTime        @default(now())
+  playlists      Playlist[]
+  savedPlaylists SavedPlaylist[]
 }
 
 model Playlist {
-  id             String   @id @default(uuid())
+  id             String          @id @default(uuid())
   userId         String
   name           String
   description    String?
   tags           String[]
-  visibility     String   @default("private")
-  coverType      String   @default("random")
+  visibility     String          @default("private")
+  coverType      String          @default("random")
   customCoverUrl String?
-  likesCount     Int      @default(0)
-  forksCount     Int      @default(0)
-  createdAt      DateTime @default(now())
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likesCount     Int             @default(0)
+  forksCount     Int             @default(0)
+  createdAt      DateTime        @default(now())
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   songs          Song[]
+  savedBy        SavedPlaylist[]
+}
+
+model SavedPlaylist {
+  id         String   @id @default(uuid())
+  userId     String
+  playlistId String
+  savedAt    DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, playlistId])
 }
 
 model Song {
@@ -44,6 +58,7 @@ model Song {
   duration     String
   playCount    Int      @default(0)
   createdAt    DateTime @default(now())
+  order        Int      @default(0)
   isLiked      Boolean  @default(false)
   playlist     Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
 }

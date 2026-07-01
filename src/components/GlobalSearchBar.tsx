@@ -164,7 +164,8 @@ export function GlobalSearchBar({ onNavigate }: GlobalSearchBarProps) {
                   onClick={() => {
                      setIsOpen(false);
                      setQuery('');
-                     window.location.href = `/u/${u.username}`;
+                     window.history.pushState(null, '', `/u/${u.username}`);
+                     window.dispatchEvent(new Event("popstate"));
                   }}
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0">

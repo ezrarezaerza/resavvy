@@ -24,12 +24,6 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
-  const isPublicPlaylist = currentPath.startsWith('/p/');
-  const playlistId = isPublicPlaylist ? currentPath.split('/p/')[1] : null;
-
-  const isPublicProfile = currentPath.startsWith('/u/');
-  const profileUsername = isPublicProfile ? currentPath.split('/u/')[1] : null;
-
   const toaster = (
     <Toaster 
       theme="dark" 
@@ -40,34 +34,6 @@ export default function App() {
     />
   );
 
-  if (isPublicPlaylist && playlistId) {
-    return (
-      <>
-         {toaster}
-         <AuthProvider>
-           <PlayerProvider>
-             <HiddenYouTubePlayer />
-             <PublicPlaylistPage playlistId={playlistId} />
-           </PlayerProvider>
-         </AuthProvider>
-      </>
-    );
-  }
-
-  if (isPublicProfile && profileUsername) {
-    return (
-      <>
-         {toaster}
-         <AuthProvider>
-           <PlayerProvider>
-             <HiddenYouTubePlayer />
-             <PublicProfilePage username={profileUsername} />
-           </PlayerProvider>
-         </AuthProvider>
-      </>
-    );
-  }
-
   return (
     <>
       {toaster}
@@ -77,7 +43,7 @@ export default function App() {
             <PlayerProvider>
               <AuthGuard>
                 <HiddenYouTubePlayer />
-                <AppLayout />
+                <AppLayout currentPath={currentPath} />
               </AuthGuard>
             </PlayerProvider>
           </PlaylistProvider>

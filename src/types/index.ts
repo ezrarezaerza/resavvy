@@ -27,4 +27,5 @@ export interface PlaylistGroup {
     name: string;
     username: string;
   };
+  isSaved?: boolean;
 }

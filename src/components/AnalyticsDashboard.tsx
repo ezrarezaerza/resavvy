@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { StatCard } from './StatCard';
 import { ProgressBar } from './ProgressBar';
-import { BarChart2, PlayCircle, Clock, TrendingUp, Heart, Share2, Disc3 } from 'lucide-react';
+import { BarChart2, PlayCircle, Clock, TrendingUp, Heart, Share2, Disc3, Award, Activity } from 'lucide-react';
 import { PlaylistCard } from './PlaylistCard';
 import { Song, PlaylistGroup } from '../types';
 
@@ -11,17 +12,28 @@ interface StatsData {
     topArtists: { name: string; playCount: number }[];
     topSong: Song | null;
     totalPlays: number;
+    totalLikedSongs: number;
+    totalListeningTimeSeconds: number;
   };
   curator: {
     totalLikes: number;
     totalForks: number;
     topPlaylist: PlaylistGroup | null;
     hasPublicPlaylists: boolean;
+    publicPlaylistsCount: number;
+    curatorScore: number;
+    curatorLevel: string;
+  };
+  library: {
+    totalPlaylists: number;
+    totalSongsSaved: number;
+    uniqueArtistsSaved: number;
   };
 }
 
 export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: string) => void }) {
   const { token, user } = useAuth();
+  const { addToast } = useToast();
   const [stats, setStats] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -61,11 +73,42 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
   const { listener, curator } = stats;
   const maxArtistPlays = listener.topArtists.length > 0 ? listener.topArtists[0].playCount : 0;
 
+  const formatListeningTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMins = minutes % 60;
+    return `${hours}h ${remainingMins}m`;
+  };
+
+  const handleShare = async () => {
+    const time = formatListeningTime(listener.totalListeningTimeSeconds);
+    const topArtist = listener.topArtists[0]?.name || 'N/A';
+    
+    const text = `🎵 My Music Wrapped\n\n🎧 Listening Time: ${time}\n🔥 Curator Rank: ${curator.curatorLevel} (Score: ${curator.curatorScore})\n👑 Top Artist: ${topArtist}\n❤️ Songs Saved: ${stats.library.totalSongsSaved}\n\nBuilt on AI Studio 🚀`;
+    
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'My Music Wrapped',
+          text: text,
+        });
+        addToast('Shared successfully!', 'success');
+      } else {
+        await navigator.clipboard.writeText(text);
+        addToast('Stats copied to clipboard!', 'success');
+      }
+    } catch (err) {
+      console.error('Error sharing', err);
+    }
+  };
+
   return (
     <div className="w-full h-full p-6 md:p-8 overflow-y-auto pb-32 no-scrollbar">
       <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
         
-        <div className="flex items-center gap-4 mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
           <div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-none mb-2 flex items-center gap-3">
               <BarChart2 className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
@@ -75,6 +118,13 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
               Dive into your listening and curating impact.
             </p>
           </div>
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-full font-semibold shadow-lg shadow-indigo-500/30 transition-all hover:scale-105 active:scale-95"
+          >
+            <Share2 className="w-5 h-5" />
+            Share Wrapped
+          </button>
         </div>
 
         {/* The Listener */}
@@ -96,9 +146,19 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
               <div className="flex-1 flex flex-col gap-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                    <StatCard 
+                     title="Listening Time" 
+                     value={formatListeningTime(listener.totalListeningTimeSeconds)} 
+                     icon={Clock} 
+                   />
+                   <StatCard 
                      title="Total Plays" 
                      value={listener.totalPlays} 
                      icon={TrendingUp} 
+                   />
+                   <StatCard 
+                     title="Liked Songs" 
+                     value={listener.totalLikedSongs} 
+                     icon={Heart} 
                    />
                    <StatCard 
                      title="Top Track" 
@@ -141,6 +201,16 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
               <div className="flex-1 flex flex-col gap-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                    <StatCard 
+                     title="Curator Score" 
+                     value={curator.curatorScore} 
+                     icon={Activity} 
+                   />
+                   <StatCard 
+                     title="Curator Rank" 
+                     value={curator.curatorLevel} 
+                     icon={Award} 
+                   />
+                   <StatCard 
                      title="Total Likes" 
                      value={curator.totalLikes} 
                      icon={Heart} 
@@ -174,6 +244,31 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
             </div>
           </section>
         )}
+        {/* Library & Collection */}
+        <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300 mt-16">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+             <Disc3 className="w-6 h-6 text-pink-500" />
+             Library & Collection
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+             <StatCard 
+               title="Total Playlists" 
+               value={stats.library.totalPlaylists} 
+               icon={Disc3} 
+             />
+             <StatCard 
+               title="Songs Saved" 
+               value={stats.library.totalSongsSaved} 
+               icon={Heart} 
+             />
+             <StatCard 
+               title="Unique Artists" 
+               value={stats.library.uniqueArtistsSaved} 
+               icon={Activity} 
+             />
+          </div>
+        </section>
       </div>
     </div>
   );
