@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        try {
          const ownedPlaylists = await prisma.playlist.findMany({
            where: { userId: user.id },
-           include: { songs: { orderBy: { order: 'asc' } } }
+           include: { songs: { orderBy: { order: 'asc' } }, user: { select: { name: true, username: true } } }
          });
 
          const savedRecords = await prisma.savedPlaylist.findMany({
@@ -110,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
           }
         });
-        await prisma.playlist.update({ where: { id: playlistId }, data: { likesCount: { decrement: 1 } } });
+        // We do not decrement likesCount on unsave
         return res.status(200).json({ success: true });
       } catch (error) {
         return res.status(500).json({ error: 'Failed to unsave playlist' });

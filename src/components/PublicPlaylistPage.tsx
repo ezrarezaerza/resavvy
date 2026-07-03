@@ -48,9 +48,7 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
   }, [playlistId, token]);
 
   const isSaved = groups.some((g) => g.id === playlistId && g.isSaved);
-  const isOwned = groups.some(
-    (g) => g.id === playlistId && !g.isSaved && String(g.id) !== "liked",
-  );
+  const isOwned = Boolean(user && playlist?.user?.username === user.username);
 
   const handleToggleSave = async () => {
     if (!token) {
@@ -72,6 +70,7 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
         await unsavePlaylist(playlistId);
       } else {
         await savePlaylist(playlistId);
+        setPlaylist(prev => prev ? { ...prev, likesCount: (prev.likesCount || 0) + 1 } : null);
       }
     } catch (e) {
       addToast(
