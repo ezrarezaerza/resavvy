@@ -1,8 +1,9 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { PlaylistGroup } from '../types';
 import { Heart, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
+import { usePlaylist } from '../context/PlaylistContext';
 
 interface PlaylistCardProps {
   playlist: PlaylistGroup;
@@ -12,15 +13,22 @@ interface PlaylistCardProps {
 
 export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, className = '' }) => {
   const { token, user } = useAuth();
-  const isOwner = user && playlist.user?.username === user.username;
   const { playSong } = usePlayer();
-  const [isSaved, setIsSaved] = useState(playlist.isSaved || false);
-  const [likesCount, setLikesCount] = useState(playlist.likesCount || 0);
+  const { groups } = usePlaylist();
 
-  useEffect(() => {
-    setIsSaved(playlist.isSaved || false);
-    setLikesCount(playlist.likesCount || 0);
-  }, [playlist.isSaved, playlist.likesCount]);
+  const isSaved = groups.some((g) => g.id === playlist.id && g.isSaved);
+  const isOwned = groups.some(
+    (g) => g.id === playlist.id && !g.isSaved && String(g.id) !== "liked",
+  );
+  const isActive = isSaved || isOwned || (user && playlist.user?.username === user.username);
+  
+  // Calculate dynamic saved count in case local state hasn't updated the parent object, 
+  // though normally it would be passed in. If it is newly saved/unsaved, we can adjust it visually or rely on the passed prop.
+  let likesCount = playlist.likesCount || 0;
+  // If the API returns it as NOT saved but we locally know it is saved, +1 (optimistic tweak if needed, though prop might be better)
+  // Let's just trust the prop for the number, but if we know it's saved locally and prop says it's not...
+  if (isSaved && !playlist.isSaved) likesCount += 1;
+  if (!isSaved && playlist.isSaved) likesCount = Math.max(0, likesCount - 1);
 
   const displayImage = useMemo(() => {
     if (playlist.coverType === 'custom' && playlist.customCoverUrl) {
@@ -46,32 +54,6 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, c
     e.stopPropagation();
     if (playlist.songs && playlist.songs.length > 0) {
       playSong(playlist.songs[0], playlist.songs, playlist.id);
-    }
-  };
-
-  const handleLikeClick = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!token) return;
-
-    const action = isSaved ? 'unsave' : 'save';
-    
-    // Optimistic UI
-    setIsSaved(!isSaved);
-    setLikesCount(prev => action === 'save' ? prev + 1 : Math.max(0, prev - 1));
-
-    try {
-      const res = await fetch(`/api/playlists?id=${playlist.id}&action=${action}`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) {
-         // Revert on failure
-         setIsSaved(isSaved);
-         setLikesCount(likesCount);
-      }
-    } catch (err) {
-      setIsSaved(isSaved);
-      setLikesCount(likesCount);
     }
   };
 
@@ -136,17 +118,14 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, c
               `${playlist.songs.length} ${playlist.songs.length === 1 ? 'song' : 'songs'}`
             )}
           </p>
-          {!isOwner && (
-            <div 
-              onClick={handleLikeClick}
-              className={`flex items-center gap-1 text-xs shrink-0 px-2 py-1 rounded-full backdrop-blur-sm pointer-events-auto transition-colors ${
-                token ? 'cursor-pointer hover:bg-black/60' : 'cursor-default'
-              } ${isSaved ? 'bg-indigo-600/80 text-white' : 'bg-black/40 text-gray-300'}`}
-            >
-              <Heart className={`w-3 h-3 ${isSaved ? 'fill-white' : ''}`} />
-              <span>{likesCount}</span>
-            </div>
-          )}
+          <div 
+            className={`flex items-center gap-1 text-xs shrink-0 px-2 py-1 rounded-full backdrop-blur-sm transition-colors ${
+              isActive ? 'bg-indigo-600/80 text-white' : 'bg-black/40 text-gray-300'
+            }`}
+          >
+            <Heart className={`w-3 h-3 ${isActive ? 'fill-white' : ''}`} />
+            <span>{likesCount}</span>
+          </div>
         </div>
       </div>
     </div>

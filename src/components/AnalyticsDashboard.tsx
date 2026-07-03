@@ -16,7 +16,7 @@ interface StatsData {
     totalListeningTimeSeconds: number;
   };
   curator: {
-    totalLikes: number;
+    totalSaved: number;
     totalForks: number;
     topPlaylist: PlaylistGroup | null;
     hasPublicPlaylists: boolean;
@@ -190,7 +190,7 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
         </section>
 
         {/* The Curator */}
-        {(curator.hasPublicPlaylists || curator.totalLikes > 0 || curator.topPlaylist) && (
+        {(curator.hasPublicPlaylists || curator.totalSaved > 0 || curator.topPlaylist) && (
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
             <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-6 flex items-center gap-2">
                <Share2 className="w-6 h-6 text-purple-500" />
@@ -211,8 +211,8 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
                      icon={Award} 
                    />
                    <StatCard 
-                     title="Total Likes" 
-                     value={curator.totalLikes} 
+                     title="Total Saved" 
+                     value={curator.totalSaved} 
                      icon={Heart} 
                    />
                    <StatCard 

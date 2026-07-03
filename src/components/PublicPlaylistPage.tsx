@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { usePlayer } from "../context/PlayerContext";
 import { usePlaylist } from "../context/PlaylistContext";
 import { useToast } from "../context/ToastContext";
-import { Play, Plus, Check } from "lucide-react";
+import { Play, Plus, Check, Copy, Heart } from "lucide-react";
 import { AuthScreen } from "./AuthScreen";
 import { Tracklist } from "./Tracklist";
 
@@ -22,8 +22,9 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
   const { token, user } = useAuth();
   const { playSong } = usePlayer();
   const { addToast } = useToast();
-  const { groups, savePlaylist, unsavePlaylist } = usePlaylist();
+  const { groups, savePlaylist, unsavePlaylist, clonePlaylist } = usePlaylist();
   const [showAuth, setShowAuth] = useState(false);
+  const [isCloning, setIsCloning] = useState(false);
 
   useEffect(() => {
     const fetchPlaylist = async () => {
@@ -50,6 +51,7 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
   const isOwned = groups.some(
     (g) => g.id === playlistId && !g.isSaved && String(g.id) !== "liked",
   );
+  const isActive = isSaved || isOwned || (user && playlist?.user?.username === user.username);
 
   const handleToggleSave = async () => {
     if (!token) {
@@ -69,8 +71,10 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
     try {
       if (isSaved) {
         await unsavePlaylist(playlistId);
+        setPlaylist(prev => prev ? { ...prev, likesCount: Math.max(0, (prev.likesCount || 0) - 1) } : null);
       } else {
         await savePlaylist(playlistId);
+        setPlaylist(prev => prev ? { ...prev, likesCount: (prev.likesCount || 0) + 1 } : null);
       }
     } catch (e) {
       addToast(
@@ -79,6 +83,22 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
       );
     } finally {
       setIsImporting(false);
+    }
+  };
+
+  const handleClonePlaylist = async () => {
+    if (!token) {
+      setShowAuth(true);
+      return;
+    }
+    if (isCloning) return;
+    setIsCloning(true);
+    try {
+      await clonePlaylist(playlistId);
+    } catch (e) {
+      addToast("Failed to clone playlist", "error");
+    } finally {
+      setIsCloning(false);
     }
   };
 
@@ -157,8 +177,16 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
                   ))}
                 </div>
               )}
-              <div className="text-gray-600 dark:text-gray-300 mt-4 font-semibold flex items-center gap-2 drop-shadow-sm">
+              <div className="text-gray-600 dark:text-gray-300 mt-4 font-semibold flex items-center gap-4 drop-shadow-sm">
                 <span>{playlist.songs.length} tracks</span>
+                <span className={`flex items-center gap-1 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>
+                  <Heart className={`w-4 h-4 ${isActive ? 'fill-current' : ''}`} /> {playlist.likesCount || 0}
+                </span>
+                {(playlist.forksCount || 0) > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Copy className="w-4 h-4" /> {playlist.forksCount}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -170,6 +198,18 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
                 >
                   <Play className="w-5 h-5 fill-current" />
                   Play Now
+                </button>
+              )}
+              {!isOwned && (
+                <button
+                  onClick={handleClonePlaylist}
+                  disabled={isCloning}
+                  className="p-3 md:px-5 md:py-3 flex items-center gap-2 bg-gray-900/10 dark:bg-white/20 hover:bg-gray-900/20 dark:hover:bg-white/30 backdrop-blur-md text-gray-900 dark:text-white rounded-full font-medium shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-gray-900/30 dark:focus:ring-white/50 border border-gray-900/10 dark:border-white/10 hover:scale-105 active:scale-95 disabled:opacity-50"
+                >
+                  <Copy className="w-5 h-5" />
+                  <span className="hidden leading-none md:inline">
+                    {isCloning ? "Cloning..." : "Clone"}
+                  </span>
                 </button>
               )}
               <button

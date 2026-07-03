@@ -25,11 +25,11 @@ export function useSettings() {
       const saved = window.localStorage.getItem('resavvy_autoplay');
       if (saved !== null) return JSON.parse(saved);
     } catch {}
-    return true; // default true
+    return false; // default false
   });
 
   // Keep in sync with native settings
-  const [lowDataMode, setLowDataMode] = useState(dataSaver);
+  const [lowDataMode, setLowDataMode] = useState(false); // always false for images
 
   // Sync to localStorage and events to let other usages re-render
   const setTheme = (t: Theme) => {
@@ -40,7 +40,6 @@ export function useSettings() {
 
   const setDataSaverState = (val: boolean) => {
     setDataSaver(val);
-    setLowDataMode(val);
     window.localStorage.setItem('resavvy_dataSaver', JSON.stringify(val));
     window.dispatchEvent(new Event('resavvy_settings_update'));
   };
@@ -58,7 +57,6 @@ export function useSettings() {
         const ds = window.localStorage.getItem('resavvy_dataSaver');
         if (ds !== null) {
             setDataSaver(JSON.parse(ds));
-            setLowDataMode(JSON.parse(ds));
         }
       } catch {}
       try {

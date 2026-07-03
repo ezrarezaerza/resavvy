@@ -18,6 +18,7 @@ interface PlaylistContextType {
   updatePlaylistCover: (groupId: string, type: 'random' | 'custom', url?: string) => void;
   savePlaylist: (playlistId: string) => Promise<void>;
   unsavePlaylist: (playlistId: string) => Promise<void>;
+  clonePlaylist: (playlistId: string) => Promise<void>;
 }
 
 const PlaylistContext = createContext<PlaylistContextType | undefined>(undefined);

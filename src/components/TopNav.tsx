@@ -9,7 +9,9 @@ import {
   BarChart2, 
   Settings, 
   LogOut,
-  X
+  X,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { useSettings } from "../hooks/useSettings";
 import { useAuth } from "../context/AuthContext";
@@ -31,6 +33,7 @@ export function TopNav({ onMenuClick, onLogoClick, onNavigate, isSidebarCollapse
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSystemModalOpen, setIsSystemModalOpen] = useState(false);
+  const [isDangerZoneOpen, setIsDangerZoneOpen] = useState(false);
 
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
@@ -314,19 +317,6 @@ export function TopNav({ onMenuClick, onLogoClick, onNavigate, isSidebarCollapse
                 <div className="flex flex-col gap-4">
                   <div className="flex justify-between items-center gap-4">
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-gray-900 dark:text-white">Data Saver Mode</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">Force YouTube player to use lowest quality (144p)</span>
-                    </div>
-                    <button 
-                      onClick={() => setDataSaver(!dataSaver)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 ${dataSaver ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'}`}
-                    >
-                      <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${dataSaver ? 'translate-x-5' : 'translate-x-0'}`} />
-                    </button>
-                  </div>
-
-                  <div className="flex justify-between items-center gap-4">
-                    <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-900 dark:text-white">Autoplay Similar Tracks</span>
                       <span className="text-xs text-gray-500 dark:text-gray-400">Keep music playing when your queue ends</span>
                     </div>
@@ -340,55 +330,65 @@ export function TopNav({ onMenuClick, onLogoClick, onNavigate, isSidebarCollapse
                 </div>
               </div>
 
-              <div className="border border-red-200 dark:border-red-500/20 bg-red-50/50 dark:bg-red-500/5 rounded-xl p-4 flex flex-col gap-4 mt-2">
-                <h3 className="text-sm font-semibold text-red-600 dark:text-red-400">Danger Zone</h3>
+              <div className="border border-red-200 dark:border-red-500/20 bg-red-50/50 dark:bg-red-500/5 rounded-xl flex flex-col mt-2 overflow-hidden">
+                <button 
+                  onClick={() => setIsDangerZoneOpen(!isDangerZoneOpen)}
+                  className="flex items-center justify-between p-4 w-full text-left focus:outline-none"
+                >
+                  <h3 className="text-sm font-semibold text-red-600 dark:text-red-400">Danger Zone</h3>
+                  {isDangerZoneOpen ? <ChevronUp className="w-4 h-4 text-red-600 dark:text-red-400" /> : <ChevronDown className="w-4 h-4 text-red-600 dark:text-red-400" />}
+                </button>
                 
-                <div className="flex justify-between items-center gap-4">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">Export Cloud Data</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Download a JSON backup of your playlists and library</span>
-                  </div>
-                  <button 
-                    onClick={handleExportData}
-                    className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-white/10 text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                  >
-                    Export
-                  </button>
-                </div>
+                {isDangerZoneOpen && (
+                  <div className="p-4 pt-0 flex flex-col gap-4 border-t border-red-200/50 dark:border-red-500/10">
+                    <div className="flex justify-between items-center gap-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">Export Cloud Data</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Download a JSON backup of your playlists and library</span>
+                      </div>
+                      <button 
+                        onClick={handleExportData}
+                        className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-white/10 text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-2 text-gray-700 dark:text-gray-300"
+                      >
+                        Export
+                      </button>
+                    </div>
 
-                <div className="flex justify-between items-center gap-4">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">Clear Local Cache</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">Resolves most sync issues by clearing local data and reloading</span>
-                  </div>
-                  <button 
-                    onClick={() => { localStorage.clear(); window.location.reload(); }}
-                    className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-white/10 text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-2 text-gray-700 dark:text-gray-300"
-                  >
-                    Resync
-                  </button>
-                </div>
+                    <div className="flex justify-between items-center gap-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">Clear Local Cache</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Resolves most sync issues by clearing local data and reloading</span>
+                      </div>
+                      <button 
+                        onClick={() => { localStorage.clear(); window.location.reload(); }}
+                        className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-white/10 text-sm font-medium hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-2 text-gray-700 dark:text-gray-300"
+                      >
+                        Resync
+                      </button>
+                    </div>
 
-                <div className="flex justify-between items-center gap-4 pt-2 mt-2 border-t border-red-200 dark:border-red-500/20">
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-red-600 dark:text-red-400">Delete Account</span>
-                    <span className="text-xs text-red-500 dark:text-red-400/80">Permanently remove your account and all associated data.</span>
+                    <div className="flex justify-between items-center gap-4 pt-2 mt-2 border-t border-red-200 dark:border-red-500/20">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-red-600 dark:text-red-400">Delete Account</span>
+                        <span className="text-xs text-red-500 dark:text-red-400/80">Permanently remove your account and all associated data.</span>
+                      </div>
+                      <button 
+                        onClick={async () => { 
+                          try {
+                            await deleteAccount();
+                            localStorage.clear();
+                            window.location.reload(); 
+                          } catch (e) {
+                            alert('Failed to delete account');
+                          }
+                        }}
+                        className="shrink-0 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
+                      >
+                        Delete Account
+                      </button>
+                    </div>
                   </div>
-                  <button 
-                    onClick={async () => { 
-                      try {
-                        await deleteAccount();
-                        localStorage.clear();
-                        window.location.reload(); 
-                      } catch (e) {
-                        alert('Failed to delete account');
-                      }
-                    }}
-                    className="shrink-0 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
-                  >
-                    Delete Account
-                  </button>
-                </div>
+                )}
               </div>
             </div>
           </div>

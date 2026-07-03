@@ -1,5 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePlayer } from '../context/PlayerContext';
+
+const formatTime = (secs: number) => {
+  if (!secs || isNaN(secs)) return "0:00";
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+};
 
 export function PlaybackProgressBar() {
   const { playerRef, isPlaying, currentSong } = usePlayer();
@@ -7,6 +14,11 @@ export function PlaybackProgressBar() {
   const [duration, setDuration] = useState(0);
   const [currentTimeStr, setCurrentTimeStr] = useState("0:00");
   const [durationStr, setDurationStr] = useState("--:--");
+  
+  const [isHovering, setIsHovering] = useState(false);
+  const [hoverX, setHoverX] = useState(0);
+  const [hoverTime, setHoverTime] = useState(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let interval: number;
@@ -20,14 +32,17 @@ export function PlaybackProgressBar() {
           setProgress((ct / dur) * 100);
           setDuration(dur);
           
-          const formatTime = (secs: number) => {
-            if (!secs || isNaN(secs)) return "0:00";
-            const m = Math.floor(secs / 60);
-            const s = Math.floor(secs % 60);
-            return `${m}:${s < 10 ? '0' : ''}${s}`;
-          };
           setCurrentTimeStr(formatTime(ct));
           setDurationStr(formatTime(dur));
+
+          try {
+            if (currentSong) {
+              window.localStorage.setItem('resavvy_player_time', JSON.stringify({
+                songId: currentSong.id,
+                time: ct
+              }));
+            }
+          } catch {}
         }
       }
     };
@@ -42,7 +57,7 @@ export function PlaybackProgressBar() {
   }, [isPlaying, currentSong, playerRef]);
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!playerRef.current || typeof duration !== 'number') return;
+    if (!playerRef.current || typeof duration !== 'number' || duration <= 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const newTime = percent * duration;
@@ -50,17 +65,43 @@ export function PlaybackProgressBar() {
     setProgress(percent * 100);
   };
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (duration <= 0 || !progressBarRef.current) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setHoverX(e.clientX - rect.left);
+    setHoverTime(percent * duration);
+    setIsHovering(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+  };
+
   return (
-    <div className="w-full flex items-center gap-3 text-xs font-medium text-gray-400 dark:text-gray-500">
+    <div className="w-full flex items-center gap-3 text-xs font-medium text-gray-400 dark:text-gray-500 relative">
       <span className="w-10 text-right font-mono tracking-tighter">{currentTimeStr}</span>
       <div 
-        className="flex-1 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden cursor-pointer relative group"
+        ref={progressBarRef}
+        className="flex-1 h-3 flex items-center cursor-pointer relative group"
         onClick={handleSeek}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
       >
-        <div 
-          className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full transition-all duration-300 ease-linear absolute left-0 top-0 group-hover:bg-indigo-500 dark:group-hover:bg-indigo-400" 
-          style={{ width: `${progress}%` }}
-        ></div>
+        <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden relative">
+          <div 
+            className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full transition-all duration-300 ease-linear absolute left-0 top-0 group-hover:bg-indigo-500 dark:group-hover:bg-indigo-400" 
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+        {isHovering && duration > 0 && (
+          <div 
+            className="absolute -top-7 transform -translate-x-1/2 bg-gray-900 dark:bg-gray-800 text-white dark:text-gray-200 text-[10px] py-1 px-2 rounded font-mono shadow-lg pointer-events-none z-50 transition-opacity whitespace-nowrap"
+            style={{ left: `${hoverX}px` }}
+          >
+            {formatTime(hoverTime)}
+          </div>
+        )}
       </div>
       <span className="w-10 font-mono tracking-tighter">{durationStr}</span>
     </div>

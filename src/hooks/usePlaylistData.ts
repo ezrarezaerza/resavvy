@@ -395,6 +395,25 @@ export function usePlaylistData() {
     addToast('Playlist cover updated', 'success');
   };
 
+  const clonePlaylist = async (playlistId: string) => {
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/playlists?id=${playlistId}&action=import`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const newPlaylist = await res.json();
+        setGroups(prev => [...prev, newPlaylist]);
+        addToast('Playlist cloned to your library', 'success');
+      } else {
+        addToast('Failed to clone playlist', 'error');
+      }
+    } catch (err) {
+      addToast('Failed to clone playlist', 'error');
+    }
+  };
+
   const savePlaylist = async (playlistId: string) => {
     if (!token) return;
     try {
@@ -454,5 +473,6 @@ export function usePlaylistData() {
     updatePlaylistCover,
     savePlaylist,
     unsavePlaylist,
+    clonePlaylist,
   };
 }

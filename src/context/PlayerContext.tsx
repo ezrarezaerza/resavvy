@@ -24,7 +24,7 @@ interface PlayerContextType {
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
-  const { incrementPlayCount } = usePlaylist();
+  const { incrementPlayCount, groups } = usePlaylist();
   const [currentSong, setCurrentSong] = useState<Song | null>(() => {
     try {
       const stored = window.localStorage.getItem('resavvy_player_state');
@@ -76,7 +76,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     } catch {}
     return null;
   });
-  const [volume, setVolumeState] = useState(100);
+  const [volume, setVolumeState] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem('resavvy_player_state');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (typeof parsed.volume === 'number') {
+          return parsed.volume;
+        }
+      }
+    } catch {}
+    return 100;
+  });
   const [isExpanded, setIsExpanded] = useState(false);
   const playerRef = useRef<any>(null);
 
@@ -87,10 +98,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         queue,
         isShuffle,
         repeatMode,
-        currentGroupId
+        currentGroupId,
+        volume
       }));
     } catch {}
-  }, [currentSong, queue, isShuffle, repeatMode, currentGroupId]);
+  }, [currentSong, queue, isShuffle, repeatMode, currentGroupId, volume]);
 
   const setVolume = useCallback((val: number) => {
     setVolumeState(val);
@@ -161,23 +173,41 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setIsPlaying(true);
       incrementPlayCount(currentGroupId || undefined, nextSong.id);
     } else {
-      let isAutoplayEnabled = true;
+      let isAutoplayEnabled = false;
       try {
         const stored = window.localStorage.getItem('resavvy_autoplay');
         if (stored !== null) isAutoplayEnabled = JSON.parse(stored);
       } catch {}
 
-      if (repeatMode === 'all' || isAutoplayEnabled) {
-        // If autoplay is enabled, just loop the queue for now or pick random
-        const nextSong = isAutoplayEnabled && !isShuffle ? queue[Math.floor(Math.random() * queue.length)] : queue[0];
+      if (repeatMode === 'all') {
+        const nextSong = queue[0];
         setCurrentSong(nextSong);
         setIsPlaying(true);
         incrementPlayCount(currentGroupId || undefined, nextSong.id);
+      } else if (isAutoplayEnabled && currentGroupId && groups.length > 0) {
+        // Find next playlist
+        const currentGroupIndex = groups.findIndex(g => g.id === currentGroupId);
+        if (currentGroupIndex !== -1) {
+          const nextGroupIndex = (currentGroupIndex + 1) % groups.length;
+          const nextGroup = groups[nextGroupIndex];
+          if (nextGroup && nextGroup.songs.length > 0) {
+            setQueue(nextGroup.songs);
+            setCurrentGroupId(nextGroup.id);
+            const nextSong = nextGroup.songs[0];
+            setCurrentSong(nextSong);
+            setIsPlaying(true);
+            incrementPlayCount(nextGroup.id, nextSong.id);
+          } else {
+            setIsPlaying(false);
+          }
+        } else {
+          setIsPlaying(false);
+        }
       } else {
         setIsPlaying(false);
       }
     }
-  }, [currentSong, queue, isShuffle, repeatMode, currentGroupId, incrementPlayCount]);
+  }, [currentSong, queue, isShuffle, repeatMode, currentGroupId, incrementPlayCount, groups]);
 
   const playPrevious = useCallback(() => {
     if (!currentSong || queue.length === 0) return;

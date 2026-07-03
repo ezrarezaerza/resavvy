@@ -77,7 +77,18 @@ export function HiddenYouTubePlayer() {
             if (currentSongRef.current) {
               const videoId = currentSongRef.current.youtubeId || currentSongRef.current.id;
               console.log('[Player Engine] Loading video on ready:', videoId);
-              playerRef.current.loadVideoById(videoId);
+              let startSeconds = 0;
+              try {
+                const storedTime = window.localStorage.getItem('resavvy_player_time');
+                if (storedTime) {
+                  const parsed = JSON.parse(storedTime);
+                  if (parsed.songId === currentSongRef.current.id) {
+                    startSeconds = parsed.time;
+                  }
+                }
+              } catch (e) {}
+
+              playerRef.current.loadVideoById({ videoId, startSeconds });
               if (isPlaying) {
                 console.log('[Player Engine] Playing video (was marked as playing).');
                 playerRef.current.playVideo();
@@ -151,7 +162,18 @@ export function HiddenYouTubePlayer() {
       }
       
       console.log('[Player Engine] currentSong changed, loading video by id:', videoId, currentSong.title);
-      playerRef.current.loadVideoById(videoId);
+      let startSeconds = 0;
+      try {
+        const storedTime = window.localStorage.getItem('resavvy_player_time');
+        if (storedTime) {
+          const parsed = JSON.parse(storedTime);
+          if (parsed.songId === currentSong.id) {
+            startSeconds = parsed.time;
+          }
+        }
+      } catch (e) {}
+
+      playerRef.current.loadVideoById({ videoId, startSeconds });
       // Note: loadVideoById will typically autoplay.
       // We don't call playVideo immediately to avoid interrupting the load cycle.
     }

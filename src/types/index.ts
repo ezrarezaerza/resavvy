@@ -23,6 +23,7 @@ export interface PlaylistGroup {
   coverType?: 'random' | 'custom';
   customCoverUrl?: string;
   likesCount?: number;
+  forksCount?: number;
   user?: {
     name: string;
     username: string;

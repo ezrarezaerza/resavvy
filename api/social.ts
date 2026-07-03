@@ -292,7 +292,7 @@ if (type === 'stats') {
           where: { userId: user.id }
         });
 
-        const totalLikes = playlistsAgg._sum.likesCount || 0;
+        const totalSaved = playlistsAgg._sum.likesCount || 0;
         const totalForks = playlistsAgg._sum.forksCount || 0;
 
         const allPlaylists = await prisma.playlist.findMany({
@@ -320,7 +320,7 @@ if (type === 'stats') {
           uniqueArtistsSaved: uniqueArtists.size
         };
 
-        const curatorScore = (totalLikes * 10) + (totalForks * 25) + (publicPlaylistsCount * 50);
+        const curatorScore = (totalSaved * 10) + (totalForks * 25) + (publicPlaylistsCount * 50);
         
         let curatorLevel = "Novice";
         if (curatorScore >= 1000) curatorLevel = "Icon";
@@ -342,7 +342,7 @@ if (type === 'stats') {
 
         return res.status(200).json({
           listener: { topArtists, topSong, totalPlays, totalLikedSongs, totalListeningTimeSeconds },
-          curator: { totalLikes, totalForks, topPlaylist, hasPublicPlaylists, publicPlaylistsCount, curatorScore, curatorLevel },
+          curator: { totalSaved, totalForks, topPlaylist, hasPublicPlaylists, publicPlaylistsCount, curatorScore, curatorLevel },
           library
         });
      } catch(err) {
@@ -363,7 +363,7 @@ if (type === 'stats') {
          include: { songs: true, user: { select: { name: true, username: true } } },
          orderBy: { createdAt: 'desc' }
        });
-       const totalLikes = playlists.reduce((acc, p) => acc + (p.likesCount || 0), 0);
+       const totalSaved = playlists.reduce((acc, p) => acc + (p.likesCount || 0), 0);
 
        
        const reqUser = getUser(req);
@@ -374,7 +374,7 @@ if (type === 'stats') {
        }
        const mapSaved = (p) => ({ ...p, isSaved: savedPlaylistIds.has(p.id) });
        
-       return res.status(200).json({ profile, playlists: playlists.map(mapSaved), totalLikes });
+       return res.status(200).json({ profile, playlists: playlists.map(mapSaved), totalSaved });
 
      } catch(err) {
        return res.status(500).json({ error: 'Failed profile '});

@@ -1,9 +1,28 @@
+import React, { useState, useRef } from "react";
 import { Shuffle, SkipBack, Play, Pause, SkipForward, Repeat, Repeat1, Volume2 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { useSettings } from "../hooks/useSettings";
 import { PlaybackProgressBar } from "./PlaybackProgressBar";
 
 export function PlayerBar() {
+  const [isVolHovering, setIsVolHovering] = useState(false);
+  const [volHoverX, setVolHoverX] = useState(0);
+  const [volHoverPercent, setVolHoverPercent] = useState(0);
+  const volBarRef = useRef<HTMLDivElement>(null);
+
+  const handleVolMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!volBarRef.current) return;
+    const rect = volBarRef.current.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    setVolHoverX(e.clientX - rect.left);
+    setVolHoverPercent(Math.round(percent * 100));
+    setIsVolHovering(true);
+  };
+
+  const handleVolMouseLeave = () => {
+    setIsVolHovering(false);
+  };
+
   const { 
     currentSong, 
     isPlaying, 
@@ -125,18 +144,32 @@ export function PlayerBar() {
       <div className="hidden md:flex items-center justify-end gap-3 w-1/4 min-w-[120px] text-gray-500 dark:text-gray-400">
         <Volume2 className="w-4 h-4 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300" onClick={(e) => { e.stopPropagation(); setVolume(volume === 0 ? 100 : 0); }} />
         <div 
-          className="w-24 h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full cursor-pointer overflow-hidden relative group/volume"
+          ref={volBarRef}
+          className="w-24 h-4 flex items-center cursor-pointer relative group/volume"
           onClick={(e) => {
             e.stopPropagation();
-            const rect = e.currentTarget.getBoundingClientRect();
+            if (!volBarRef.current) return;
+            const rect = volBarRef.current.getBoundingClientRect();
             const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
             setVolume(Math.round(percent * 100));
           }}
+          onMouseMove={handleVolMouseMove}
+          onMouseLeave={handleVolMouseLeave}
         >
-          <div 
-            className="h-full bg-gray-400 dark:bg-gray-500 rounded-full transition-all duration-150 absolute left-0 top-0 group-hover/volume:bg-indigo-500 dark:group-hover/volume:bg-indigo-400" 
-            style={{ width: `${volume}%` }}
-          ></div>
+          <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden relative">
+            <div 
+              className="h-full bg-gray-400 dark:bg-gray-500 rounded-full transition-all duration-150 absolute left-0 top-0 group-hover/volume:bg-indigo-500 dark:group-hover/volume:bg-indigo-400" 
+              style={{ width: `${volume}%` }}
+            ></div>
+          </div>
+          {isVolHovering && (
+            <div 
+              className="absolute -top-7 transform -translate-x-1/2 bg-gray-900 dark:bg-gray-800 text-white dark:text-gray-200 text-[10px] py-1 px-2 rounded font-mono shadow-lg pointer-events-none z-50 transition-opacity whitespace-nowrap"
+              style={{ left: `${volHoverX}px` }}
+            >
+              {volHoverPercent}%
+            </div>
+          )}
         </div>
       </div>
     </footer>

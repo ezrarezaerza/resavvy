@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import sys
+
+new_content = """import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { AudioLines, X } from 'lucide-react';
 
@@ -150,3 +152,7 @@ export function AuthScreen({ onClose }: AuthScreenProps) {
     </div>
   );
 }
+"""
+
+with open('src/components/AuthScreen.tsx', 'w') as f:
+    f.write(new_content)
