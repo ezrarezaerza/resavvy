@@ -154,7 +154,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
            
            const updated = await prisma.song.update({
              where: { id: songId },
-             data: { playCount: { increment: 1 } }
+             data: { playCount: { increment: 100 } }
            });
            return res.status(200).json(updated);
          } catch(error) {

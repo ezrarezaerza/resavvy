@@ -27,6 +27,11 @@ export function HiddenYouTubePlayer() {
     currentSongRef.current = currentSong;
   }, [currentSong]);
 
+  const isPlayingRef = useRef(isPlaying);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
   const updateSongDurationRef = useRef(updateSongDuration);
   useEffect(() => {
     updateSongDurationRef.current = updateSongDuration;
@@ -56,7 +61,7 @@ export function HiddenYouTubePlayer() {
         height: '200',
         width: '200',
         playerVars: {
-          autoplay: 1,
+          autoplay: 0,
           controls: 0,
           disablekb: 1,
           fs: 0,
@@ -88,10 +93,12 @@ export function HiddenYouTubePlayer() {
                 }
               } catch (e) {}
 
-              playerRef.current.loadVideoById({ videoId, startSeconds });
-              if (isPlaying) {
+              if (isPlayingRef.current) {
                 console.log('[Player Engine] Playing video (was marked as playing).');
-                playerRef.current.playVideo();
+                playerRef.current.loadVideoById({ videoId, startSeconds });
+              } else {
+                console.log('[Player Engine] Cueing video (was marked as paused).');
+                playerRef.current.cueVideoById({ videoId, startSeconds });
               }
             }
           },
@@ -155,9 +162,9 @@ export function HiddenYouTubePlayer() {
       
       // Check if this video is already loaded
       const currentLoadedUrl = playerRef.current.getVideoUrl ? playerRef.current.getVideoUrl() : '';
-      if (currentLoadedUrl && currentLoadedUrl.includes(videoId)) {
+      if (currentLoadedUrl && currentLoadedUrl.includes(videoId)) { 
          console.log('[Player Engine] Video already loaded, skipping loadVideoById');
-         if (isPlaying) playerRef.current.playVideo();
+         if (isPlayingRef.current) playerRef.current.playVideo();
          return;
       }
       
@@ -173,9 +180,11 @@ export function HiddenYouTubePlayer() {
         }
       } catch (e) {}
 
-      playerRef.current.loadVideoById({ videoId, startSeconds });
-      // Note: loadVideoById will typically autoplay.
-      // We don't call playVideo immediately to avoid interrupting the load cycle.
+      if (isPlayingRef.current) {
+        playerRef.current.loadVideoById({ videoId, startSeconds });
+      } else {
+        playerRef.current.cueVideoById({ videoId, startSeconds });
+      }
     }
   }, [currentSong]); // Depends on currentSong reference
 
