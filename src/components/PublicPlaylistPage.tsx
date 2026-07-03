@@ -51,7 +51,6 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
   const isOwned = groups.some(
     (g) => g.id === playlistId && !g.isSaved && String(g.id) !== "liked",
   );
-  const isActive = isSaved || isOwned || (user && playlist?.user?.username === user.username);
 
   const handleToggleSave = async () => {
     if (!token) {
@@ -71,10 +70,8 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
     try {
       if (isSaved) {
         await unsavePlaylist(playlistId);
-        setPlaylist(prev => prev ? { ...prev, likesCount: Math.max(0, (prev.likesCount || 0) - 1) } : null);
       } else {
         await savePlaylist(playlistId);
-        setPlaylist(prev => prev ? { ...prev, likesCount: (prev.likesCount || 0) + 1 } : null);
       }
     } catch (e) {
       addToast(
@@ -179,8 +176,8 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
               )}
               <div className="text-gray-600 dark:text-gray-300 mt-4 font-semibold flex items-center gap-4 drop-shadow-sm">
                 <span>{playlist.songs.length} tracks</span>
-                <span className={`flex items-center gap-1 ${isActive ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>
-                  <Heart className={`w-4 h-4 ${isActive ? 'fill-current' : ''}`} /> {playlist.likesCount || 0}
+                <span className={`flex items-center gap-1 ${(isSaved || isOwned) ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>
+                  <Heart className={`w-4 h-4 ${(isSaved || isOwned) ? 'fill-current' : ''}`} /> {playlist.likesCount || 0}
                 </span>
                 {(playlist.forksCount || 0) > 0 && (
                   <span className="flex items-center gap-1">

@@ -3,7 +3,6 @@ import { PlaylistGroup } from '../types';
 import { Heart, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
-import { usePlaylist } from '../context/PlaylistContext';
 
 interface PlaylistCardProps {
   playlist: PlaylistGroup;
@@ -13,22 +12,10 @@ interface PlaylistCardProps {
 
 export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, className = '' }) => {
   const { token, user } = useAuth();
+  const isOwner = user && playlist.user?.username === user.username;
   const { playSong } = usePlayer();
-  const { groups } = usePlaylist();
-
-  const isSaved = groups.some((g) => g.id === playlist.id && g.isSaved);
-  const isOwned = groups.some(
-    (g) => g.id === playlist.id && !g.isSaved && String(g.id) !== "liked",
-  );
-  const isActive = isSaved || isOwned || (user && playlist.user?.username === user.username);
-  
-  // Calculate dynamic saved count in case local state hasn't updated the parent object, 
-  // though normally it would be passed in. If it is newly saved/unsaved, we can adjust it visually or rely on the passed prop.
-  let likesCount = playlist.likesCount || 0;
-  // If the API returns it as NOT saved but we locally know it is saved, +1 (optimistic tweak if needed, though prop might be better)
-  // Let's just trust the prop for the number, but if we know it's saved locally and prop says it's not...
-  if (isSaved && !playlist.isSaved) likesCount += 1;
-  if (!isSaved && playlist.isSaved) likesCount = Math.max(0, likesCount - 1);
+  const isSaved = playlist.isSaved || false;
+  const likesCount = playlist.likesCount || 0;
 
   const displayImage = useMemo(() => {
     if (playlist.coverType === 'custom' && playlist.customCoverUrl) {
@@ -120,10 +107,10 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, c
           </p>
           <div 
             className={`flex items-center gap-1 text-xs shrink-0 px-2 py-1 rounded-full backdrop-blur-sm transition-colors ${
-              isActive ? 'bg-indigo-600/80 text-white' : 'bg-black/40 text-gray-300'
+              (isSaved || isOwner) ? 'bg-indigo-600/80 text-white' : 'bg-black/40 text-gray-300'
             }`}
           >
-            <Heart className={`w-3 h-3 ${isActive ? 'fill-white' : ''}`} />
+            <Heart className={`w-3 h-3 ${(isSaved || isOwner) ? 'fill-white' : ''}`} />
             <span>{likesCount}</span>
           </div>
         </div>
