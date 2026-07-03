@@ -142,6 +142,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          }
      }
 
+     if (action === 'play') {
+         try {
+           const { songId } = req.body;
+           if (!songId) return res.status(400).json({ error: 'Missing songId' });
+           const song = await prisma.song.findUnique({
+             where: { id: songId },
+             include: { playlist: true }
+           });
+           if (!song || song.playlist.userId !== user.id) return res.status(403).json({ error: 'Forbidden' });
+           
+           const updated = await prisma.song.update({
+             where: { id: songId },
+             data: { playCount: { increment: 1 } }
+           });
+           return res.status(200).json(updated);
+         } catch(error) {
+           return res.status(500).json({ error: 'Failed' });
+         }
+     }
+
      if (action === 'like') {
          try {
            const { songId } = req.body;
@@ -179,6 +199,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        return res.status(201).json(song);
      } catch(error) {
        return res.status(500).json({ error: 'Failed' });
+     }
+  }
+
+  // PUT
+  if (req.method === 'PUT' && songId) {
+     try {
+       const song = await prisma.song.findUnique({ where: { id: songId as string }, include: { playlist: true } });
+       if (!song || song.playlist.userId !== user.id) return res.status(403).json({ error: 'Forbidden' });
+
+       const { title, artist, duration } = req.body;
+       const updatedSong = await prisma.song.update({
+         where: { id: song.id },
+         data: {
+           ...(title !== undefined && { title }),
+           ...(artist !== undefined && { artist }),
+           ...(duration !== undefined && { duration }),
+         }
+       });
+       return res.status(200).json(updatedSong);
+     } catch(error) {
+       return res.status(500).json({ error: 'Failed to update song' });
      }
   }
 

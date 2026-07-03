@@ -64,8 +64,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
            ...record.playlist,
            isSaved: true
          }));
-
-         return res.status(200).json([...ownedPlaylists, ...savedPlaylists]);
+         const savedIds = new Set(savedPlaylists.map(p => p.id));
+         const ownedPlaylistsMapped = ownedPlaylists.map(p => ({
+           ...p,
+           isSaved: savedIds.has(p.id)
+         })).filter(p => !savedIds.has(p.id));
+         
+         return res.status(200).json([...ownedPlaylistsMapped, ...savedPlaylists]);
        } catch (error) {
          return res.status(500).json({ error: 'Failed to fetch playlists' });
        }
@@ -90,6 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             playlistId
           }
         });
+        await prisma.playlist.update({ where: { id: playlistId }, data: { likesCount: { increment: 1 } } });
         return res.status(200).json({ success: true });
       } catch (error) {
         return res.status(500).json({ error: 'Failed to save playlist' });
@@ -104,6 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
           }
         });
+        await prisma.playlist.update({ where: { id: playlistId }, data: { likesCount: { decrement: 1 } } });
         return res.status(200).json({ success: true });
       } catch (error) {
         return res.status(500).json({ error: 'Failed to unsave playlist' });

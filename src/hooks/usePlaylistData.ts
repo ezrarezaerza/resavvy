@@ -219,7 +219,21 @@ export function usePlaylistData() {
     );
   };
 
-  const editSong = (groupId: string, songId: string, updates: { title: string, artist: string }) => {
+  const editSong = async (groupId: string, songId: string, updates: { title: string, artist: string }) => {
+    if (token) {
+      try {
+        await fetch(`/api/songs?songId=${songId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(updates)
+        });
+      } catch (err) {
+        console.error('Failed to update song', err);
+      }
+    }
     setGroups((prevGroups) =>
       prevGroups.map((group) => {
         if (group.id === groupId) {
@@ -239,7 +253,21 @@ export function usePlaylistData() {
     addToast('Song updated successfully', 'success');
   };
 
-  const toggleSongLike = (groupId: string, songId: string) => {
+  const toggleSongLike = async (groupId: string, songId: string) => {
+    if (token) {
+      try {
+        await fetch('/api/songs?action=like', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ songId })
+        });
+      } catch (err) {
+        console.error('Failed to toggle song like', err);
+      }
+    }
     setGroups((prevGroups) =>
       prevGroups.map((group) => {
         if (group.id === groupId) {
@@ -258,7 +286,21 @@ export function usePlaylistData() {
     );
   };
 
-  const updateSongDuration = (songId: string, durationStr: string) => {
+  const updateSongDuration = async (songId: string, durationStr: string) => {
+    if (token) {
+      try {
+        await fetch(`/api/songs?songId=${songId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ duration: durationStr })
+        });
+      } catch (err) {
+        console.error('Failed to update song duration', err);
+      }
+    }
     setGroups((prevGroups) =>
       prevGroups.map((group) => {
         return {
@@ -274,7 +316,21 @@ export function usePlaylistData() {
     );
   };
 
-  const incrementPlayCount = (groupId: string | undefined, songId: string) => {
+  const incrementPlayCount = async (groupId: string | undefined, songId: string) => {
+    if (token) {
+      try {
+        await fetch('/api/songs?action=play', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ songId })
+        });
+      } catch (err) {
+        console.error('Failed to increment play count', err);
+      }
+    }
     setGroups((prevGroups) =>
       prevGroups.map((group) => {
         if (group.id === groupId || !groupId) {

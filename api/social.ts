@@ -110,7 +110,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          }
        });
 
-       return res.status(200).json({ trending, fresh, globalTags, popularSongs, popularUsers });
+       
+       const allSongsCount = await prisma.song.count({ where: { playlist: { visibility: 'public' } } });
+       let quickPicks = [];
+       if (allSongsCount > 0) {
+           const skip = Math.max(0, Math.floor(Math.random() * allSongsCount) - 9);
+           quickPicks = await prisma.song.findMany({
+             where: { playlist: { visibility: 'public' } },
+             skip: Math.max(0, skip),
+             take: 9,
+             include: { playlist: { select: { id: true } } }
+           });
+           quickPicks.sort(() => Math.random() - 0.5);
+       }
+       
+       const user = getUser(req);
+       let savedPlaylistIds = new Set();
+       if (user) {
+         const saved = await prisma.savedPlaylist.findMany({ where: { userId: user.id }, select: { playlistId: true } });
+         saved.forEach(s => savedPlaylistIds.add(s.playlistId));
+       }
+       const mapSaved = (p) => ({ ...p, isSaved: savedPlaylistIds.has(p.id) });
+       
+       return res.status(200).json({ 
+         trending: trending.map(mapSaved), 
+         fresh: fresh.map(mapSaved), 
+         globalTags, 
+         popularSongs, 
+         popularUsers, 
+         quickPicks 
+       });
+
+
      } catch (err) {
        return res.status(500).json({ error: 'Failed discovery' });
      }
@@ -121,6 +152,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const grouped = await prisma.song.groupBy({
          by: ['youtubeId', 'title', 'artist', 'thumbnailUrl', 'duration'],
          _sum: { playCount: true },
+         where: { playCount: { gt: 0 } },
          orderBy: { _sum: { playCount: 'desc' } },
          take: 10,
        });
@@ -165,7 +197,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
      }
   }
 
-  if (type === 'stats') {
+  
+  if (type === 'recommended') {
+     const user = getUser(req);
+     if (!user) return res.status(401).json({ error: 'Unauthorized' });
+     try {
+       const topSongs = await prisma.song.findMany({
+         where: { playlist: { userId: user.id } },
+         orderBy: { playCount: 'desc' },
+         take: 20
+       });
+       const artists = [...new Set(topSongs.filter(s => s.artist).map(s => s.artist))].slice(0, 5);
+       
+       if (artists.length === 0) {
+           return res.status(200).json({ songs: [], basedOn: [] });
+       }
+       
+       const recommended = await prisma.song.findMany({
+         where: { 
+           playlist: { visibility: 'public' },
+           artist: { in: artists },
+           NOT: { playlist: { userId: user.id } }
+         },
+         include: { playlist: { select: { id: true, name: true, userId: true } } },
+         take: 20,
+         orderBy: { playCount: 'desc' }
+       });
+       
+       const uniqueRecs = [];
+       const seen = new Set();
+       for (const song of recommended) {
+           if (!seen.has(song.youtubeId)) {
+               seen.add(song.youtubeId);
+               uniqueRecs.push(song);
+           }
+       }
+       
+       return res.status(200).json({ songs: uniqueRecs, basedOn: artists });
+     } catch (err) {
+       console.error(err);
+       return res.status(500).json({ error: 'Failed recommended' });
+     }
+  }
+if (type === 'stats') {
      const user = getUser(req);
      if (!user) return res.status(401).json({ error: 'Unauthorized' });
      try {
@@ -291,7 +365,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        });
        const totalLikes = playlists.reduce((acc, p) => acc + (p.likesCount || 0), 0);
 
-       return res.status(200).json({ profile, playlists, totalLikes });
+       
+       const reqUser = getUser(req);
+       let savedPlaylistIds = new Set();
+       if (reqUser) {
+         const saved = await prisma.savedPlaylist.findMany({ where: { userId: reqUser.id }, select: { playlistId: true } });
+         saved.forEach(s => savedPlaylistIds.add(s.playlistId));
+       }
+       const mapSaved = (p) => ({ ...p, isSaved: savedPlaylistIds.has(p.id) });
+       
+       return res.status(200).json({ profile, playlists: playlists.map(mapSaved), totalLikes });
+
      } catch(err) {
        return res.status(500).json({ error: 'Failed profile '});
      }

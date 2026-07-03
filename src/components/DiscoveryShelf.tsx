@@ -12,7 +12,7 @@ export function DiscoveryShelf({ title, playlists, onSelectPlaylist }: Discovery
   if (!playlists || playlists.length === 0) return null;
 
   return (
-    <div className="mb-14">
+    <div className="mb-8">
       <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-6">
         {title}
       </h3>

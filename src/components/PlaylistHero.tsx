@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon, Share2 } from "lucide-react";
 import { PlaylistGroup } from "../types";
 import { usePlaylist } from "../context/PlaylistContext";
@@ -118,6 +118,24 @@ export function PlaylistHero({ activeGroup, onAddSong, isReadOnly = false }: Pla
     }
   };
 
+  const dynamicGradient = useMemo(() => {
+    const gradients = [
+      'from-purple-600 to-blue-600',
+      'from-pink-500 to-orange-400',
+      'from-green-400 to-cyan-500',
+      'from-indigo-500 to-purple-500',
+      'from-red-500 to-pink-500',
+      'from-yellow-400 to-orange-500',
+      'from-teal-400 to-emerald-500',
+    ];
+    let hash = 0;
+    for (let i = 0; i < activeGroup.id.length; i++) {
+      hash = activeGroup.id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % gradients.length;
+    return gradients[index];
+  }, [activeGroup.id]);
+
   return (
     <>
       <div className="relative w-full h-[50vh] md:h-[60vh] flex-shrink-0 flex flex-col justify-end group/hero mt-0 md:mt-2 md:mx-4 z-30">
@@ -130,7 +148,7 @@ export function PlaylistHero({ activeGroup, onAddSong, isReadOnly = false }: Pla
               className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-60 dark:opacity-80 mix-blend-multiply dark:mix-blend-normal"
             />
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 to-indigo-50 dark:from-indigo-900 dark:to-gray-900" />
+            <div className={`absolute inset-0 bg-gradient-to-br ${dynamicGradient} opacity-60 dark:opacity-80 mix-blend-multiply dark:mix-blend-normal`} />
           )}
           
           {/* Overlay */}

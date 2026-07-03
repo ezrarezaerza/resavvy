@@ -188,7 +188,7 @@ export function Sidebar({
 
         {user && (
           <h3
-            className={`text-xs text-gray-500 font-semibold mb-3 ${isCollapsed ? "hidden" : "block"}`}
+            className={`text-xs text-gray-500 font-semibold mb-1 ${isCollapsed ? "hidden" : "block"}`}
           >
             YOUR PLAYLISTS
           </h3>
@@ -318,7 +318,7 @@ export function Sidebar({
         {groups.some((g) => g.isSaved) && (
           <>
             <h3
-              className={`text-xs text-gray-500 font-semibold mb-3 mt-6 ${isCollapsed ? "hidden" : "block"}`}
+              className={`text-xs text-gray-500 font-semibold mb-1 mt-4 ${isCollapsed ? "hidden" : "block"}`}
             >
               SAVED PLAYLISTS
             </h3>
