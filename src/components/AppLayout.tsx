@@ -163,7 +163,12 @@ export function AppLayout({
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors font-sans antialiased relative">
       {/* Ambient Background */}
-      {currentSong?.thumbnailUrl ? (
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden bg-white dark:bg-gray-950">
+        {/* Soft indigo-blue radial gradient flash of light */}
+        <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[150vw] h-[100vw] md:w-[80vw] md:h-[60vw] rounded-[100%] bg-indigo-500/20 dark:bg-indigo-600/20 blur-[100px] md:blur-[140px]" />
+      </div>
+
+      {currentSong?.thumbnailUrl && (
         <img
           src={currentSong.thumbnailUrl.replace(
             "mqdefault.jpg",
@@ -172,8 +177,6 @@ export function AppLayout({
           alt=""
           className="fixed inset-0 w-full h-full object-cover blur-[120px] opacity-30 dark:opacity-20 pointer-events-none transition-all duration-1000 z-0"
         />
-      ) : (
-        <div className="fixed inset-0 w-full h-full bg-gradient-to-br from-indigo-100/50 to-white dark:from-indigo-900/20 dark:to-gray-950 blur-[120px] opacity-30 pointer-events-none transition-all duration-1000 z-0" />
       )}
 
       <div className="relative z-10 flex flex-col w-full h-full">

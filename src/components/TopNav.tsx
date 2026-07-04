@@ -120,7 +120,7 @@ export function TopNav({ onMenuClick, onLogoClick, onNavigate, isSidebarCollapse
           <div className="bg-indigo-500 p-1.5 rounded-lg shadow-md flex items-center justify-center">
             <AudioLines className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-lg text-gray-900 dark:text-white">Resavvy</span>
+          <span className="font-heading font-bold text-xl tracking-tight text-gray-900 dark:text-white">Resavvy</span>
         </div>
       </div>
 
@@ -136,7 +136,7 @@ export function TopNav({ onMenuClick, onLogoClick, onNavigate, isSidebarCollapse
         <div className="bg-indigo-500 p-1.5 rounded-lg shadow-md flex items-center justify-center">
           <AudioLines className="w-5 h-5 text-white" />
         </div>
-        <span className="font-bold text-lg text-gray-900 dark:text-white">Resavvy</span>
+        <span className="font-heading font-bold text-xl tracking-tight text-gray-900 dark:text-white">Resavvy</span>
       </div>
 
       {/* Right Zone (Profile Trigger) */}

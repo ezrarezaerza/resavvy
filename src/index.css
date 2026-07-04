@@ -1,13 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Instrument+Sans:wght@500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   
   --animate-equalizer: equalizer 1s infinite alternate;
   @keyframes equalizer {
     0% { transform: scaleY(0.4); transform-origin: bottom; }
     100% { transform: scaleY(1); transform-origin: bottom; }
+  }
+}
+
+@layer base {
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: var(--font-heading);
+    letter-spacing: -0.02em;
   }
 }
 

@@ -47,9 +47,19 @@ export function FullscreenPlayer() {
   return (
     <div 
       ref={containerRef}
-      className="fixed inset-0 z-[100] bg-white dark:bg-gray-900 flex flex-col justify-between p-6 pb-12 h-[100dvh] overflow-hidden transform translate-y-full"
+      className="fixed inset-0 z-[100] bg-transparent flex flex-col justify-between p-6 pb-12 h-[100dvh] overflow-hidden transform translate-y-full"
     >
-      <div className="flex-none flex items-center justify-between w-full">
+      {/* Dynamic Immersive Background */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden z-[-2]">
+         <img 
+           src={hqThumbnail} 
+           alt="" 
+           className="w-full h-full object-cover scale-150 blur-3xl opacity-80 dark:opacity-60 saturate-200 transition-all duration-1000" 
+         />
+      </div>
+      <div className="absolute inset-0 w-full h-full pointer-events-none z-[-1] bg-white/30 dark:bg-gray-950/40 backdrop-blur-3xl" />
+
+      <div className="relative z-10 flex-none flex items-center justify-between w-full">
         <button 
           onClick={() => setIsExpanded(false)}
           className="p-2 -ml-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"

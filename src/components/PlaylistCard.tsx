@@ -10,7 +10,7 @@ interface PlaylistCardProps {
   className?: string;
 }
 
-export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, className = '' }) => {
+export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, className = 'aspect-square' }) => {
   const { token, user } = useAuth();
   const isOwner = user && playlist.user?.username === user.username;
   const { playSong } = usePlayer();
@@ -64,7 +64,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, c
 
   return (
     <div 
-      className={`relative w-full aspect-square rounded-xl overflow-hidden cursor-pointer group shadow-md hover:shadow-2xl transition-all duration-300 ${className}`}
+      className={`relative w-full rounded-xl overflow-hidden cursor-pointer group shadow-md hover:shadow-2xl transition-all duration-300 ${className}`}
       onClick={onClick}
     >
       {displayImage ? (

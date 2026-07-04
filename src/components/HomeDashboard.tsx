@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { PlaylistGroup, Song } from '../types';
 import { PlaylistCard } from './PlaylistCard';
 import { DiscoveryShelf } from './DiscoveryShelf';
@@ -119,11 +119,15 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
     </div>
   );
 
+  const shuffledGroups = useMemo(() => {
+    return [...groups].sort(() => 0.5 - Math.random());
+  }, [groups.length]);
+
   return (
     <div className="w-full h-full p-6 md:p-8 overflow-y-auto pb-32 no-scrollbar">
       {/* Guest Welcome Banner */}
       {!token && (
-        <div className="mb-8 mt-4 bg-indigo-600/10 dark:bg-indigo-500/10 border border-indigo-600/20 dark:border-indigo-500/20 rounded-3xl p-8 backdrop-blur-xl">
+        <div className="mb-6 mt-4 bg-indigo-600/10 dark:bg-indigo-500/10 border border-indigo-600/20 dark:border-indigo-500/20 rounded-3xl p-8 backdrop-blur-xl">
           <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-4">
             Welcome to <span className="text-indigo-600 dark:text-indigo-500">Resavvy</span>
           </h2>
@@ -136,8 +140,8 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
 
       {/* Shelf 1: Your Curations (Hidden for Guests if empty) */}
       {(token || groups.length > 0) && (
-        <div className="mb-8 mt-4">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
             Your Curations
           </h2>
@@ -162,12 +166,13 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
              </button>
           </div>
         ) : (
-          <div className="flex overflow-x-auto gap-6 no-scrollbar pb-4 -mx-6 px-6 md:mx-0 md:px-0">
-            {groups.map(group => (
-              <div key={group.id} className="w-40 md:w-56 shrink-0">
+          <div className="flex overflow-x-auto gap-6 no-scrollbar pb-4 -mx-6 px-6 md:mx-0 md:px-0 snap-x snap-mandatory">
+            {shuffledGroups.map(group => (
+              <div key={group.id} className="w-[85vw] md:w-56 shrink-0 snap-center md:snap-align-none">
                 <PlaylistCard 
                   playlist={group} 
                   onClick={() => onSelectGroup(group.id)} 
+                  className="aspect-[16/9] md:aspect-square"
                 />
               </div>
             ))}
@@ -178,8 +183,11 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
 
       {/* Shelf 2: Heavy Rotation */}
       {heavyRotation.length > 0 && (
-        <div className="mb-8">
-          <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-6">
+        <div className="mb-6">
+          <p className="text-xs font-bold tracking-wider uppercase text-indigo-600 dark:text-indigo-400 mb-1">
+            Your Recent Favorites
+          </p>
+          <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
             On Heavy Rotation
           </h3>
           <div className="flex overflow-x-auto gap-6 no-scrollbar pb-4 -mx-6 px-6 md:mx-0 md:px-0">
@@ -189,8 +197,8 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
       )}
 
       {/* Shelf 3: Trending Worldwide */}
-      <div className="mb-8">
-        <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+      <div className="mb-6">
+        <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           Trending Worldwide
         </h3>
         {trending.length > 0 ? (
@@ -206,11 +214,11 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
 
       {/* Recommended for You */}
       {recommended && recommended.songs.length > 0 && (
-        <div className="mb-8">
-          <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-2">
+        <div className="mb-6">
+          <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-1">
             Recommended for You
           </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
             Based on {recommended.basedOn.join(', ')}
           </p>
           <div className="flex overflow-x-auto gap-6 no-scrollbar pb-4 -mx-6 px-6 md:mx-0 md:px-0">
@@ -221,26 +229,29 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
 
       {/* Quick Picks (Random Songs) */}
       {quickPicks.length > 0 && (
-        <div className="mb-8">
-          <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-6">
+        <div className="mb-6">
+          <p className="text-xs font-bold tracking-wider uppercase text-indigo-600 dark:text-indigo-400 mb-1">
+            Discover Something New
+          </p>
+          <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
             Quick Picks
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-             {quickPicks.map((song) => (
+             {quickPicks.map((song, index) => (
                 <div 
                    key={song.id} 
                    onClick={() => onSelectGroup((song as any).playlist?.id)}
-                  className="p-4 bg-white/60 dark:bg-white/5 backdrop-blur-md border border-gray-200/50 dark:border-white/10 rounded-xl flex items-center gap-4 hover:border-indigo-500/50 hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer transition-all shadow-sm group"
+                  className={`p-3 bg-gradient-to-r from-indigo-50/50 to-white dark:from-indigo-900/10 dark:to-white/5 backdrop-blur-md border border-indigo-100 dark:border-indigo-500/20 rounded-2xl flex items-center gap-4 hover:border-indigo-400 dark:hover:border-indigo-400 hover:shadow-md cursor-pointer transition-all group ${index >= 6 ? 'hidden md:flex' : ''}`}
                 >
-                   <div className="relative w-16 h-16 shrink-0 rounded-lg overflow-hidden">
-                     <img src={getHighResThumbnail(song.thumbnailUrl)} alt="" className="w-full h-full object-cover" />
-                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                       <Play className="w-6 h-6 text-white fill-white" />
+                   <div className="relative w-16 h-16 shrink-0 rounded-xl overflow-hidden shadow-sm">
+                     <img src={getHighResThumbnail(song.thumbnailUrl)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                     <div className="absolute inset-0 bg-indigo-900/20 dark:bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                       <Play className="w-6 h-6 text-white fill-white shadow-sm" />
                      </div>
                    </div>
-                   <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 dark:text-white truncate">{song.title}</h4>
-                      <p className="text-sm text-gray-500 truncate">{song.artist}</p>
+                   <div className="flex-1 min-w-0 pr-2">
+                      <h4 className="font-bold text-gray-900 dark:text-white truncate">{song.title}</h4>
+                      <p className="text-sm text-indigo-600/80 dark:text-indigo-300/80 font-medium truncate mt-0.5">{song.artist}</p>
                    </div>
                 </div>
              ))}
@@ -250,30 +261,29 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
 
       {/* Community Favorites */}
       {trendingCurations.length > 0 && (
-          <div className="mb-8">
-            <DiscoveryShelf
-              title="Community Favorites"
-              playlists={trendingCurations}
-              onSelectPlaylist={onSelectGroup}
-            />
-          </div>
+          <DiscoveryShelf
+            title="Community Favorites"
+            description="TOP CURATIONS"
+            playlists={trendingCurations}
+            onSelectPlaylist={onSelectGroup}
+            mobileWide={true}
+          />
       )}
 
       {/* Fresh Finds */}
       {freshCurations.length > 0 && (
-          <div className="mb-8">
-            <DiscoveryShelf
-              title="Fresh Finds"
-              playlists={freshCurations}
-              onSelectPlaylist={onSelectGroup}
-            />
-          </div>
+          <DiscoveryShelf
+            title="Fresh Finds"
+            description="NEW ARRIVALS"
+            playlists={freshCurations}
+            onSelectPlaylist={onSelectGroup}
+          />
       )}
-      
+         
       {/* Moods & Genres */}
       {globalTags.length > 0 && (
-        <div className="mb-8">
-          <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-6">
+        <div className="mb-6">
+          <h3 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-4">
             Moods & Genres
           </h3>
           <div className="flex flex-wrap gap-3">
