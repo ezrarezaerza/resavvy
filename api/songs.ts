@@ -17,9 +17,11 @@ function getUser(req: VercelRequest) {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const user = getUser(req);
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
-
   const { action, songId } = req.query;
+
+  if (!user && !(req.method === 'POST' && action === 'play')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
 
   // GET
   if (req.method === 'GET') {
@@ -146,12 +148,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          try {
            const { songId } = req.body;
            if (!songId) return res.status(400).json({ error: 'Missing songId' });
-           const song = await prisma.song.findUnique({
-             where: { id: songId },
-             include: { playlist: true }
-           });
-           if (!song || song.playlist.userId !== user.id) return res.status(403).json({ error: 'Forbidden' });
            
+           // We do not restrict play count increments to the playlist owner.
+           // Any user playing a song increases its play count.
            const updated = await prisma.song.update({
              where: { id: songId },
              data: { playCount: { increment: 100 } }

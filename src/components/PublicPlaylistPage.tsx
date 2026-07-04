@@ -47,6 +47,25 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
     fetchPlaylist();
   }, [playlistId, token]);
 
+  useEffect(() => {
+    const handleSongPlayed = (e: any) => {
+      const songId = e.detail?.songId;
+      if (songId) {
+        setPlaylist((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            songs: prev.songs.map((s) =>
+              s.id === songId ? { ...s, playCount: (s.playCount || 0) + 1 } : s
+            ),
+          };
+        });
+      }
+    };
+    window.addEventListener('resavvy_song_played', handleSongPlayed);
+    return () => window.removeEventListener('resavvy_song_played', handleSongPlayed);
+  }, []);
+
   const isSaved = groups.some((g) => g.id === playlistId && g.isSaved);
   const isOwned = Boolean(user && playlist?.user?.username === user.username);
 

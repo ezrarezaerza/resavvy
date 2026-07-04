@@ -317,20 +317,24 @@ export function usePlaylistData() {
   };
 
   const incrementPlayCount = async (groupId: string | undefined, songId: string) => {
-    if (token) {
-      try {
-        await fetch('/api/songs?action=play', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ songId })
-        });
-      } catch (err) {
-        console.error('Failed to increment play count', err);
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
       }
+      await fetch('/api/songs?action=play', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ songId })
+      });
+    } catch (err) {
+      console.error('Failed to increment play count', err);
     }
+    
+    window.dispatchEvent(new CustomEvent('resavvy_song_played', { detail: { songId } }));
+
     setGroups((prevGroups) =>
       prevGroups.map((group) => {
         if (group.id === groupId || !groupId) {

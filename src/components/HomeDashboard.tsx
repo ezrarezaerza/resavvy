@@ -56,6 +56,20 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
     }
   }, [token]);
 
+  useEffect(() => {
+    const handleSongPlayed = (e: any) => {
+      const songId = e.detail?.songId;
+      if (songId) {
+        setTrending(prev => prev.map(s => s.id === songId ? { ...s, playCount: (s.playCount || 0) + 1 } : s));
+        setHeavyRotation(prev => prev.map(s => s.id === songId ? { ...s, playCount: (s.playCount || 0) + 1 } : s));
+        setQuickPicks(prev => prev.map(s => s.id === songId ? { ...s, playCount: (s.playCount || 0) + 1 } : s));
+        setRecommended(prev => prev ? { ...prev, songs: prev.songs.map(s => s.id === songId ? { ...s, playCount: (s.playCount || 0) + 1 } : s) } : prev);
+      }
+    };
+    window.addEventListener('resavvy_song_played', handleSongPlayed);
+    return () => window.removeEventListener('resavvy_song_played', handleSongPlayed);
+  }, []);
+
   const getHighResThumbnail = (url: string) => {
     if (url && url.includes('mqdefault.jpg')) return url.replace('mqdefault.jpg', 'hqdefault.jpg');
     return url;

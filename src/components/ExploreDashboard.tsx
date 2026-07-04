@@ -40,6 +40,17 @@ export function ExploreDashboard() {
     }
   };
 
+  useEffect(() => {
+    const handleSongPlayed = (e: any) => {
+      const songId = e.detail?.songId;
+      if (songId) {
+        setSongs(prev => prev.map(s => s.id === songId ? { ...s, playCount: (s.playCount || 0) + 1 } : s));
+      }
+    };
+    window.addEventListener('resavvy_song_played', handleSongPlayed);
+    return () => window.removeEventListener('resavvy_song_played', handleSongPlayed);
+  }, []);
+
   const processedSongs = useMemo(() => {
     let result = [...songs];
     
