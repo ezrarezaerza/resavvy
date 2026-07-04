@@ -10,8 +10,6 @@ import { PlaylistProvider } from "./context/PlaylistContext";
 import { HiddenYouTubePlayer } from "./components/HiddenYouTubePlayer";
 import { AuthProvider } from "./context/AuthContext";
 import { AuthGuard } from "./components/AuthGuard";
-import { PublicPlaylistPage } from "./components/PublicPlaylistPage";
-import { PublicProfilePage } from "./components/PublicProfilePage";
 import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
 

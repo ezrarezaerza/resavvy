@@ -7,6 +7,7 @@ import { useToast } from "../context/ToastContext";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditCoverModal } from "./EditCoverModal";
 import { EditPlaylistModal } from "./EditPlaylistModal";
+import { OptimizedImage } from "./OptimizedImage";
 
 interface PlaylistHeroProps {
   activeGroup: PlaylistGroup;
@@ -142,7 +143,7 @@ export function PlaylistHero({ activeGroup, onAddSong, isReadOnly = false }: Pla
         <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-b-2xl md:rounded-t-2xl bg-gray-100 dark:bg-gray-900">
           {/* Background */}
           {displayImage ? (
-            <img 
+            <OptimizedImage 
               src={displayImage}
               alt=""
               className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-60 dark:opacity-80 mix-blend-multiply dark:mix-blend-normal"

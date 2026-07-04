@@ -49,7 +49,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
       />
       <div 
         ref={modalRef}
-        className="relative bg-white/90 dark:bg-[#1e293b]/90 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6 overflow-hidden z-[101]"
+        className="relative bg-white/90 dark:bg-[#1e293b]/90 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6 overflow-hidden z-[101] will-change-transform will-change-[opacity]"
       >
         <div className="flex items-center justify-between mb-6 relative z-10">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{title}</h2>

@@ -3,6 +3,7 @@ import { Modal } from './Modal';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { AlertTriangle, Music, Loader2 } from 'lucide-react';
+import { OptimizedImage } from "./OptimizedImage";
 
 interface DuplicateGroup {
   youtubeId: string;
@@ -114,7 +115,7 @@ export function DedupeModal({ isOpen, onClose, onRefresh }: DedupeModalProps) {
             <div className="max-h-64 overflow-y-auto pr-2 space-y-2 no-scrollbar">
               {duplicates.map(dup => (
                 <div key={dup.youtubeId} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
-                  <img src={dup.thumbnailUrl} alt={dup.title} className="w-10 h-10 rounded object-cover" />
+                  <OptimizedImage src={dup.thumbnailUrl} alt={dup.title} className="w-10 h-10 rounded object-cover" />
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{dup.title}</div>
                     <div className="text-xs text-gray-500 truncate">{dup.artist || 'Unknown'}</div>

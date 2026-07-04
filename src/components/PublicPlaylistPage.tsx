@@ -27,24 +27,35 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
   const [isCloning, setIsCloning] = useState(false);
 
   useEffect(() => {
+    const abortController = new AbortController();
+
     const fetchPlaylist = async () => {
       try {
         const headers: Record<string, string> = {};
         if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        const res = await fetch(`/api/playlists?id=${playlistId}&_t=${Date.now()}`, { headers });
+        const res = await fetch(`/api/playlists?id=${playlistId}&_t=${Date.now()}`, { 
+          headers,
+          signal: abortController.signal
+        });
         if (!res.ok) {
           throw new Error("Failed to fetch playlist");
         }
         const data = await res.json();
         setPlaylist(data);
       } catch (e: any) {
-        setError(e.message);
+        if (e.name !== 'AbortError') {
+          setError(e.message);
+        }
       } finally {
-        setIsLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
     fetchPlaylist();
+    
+    return () => abortController.abort();
   }, [playlistId, token]);
 
   useEffect(() => {

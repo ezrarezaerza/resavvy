@@ -31,34 +31,43 @@ interface StatsData {
   };
 }
 
-export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: string) => void }) {
+export const AnalyticsDashboard = React.memo(function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: string) => void }) {
   const { token, user } = useAuth();
   const { addToast } = useToast();
   const [stats, setStats] = useState<StatsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const abortController = new AbortController();
+
+    const fetchAnalytics = async () => {
+      setIsLoading(true);
+      try {
+        const res = await fetch('/api/social?type=stats', {
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: abortController.signal
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (e: any) {
+        if (e.name !== 'AbortError') {
+          console.error(e);
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
     if (token) {
       fetchAnalytics();
     }
+    
+    return () => abortController.abort();
   }, [token]);
-
-  const fetchAnalytics = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/social?type=stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -272,4 +281,4 @@ export function AnalyticsDashboard({ onSelectGroup }: { onSelectGroup: (id: stri
       </div>
     </div>
   );
-}
+});

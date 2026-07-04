@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { PlaylistGroup, Song } from "../types";
 import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
@@ -26,11 +26,13 @@ export function usePlaylistData() {
     window.localStorage.removeItem(LOCAL_STORAGE_KEY);
     
     if (token) {
+      const abortController = new AbortController();
       fetch('/api/playlists?_t=' + Date.now(), {
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        cache: 'no-store'
+        cache: 'no-store',
+        signal: abortController.signal
       })
       .then(res => res.json())
       .then(data => {
@@ -40,8 +42,11 @@ export function usePlaylistData() {
         }
       })
       .catch(err => {
-        console.error('Failed to load user playlists', err);
+        if (err.name !== 'AbortError') {
+          console.error('Failed to load user playlists', err);
+        }
       });
+      return () => abortController.abort();
     } else {
       setGroups([]);
     }
@@ -461,7 +466,7 @@ export function usePlaylistData() {
     }
   };
 
-  return {
+  const playlistDataValue = React.useMemo(() => ({
     groups,
     createGroup,
     deleteGroup,
@@ -478,5 +483,7 @@ export function usePlaylistData() {
     savePlaylist,
     unsavePlaylist,
     clonePlaylist,
-  };
+  }), [groups, token]);
+
+  return playlistDataValue;
 }

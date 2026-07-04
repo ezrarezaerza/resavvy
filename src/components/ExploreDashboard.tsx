@@ -15,30 +15,39 @@ export function ExploreDashboard() {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'playCount', direction: 'desc' });
 
   useEffect(() => {
-    fetchExploreSongs();
-  }, [token, searchQuery]); // re-fetch when search changes mostly for server-side search, but we handle it
-
-  const fetchExploreSongs = async () => {
-    if (!token) return;
-    setIsLoading(true);
-    try {
-      const url = new URL('/api/social', window.location.origin);
-      url.searchParams.append('type', 'explore');
-      if (searchQuery) url.searchParams.append('query', searchQuery);
-      
-      const res = await fetch(url.toString(), {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSongs(data);
+    const abortController = new AbortController();
+    
+    const fetchExploreSongs = async () => {
+      if (!token) return;
+      setIsLoading(true);
+      try {
+        const url = new URL('/api/social', window.location.origin);
+        url.searchParams.append('type', 'explore');
+        if (searchQuery) url.searchParams.append('query', searchQuery);
+        
+        const res = await fetch(url.toString(), {
+          headers: { 'Authorization': `Bearer ${token}` },
+          signal: abortController.signal
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSongs(data);
+        }
+      } catch (e: any) {
+        if (e.name !== 'AbortError') {
+          console.error(e);
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    fetchExploreSongs();
+
+    return () => abortController.abort();
+  }, [token, searchQuery]);
 
   useEffect(() => {
     const handleSongPlayed = (e: any) => {

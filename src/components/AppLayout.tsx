@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { Sidebar } from "./Sidebar";
 import { Tracklist } from "./Tracklist";
 import { PlayerBar } from "./PlayerBar";
@@ -9,14 +9,14 @@ import { AddSongInput } from "./AddSongInput";
 import { PlaylistHero } from "./PlaylistHero";
 import { TopNav } from "./TopNav";
 import { FullscreenPlayer } from "./FullscreenPlayer";
-import { HomeDashboard } from "./HomeDashboard";
-import { LibraryDashboard } from "./LibraryDashboard";
-import { DiscoveryDashboard } from "./DiscoveryDashboard";
-import { AnalyticsDashboard } from "./AnalyticsDashboard";
-import { LikedDashboard } from "./LikedDashboard";
+const HomeDashboard = React.lazy(() => import("./HomeDashboard").then(m => ({ default: m.HomeDashboard })));
+const LibraryDashboard = React.lazy(() => import("./LibraryDashboard").then(m => ({ default: m.LibraryDashboard })));
+const DiscoveryDashboard = React.lazy(() => import("./DiscoveryDashboard").then(m => ({ default: m.DiscoveryDashboard })));
+const AnalyticsDashboard = React.lazy(() => import("./AnalyticsDashboard").then(m => ({ default: m.AnalyticsDashboard })));
+const LikedDashboard = React.lazy(() => import("./LikedDashboard").then(m => ({ default: m.LikedDashboard })));
 import { MobileBottomNav } from "./MobileBottomNav";
-import { PublicPlaylistPage } from "./PublicPlaylistPage";
-import { PublicProfilePage } from "./PublicProfilePage";
+const PublicPlaylistPage = React.lazy(() => import("./PublicPlaylistPage").then(m => ({ default: m.PublicPlaylistPage })));
+const PublicProfilePage = React.lazy(() => import("./PublicProfilePage").then(m => ({ default: m.PublicProfilePage })));
 
 import { usePlayer } from "../context/PlayerContext";
 import { useAuth } from "../context/AuthContext";
@@ -214,6 +214,7 @@ export function AppLayout({
           <FullscreenPlayer />
 
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-transparent relative no-scrollbar pb-[150px] md:pb-[100px]">
+            <Suspense fallback={<div className="flex-1 flex items-center justify-center h-full"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>}>
             {isPublicPlaylist && playlistIdPath ? (
               <PublicPlaylistPage playlistId={playlistIdPath} />
             ) : isPublicProfile && profileUsernamePath ? (
@@ -251,6 +252,7 @@ export function AppLayout({
                 onCreatePlaylist={openCreatePlaylistModal}
               />
             )}
+            </Suspense>
           </main>
         </div>
         <PlayerBar />

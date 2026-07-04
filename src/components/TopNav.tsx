@@ -16,6 +16,7 @@ import {
 import { useSettings } from "../hooks/useSettings";
 import { useAuth } from "../context/AuthContext";
 import { GlobalSearchBar } from "./GlobalSearchBar";
+import { OptimizedImage } from "./OptimizedImage";
 
 interface TopNavProps {
   onMenuClick: () => void;
@@ -24,7 +25,7 @@ interface TopNavProps {
   isSidebarCollapsed?: boolean;
 }
 
-export function TopNav({ onMenuClick, onLogoClick, onNavigate, isSidebarCollapsed }: TopNavProps) {
+export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onNavigate, isSidebarCollapsed }: TopNavProps) {
   const { theme, setTheme, dataSaver, setDataSaver, autoplay, setAutoplay } = useSettings();
   const { user, logout, updateProfile, deleteAccount, setShowLoginModal } = useAuth();
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -156,7 +157,7 @@ export function TopNav({ onMenuClick, onLogoClick, onNavigate, isSidebarCollapse
               className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm cursor-pointer hover:opacity-80 transition-opacity shrink-0 focus:outline-none overflow-hidden"
             >
               {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                <OptimizedImage src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
               ) : (
                 initial
               )}
@@ -171,7 +172,7 @@ export function TopNav({ onMenuClick, onLogoClick, onNavigate, isSidebarCollapse
               >
                 <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm cursor-pointer shrink-0 overflow-hidden">
                   {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    <OptimizedImage src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
                     initial
                   )}
@@ -396,4 +397,4 @@ export function TopNav({ onMenuClick, onLogoClick, onNavigate, isSidebarCollapse
       )}
     </>
   );
-}
+});

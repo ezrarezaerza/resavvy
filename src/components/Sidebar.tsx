@@ -30,7 +30,7 @@ interface SidebarProps {
   onCreatePlaylist: () => void;
 }
 
-export function Sidebar({
+export const Sidebar = React.memo(function Sidebar({
   groups,
   activeGroupId,
   setActiveGroupId,
@@ -453,4 +453,4 @@ export function Sidebar({
       />
     </aside>
   );
-}
+});

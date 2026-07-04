@@ -3,8 +3,9 @@ import { Shuffle, SkipBack, Play, Pause, SkipForward, Repeat, Repeat1, Volume2 }
 import { usePlayer } from "../context/PlayerContext";
 import { useSettings } from "../hooks/useSettings";
 import { PlaybackProgressBar } from "./PlaybackProgressBar";
+import { OptimizedImage } from "./OptimizedImage";
 
-export function PlayerBar() {
+export const PlayerBar = React.memo(function PlayerBar() {
   const [isVolHovering, setIsVolHovering] = useState(false);
   const [volHoverX, setVolHoverX] = useState(0);
   const [volHoverPercent, setVolHoverPercent] = useState(0);
@@ -56,7 +57,7 @@ export function PlayerBar() {
       <div className="flex flex-1 md:flex-none items-center gap-4 md:w-1/4 md:min-w-[180px]">
         {currentSong ? (
           <>
-            <img 
+            <OptimizedImage 
               src={getThumbnailSrc(currentSong.thumbnailUrl)} 
               alt="Now Playing" 
               className="w-14 h-14 flex-shrink-0 aspect-square object-cover object-center rounded-md shadow-sm border border-gray-100 dark:border-gray-800 bg-gray-200 dark:bg-gray-800" 
@@ -156,10 +157,10 @@ export function PlayerBar() {
           onMouseMove={handleVolMouseMove}
           onMouseLeave={handleVolMouseLeave}
         >
-          <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden relative">
+          <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden relative" style={{ transform: 'translateZ(0)' }}>
             <div 
-              className="h-full bg-gray-400 dark:bg-gray-500 rounded-full transition-all duration-150 absolute left-0 top-0 group-hover/volume:bg-indigo-500 dark:group-hover/volume:bg-indigo-400" 
-              style={{ width: `${volume}%` }}
+              className="h-full bg-gray-400 dark:bg-gray-500 rounded-full transition-transform duration-150 absolute left-0 top-0 group-hover/volume:bg-indigo-500 dark:group-hover/volume:bg-indigo-400 w-full will-change-transform" 
+              style={{ transform: `scaleX(${volume / 100})`, transformOrigin: 'left' }}
             ></div>
           </div>
           {isVolHovering && (
@@ -174,4 +175,4 @@ export function PlayerBar() {
       </div>
     </footer>
   );
-}
+});

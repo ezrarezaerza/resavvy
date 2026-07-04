@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Loader2, Music, ListMusic, User, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { OptimizedImage } from "./OptimizedImage";
 
 interface GlobalSearchBarProps {
   onNavigate?: (id: string, searchPrefix?: string) => void;
@@ -32,26 +33,38 @@ export function GlobalSearchBar({ onNavigate }: GlobalSearchBarProps) {
       return;
     }
 
+    const abortController = new AbortController();
+
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
         const headers: any = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
         
-        const res = await fetch(`/api/search/global?q=${encodeURIComponent(query)}`, { headers });
+        const res = await fetch(`/api/search/global?q=${encodeURIComponent(query)}`, { 
+          headers,
+          signal: abortController.signal
+        });
         if (res.ok) {
           const data = await res.json();
           setResults(data);
           setIsOpen(true);
         }
-      } catch (err) {
-        console.error('Failed to search', err);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Failed to search', err);
+        }
       } finally {
-        setIsLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     }, 400);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      abortController.abort();
+    };
   }, [query, token]);
 
   const handlePlaylistClick = (playlistId: string) => {
@@ -170,7 +183,7 @@ export function GlobalSearchBar({ onNavigate }: GlobalSearchBarProps) {
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0">
                      {u.avatarUrl ? (
-                        <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" />
+                        <OptimizedImage src={u.avatarUrl} alt="" className="w-full h-full object-cover" />
                      ) : (
                         <div className="w-full h-full flex items-center justify-center text-xs font-bold text-gray-500 dark:text-gray-400">
                            {u.name.charAt(0).toUpperCase()}

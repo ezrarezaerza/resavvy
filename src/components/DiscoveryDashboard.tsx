@@ -6,13 +6,14 @@ import { DiscoveryShelf } from './DiscoveryShelf';
 import { PlaylistCard } from './PlaylistCard';
 import { SearchBar } from './SearchBar';
 import { Music, User, Compass } from 'lucide-react';
+import { OptimizedImage } from "./OptimizedImage";
 
 interface DiscoveryDashboardProps {
   onSelectGroup: (id: string) => void;
   initialSearchQuery?: string;
 }
 
-export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: DiscoveryDashboardProps) {
+export const DiscoveryDashboard = React.memo(function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: DiscoveryDashboardProps) {
   const { token } = useAuth();
   const [trending, setTrending] = useState<PlaylistGroup[]>([]);
   const [fresh, setFresh] = useState<PlaylistGroup[]>([]);
@@ -28,12 +29,75 @@ export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: D
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
-    if (searchQuery.trim()) {
-      fetchSearchResults();
-    } else {
-      setSearchResults(null);
-      fetchDiscoveryData();
-    }
+    const abortController = new AbortController();
+
+    const fetchData = async () => {
+      if (searchQuery.trim()) {
+        setIsSearching(true);
+        try {
+          const headers: Record<string, string> = {};
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+          
+          const res = await fetch(`/api/search/global?q=${encodeURIComponent(searchQuery)}`, { 
+            headers,
+            signal: abortController.signal
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setSearchResults(data);
+          }
+        } catch (e: any) {
+          if (e.name !== 'AbortError') {
+            console.error('Search failed', e);
+          }
+        } finally {
+          if (!abortController.signal.aborted) {
+            setIsSearching(false);
+            setIsLoading(false);
+          }
+        }
+      } else {
+        setSearchResults(null);
+        setIsLoading(true);
+        try {
+          const url = new URL('/api/social', window.location.origin);
+          url.searchParams.append('type', 'discovery');
+          if (selectedTag) url.searchParams.append('tag', selectedTag);
+          
+          const headers: Record<string, string> = {};
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+
+          const res = await fetch(url.toString(), { 
+            headers,
+            signal: abortController.signal
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (selectedTag) {
+              setTaggedPlaylists(data.playlists || []);
+            } else {
+              setTrending(data.trending || []);
+              setFresh(data.fresh || []);
+              setGlobalTags(data.globalTags || []);
+              setPopularSongs(data.popularSongs || []);
+              setPopularUsers(data.popularUsers || []);
+            }
+          }
+        } catch (e: any) {
+          if (e.name !== 'AbortError') {
+            console.error(e);
+          }
+        } finally {
+          if (!abortController.signal.aborted) {
+            setIsLoading(false);
+          }
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => abortController.abort();
   }, [searchQuery, token, selectedTag]);
 
   // Synchronize external prop changes (from topnav)
@@ -42,55 +106,6 @@ export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: D
        setSearchQuery(initialSearchQuery);
     }
   }, [initialSearchQuery]);
-
-  const fetchSearchResults = async () => {
-    setIsSearching(true);
-    try {
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-      
-      const res = await fetch(`/api/search/global?q=${encodeURIComponent(searchQuery)}`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setSearchResults(data);
-      }
-    } catch (e) {
-      console.error('Search failed', e);
-    } finally {
-      setIsSearching(false);
-      setIsLoading(false);
-    }
-  };
-
-  const fetchDiscoveryData = async () => {
-    setIsLoading(true);
-    try {
-      const url = new URL('/api/social', window.location.origin);
-      url.searchParams.append('type', 'discovery');
-      if (selectedTag) url.searchParams.append('tag', selectedTag);
-      
-      const headers: Record<string, string> = {};
-      if (token) headers['Authorization'] = `Bearer ${token}`;
-
-      const res = await fetch(url.toString(), { headers });
-      if (res.ok) {
-        const data = await res.json();
-        if (selectedTag) {
-          setTaggedPlaylists(data.playlists || []);
-        } else {
-          setTrending(data.trending || []);
-          setFresh(data.fresh || []);
-          setGlobalTags(data.globalTags || []);
-          setPopularSongs(data.popularSongs || []);
-          setPopularUsers(data.popularUsers || []);
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="w-full h-full p-6 md:p-8 overflow-y-auto pb-32 no-scrollbar">
@@ -142,7 +157,7 @@ export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: D
                           onClick={() => onSelectGroup(song.playlist.id)}
                           className="p-4 bg-white/60 dark:bg-white/5 backdrop-blur-md border border-gray-200/50 dark:border-white/10 rounded-xl flex items-center gap-4 hover:border-indigo-500/50 hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer transition-all shadow-sm"
                         >
-                           <img src={song.thumbnailUrl} alt="" className="w-16 h-12 object-cover rounded-lg shrink-0" />
+                           <OptimizedImage src={song.thumbnailUrl} alt="" className="w-16 h-12 object-cover rounded-lg shrink-0" />
                            <div className="flex-1 min-w-0">
                               <h4 className="font-semibold text-gray-900 dark:text-white truncate">{song.title}</h4>
                               <p className="text-sm text-gray-500 truncate">{song.artist}</p>
@@ -188,7 +203,7 @@ export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: D
                         >
                            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0">
                               {u.avatarUrl ? (
-                                 <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                 <OptimizedImage src={u.avatarUrl} alt="" className="w-full h-full object-cover" />
                               ) : (
                                  <div className="w-full h-full flex items-center justify-center font-bold text-gray-500">{u.name.charAt(0).toUpperCase()}</div>
                               )}
@@ -245,7 +260,7 @@ export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: D
                           onClick={() => onSelectGroup(song.playlist.id)}
                           className="p-4 bg-white/60 dark:bg-white/5 backdrop-blur-md border border-gray-200/50 dark:border-white/10 rounded-xl flex items-center gap-4 hover:border-indigo-500/50 hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer transition-all shadow-sm"
                         >
-                           <img src={song.thumbnailUrl} alt="" className="w-16 h-12 object-cover rounded-lg shrink-0" />
+                           <OptimizedImage src={song.thumbnailUrl} alt="" className="w-16 h-12 object-cover rounded-lg shrink-0" />
                            <div className="flex-1 min-w-0">
                               <h4 className="font-semibold text-gray-900 dark:text-white truncate">{song.title}</h4>
                               <p className="text-sm text-gray-500 truncate">{song.artist}</p>
@@ -280,7 +295,7 @@ export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: D
                         >
                            <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-800 shrink-0">
                               {u.avatarUrl ? (
-                                 <img src={u.avatarUrl} alt="" className="w-full h-full object-cover" />
+                                 <OptimizedImage src={u.avatarUrl} alt="" className="w-full h-full object-cover" />
                               ) : (
                                  <div className="w-full h-full flex items-center justify-center font-bold text-gray-500">{u.name.charAt(0).toUpperCase()}</div>
                               )}
@@ -305,4 +320,4 @@ export function DiscoveryDashboard({ onSelectGroup, initialSearchQuery = '' }: D
       </div>
     </div>
   );
-}
+});

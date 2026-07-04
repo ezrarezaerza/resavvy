@@ -88,10 +88,10 @@ export function PlaybackProgressBar() {
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
       >
-        <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden relative">
+        <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden relative" style={{ transform: 'translateZ(0)' }}>
           <div 
-            className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full transition-all duration-300 ease-linear absolute left-0 top-0 group-hover:bg-indigo-500 dark:group-hover:bg-indigo-400" 
-            style={{ width: `${progress}%` }}
+            className="h-full bg-indigo-600 dark:bg-indigo-500 rounded-full transition-transform duration-300 ease-linear absolute left-0 top-0 group-hover:bg-indigo-500 dark:group-hover:bg-indigo-400 w-full will-change-transform" 
+            style={{ transform: `scaleX(${progress / 100})`, transformOrigin: 'left' }}
           ></div>
         </div>
         {isHovering && duration > 0 && (

@@ -13,6 +13,7 @@ import { EditSongModal } from "./EditSongModal";
 
 gsap.registerPlugin(useGSAP);
 
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { QuickAddMenu } from "./QuickAddMenu";
 
 interface SongRowProps {
@@ -184,7 +185,7 @@ const SongRow = memo(function SongRow({
       onDragEnd={onDragEnd}
       onDrop={(e) => onDrop(e, index)}
       onClick={handlePlayClick}
-      className={`song-row grid ${isSelectable ? "grid-cols-[40px_40px_minmax(0,1fr)_auto_32px] sm:grid-cols-[40px_40px_minmax(0,1fr)_auto_32px] md:grid-cols-[40px_40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_80px_32px] gap-2 px-2" : "grid-cols-[40px_minmax(0,1fr)_auto_32px] sm:grid-cols-[40px_minmax(0,1fr)_auto_32px] md:grid-cols-[40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_80px_32px] gap-2 px-2 sm:gap-4 sm:px-4"} py-2.5 items-center rounded-lg group transition-colors cursor-pointer relative hover:z-40 focus-within:z-50 ${isMenuOpen ? "z-50" : "z-10"} ${
+      className={`song-row will-change-transform grid ${isSelectable ? "grid-cols-[40px_40px_minmax(0,1fr)_auto_32px] sm:grid-cols-[40px_40px_minmax(0,1fr)_auto_32px] md:grid-cols-[40px_40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_80px_32px] gap-2 px-2" : "grid-cols-[40px_minmax(0,1fr)_auto_32px] sm:grid-cols-[40px_minmax(0,1fr)_auto_32px] md:grid-cols-[40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_80px_32px] gap-2 px-2 sm:gap-4 sm:px-4"} py-2.5 items-center rounded-lg group transition-colors cursor-pointer relative hover:z-40 focus-within:z-50 ${isMenuOpen ? "z-50" : "z-10"} ${
         isSelected
           ? "bg-indigo-50 dark:bg-indigo-900/20"
           : isCurrentSong
@@ -235,15 +236,15 @@ const SongRow = memo(function SongRow({
         {isCurrentSong && isPlaying ? (
           <div className="flex justify-center items-end gap-[3px] h-4 w-4">
             <div
-              className="w-[3px] h-[60%] bg-indigo-600 dark:bg-indigo-400 animate-equalizer rounded-t-sm"
+              className="w-[3px] h-[60%] bg-indigo-600 dark:bg-indigo-400 animate-equalizer rounded-t-sm will-change-transform"
               style={{ animationDelay: "0ms" }}
             ></div>
             <div
-              className="w-[3px] h-[100%] bg-indigo-600 dark:bg-indigo-400 animate-equalizer rounded-t-sm"
+              className="w-[3px] h-[100%] bg-indigo-600 dark:bg-indigo-400 animate-equalizer rounded-t-sm will-change-transform"
               style={{ animationDelay: "200ms" }}
             ></div>
             <div
-              className="w-[3px] h-[80%] bg-indigo-600 dark:bg-indigo-400 animate-equalizer rounded-t-sm"
+              className="w-[3px] h-[80%] bg-indigo-600 dark:bg-indigo-400 animate-equalizer rounded-t-sm will-change-transform"
               style={{ animationDelay: "400ms" }}
             ></div>
           </div>
@@ -352,7 +353,7 @@ interface TracklistProps {
   isReadOnly?: boolean;
 }
 
-export function Tracklist({
+export const Tracklist = React.memo(function Tracklist({
   activeGroup,
   removeSong,
   selectionMode,
@@ -365,6 +366,35 @@ export function Tracklist({
   isReadOnly = false,
 }: TracklistProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollElementRef = useRef<Element | null>(null);
+  const [scrollElement, setScrollElement] = useState<Element | null>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      let el: HTMLElement | null = containerRef.current;
+      while (el) {
+        const style = window.getComputedStyle(el);
+        if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+          scrollElementRef.current = el;
+          setScrollElement(el);
+          break;
+        }
+        el = el.parentElement;
+      }
+      if (!scrollElementRef.current) {
+        scrollElementRef.current = window.document.body;
+        setScrollElement(window.document.body);
+      }
+    }
+  }, []);
+
+  const rowVirtualizer = useVirtualizer({
+    count: activeGroup.songs.length,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => 64, // Approximate height of SongRow
+    overscan: 10,
+  });
+
   const { playSong, currentSong, isPlaying } = usePlayer();
   const { reorderSongs, editSong, toggleSongLike } = usePlaylist();
   
@@ -490,31 +520,47 @@ export function Tracklist({
             variant={variant}
           />
 
-          <div className="flex flex-col gap-1">
-            {activeGroup.songs.map((song, index) => (
-              <SongRow
-                key={`${song.id}-${song.addedAt}`}
-                song={song}
-                index={index}
-                isCurrentSong={currentSong?.id === song.id}
-                isPlaying={isPlaying}
-                onPlay={handlePlay}
-                onRemove={handleRemoveClick}
-                onEdit={handleEditClick}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragEnd={handleDragEnd}
-                onDrop={handleDrop}
-                dragOverIndex={dragOverIndex}
-                draggedIndex={draggedIndex}
-                isSelectable={selectionMode}
-                isSelected={selectedSongs.includes(song.id)}
-                onToggleSelect={onToggleSongSelect}
-                onToggleLike={handleToggleLike}
-                variant={variant}
-                isReadOnly={isReadOnly}
-              />
-            ))}
+          <div className="flex flex-col gap-1 relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
+            {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+              const song = activeGroup.songs[virtualItem.index];
+              return (
+                <div
+                  key={`${song.id}-${song.addedAt}`}
+                  ref={virtualItem.measureElement}
+                  data-index={virtualItem.index}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translate3d(0, ${virtualItem.start}px, 0)`,
+                    willChange: 'transform'
+                  }}
+                >
+                  <SongRow
+                    song={song}
+                    index={virtualItem.index}
+                    isCurrentSong={currentSong?.id === song.id}
+                    isPlaying={isPlaying}
+                    onPlay={handlePlay}
+                    onRemove={handleRemoveClick}
+                    onEdit={handleEditClick}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDragEnd={handleDragEnd}
+                    onDrop={handleDrop}
+                    dragOverIndex={dragOverIndex}
+                    draggedIndex={draggedIndex}
+                    isSelectable={selectionMode}
+                    isSelected={selectedSongs.includes(song.id)}
+                    onToggleSelect={onToggleSongSelect}
+                    onToggleLike={handleToggleLike}
+                    variant={variant}
+                    isReadOnly={isReadOnly}
+                  />
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -543,4 +589,4 @@ export function Tracklist({
       )}
     </div>
   );
-}
+});

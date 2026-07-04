@@ -3,6 +3,7 @@ import { PlaylistGroup } from '../types';
 import { PlaylistCard } from './PlaylistCard';
 import { Heart, Compass, ArrowLeft } from 'lucide-react';
 import { usePlayer } from '../context/PlayerContext';
+import { OptimizedImage } from "./OptimizedImage";
 
 interface PublicProfilePageProps {
   username: string;
@@ -16,25 +17,35 @@ export function PublicProfilePage({ username }: PublicProfilePageProps) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchProfile();
-  }, [username]);
+    const abortController = new AbortController();
 
-  const fetchProfile = async () => {
-    try {
-      const res = await fetch(`/api/social?type=profile&username=${username}`);
-      if (!res.ok) {
-        throw new Error(res.status === 404 ? 'User not found' : 'Failed to fetch profile');
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch(`/api/social?type=profile&username=${username}`, {
+          signal: abortController.signal
+        });
+        if (!res.ok) {
+          throw new Error(res.status === 404 ? 'User not found' : 'Failed to fetch profile');
+        }
+        const data = await res.json();
+        setProfile(data.profile);
+        setPlaylists(data.playlists);
+        setTotalLikes(data.totalLikes);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          setError(err.message);
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
-      const data = await res.json();
-      setProfile(data.profile);
-      setPlaylists(data.playlists);
-      setTotalLikes(data.totalLikes);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    fetchProfile();
+
+    return () => abortController.abort();
+  }, [username]);
 
   const handlePlaylistClick = (playlistId: string) => {
     window.history.pushState(null, '', `/p/${playlistId}`);
@@ -73,7 +84,7 @@ export function PublicProfilePage({ username }: PublicProfilePageProps) {
     <div className="flex flex-col w-full text-gray-900 dark:text-gray-100 font-sans pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 pt-12 pb-12 w-full">
         <div className="flex flex-col items-center text-center">
-          <img 
+          <OptimizedImage 
             src={avatarUrl} 
             alt={profile.name} 
             className="w-32 h-32 rounded-full border-4 border-indigo-500/30 object-cover shadow-xl mb-6"

@@ -8,7 +8,7 @@ import { DedupeModal } from './DedupeModal';
 import { Song, PlaylistGroup } from '../types';
 import { Library, Wand2 } from 'lucide-react';
 
-export function LibraryDashboard() {
+export const LibraryDashboard = React.memo(function LibraryDashboard() {
   const { token } = useAuth();
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -19,26 +19,35 @@ export function LibraryDashboard() {
   const [showDedupeModal, setShowDedupeModal] = useState(false);
 
   useEffect(() => {
-    fetchLibrarySongs();
-  }, [token]);
+    const abortController = new AbortController();
 
-  const fetchLibrarySongs = async () => {
-    if (!token) return;
-    try {
-      const res = await fetch('/api/songs?_t=' + Date.now(), {
-        headers: { 'Authorization': `Bearer ${token}` },
-        cache: 'no-store'
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSongs(data);
+    const fetchLibrarySongs = async () => {
+      if (!token) return;
+      try {
+        const res = await fetch('/api/songs?_t=' + Date.now(), {
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache: 'no-store',
+          signal: abortController.signal
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSongs(data);
+        }
+      } catch (e: any) {
+        if (e.name !== 'AbortError') {
+          console.error(e);
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    fetchLibrarySongs();
+
+    return () => abortController.abort();
+  }, [token]);
 
   useEffect(() => {
     const handleSongPlayed = (e: any) => {
@@ -173,4 +182,4 @@ export function LibraryDashboard() {
       />
     </div>
   );
-}
+});

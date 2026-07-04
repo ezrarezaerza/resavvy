@@ -29,12 +29,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
+    const abortController = new AbortController();
     const initAuth = async () => {
       const storedToken = localStorage.getItem('resavvy_token');
       if (storedToken) {
         try {
           const res = await fetch('/api/auth?action=me', {
-            headers: { Authorization: `Bearer ${storedToken}` }
+            headers: { Authorization: `Bearer ${storedToken}` },
+            signal: abortController.signal
           });
           if (res.ok) {
             const data = await res.json();
@@ -43,14 +45,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } else {
             localStorage.removeItem('resavvy_token');
           }
-        } catch (e) {
-          console.error('Failed to authenticate token with backend', e);
-          localStorage.removeItem('resavvy_token');
+        } catch (e: any) {
+          if (e.name !== 'AbortError') {
+            console.error('Failed to authenticate token with backend', e);
+            localStorage.removeItem('resavvy_token');
+          }
         }
       }
       setIsLoading(false);
     };
     initAuth();
+    return () => abortController.abort();
   }, []);
 
   const login = (newToken: string, newUser: User) => {
@@ -100,8 +105,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const contextValue = React.useMemo(() => ({
+    user,
+    token,
+    isLoading,
+    login,
+    logout,
+    updateProfile,
+    deleteAccount,
+    showLoginModal,
+    setShowLoginModal
+  }), [user, token, isLoading, showLoginModal]);
+
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, updateProfile, deleteAccount, showLoginModal, setShowLoginModal }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

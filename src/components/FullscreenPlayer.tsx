@@ -4,6 +4,7 @@ import { useGSAP } from "@gsap/react";
 import { ChevronDown, Shuffle, SkipBack, Play, Pause, SkipForward, Repeat, Repeat1 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { PlaybackProgressBar } from "./PlaybackProgressBar";
+import { OptimizedImage } from "./OptimizedImage";
 
 export function FullscreenPlayer() {
   const { 
@@ -47,11 +48,11 @@ export function FullscreenPlayer() {
   return (
     <div 
       ref={containerRef}
-      className="fixed inset-0 z-[100] bg-transparent flex flex-col justify-between p-6 pb-12 h-[100dvh] overflow-hidden transform translate-y-full"
+      className="fixed inset-0 z-[100] bg-transparent flex flex-col justify-between p-6 pb-12 h-[100dvh] overflow-hidden transform translate-y-full will-change-transform"
     >
       {/* Dynamic Immersive Background */}
       <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden z-[-2]">
-         <img 
+         <OptimizedImage 
            src={hqThumbnail} 
            alt="" 
            className="w-full h-full object-cover scale-150 blur-3xl opacity-80 dark:opacity-60 saturate-200 transition-all duration-1000" 
@@ -71,7 +72,7 @@ export function FullscreenPlayer() {
       </div>
 
       <div className="flex-1 flex items-center justify-center min-h-0 w-full my-4">
-        <img 
+        <OptimizedImage 
           src={hqThumbnail} 
           alt={currentSong.title}
           className="w-auto h-full max-w-full max-h-[350px] aspect-square object-cover rounded-2xl shadow-2xl bg-gray-200 dark:bg-gray-800 mx-auto"

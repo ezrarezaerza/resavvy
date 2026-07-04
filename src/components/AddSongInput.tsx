@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { extractYouTubeId, fetchYouTubeMetadata } from '../utils/youtube';
 import { parseYouTubeTitle } from '../utils/metadata';
 import { Song } from '../types';
+import { OptimizedImage } from "./OptimizedImage";
 
 interface FetchedMetadata {
   videoId: string;
@@ -221,7 +222,7 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
                   onClick={() => handleResultClick(result)}
                   className="hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer rounded-lg p-2 flex gap-4 items-center transition-colors border border-transparent hover:border-gray-200 dark:hover:border-white/10"
                 >
-                  <img 
+                  <OptimizedImage 
                     src={result.thumbnail} 
                     alt={result.title}
                     className="w-16 h-12 object-cover rounded shadow-sm bg-gray-200 dark:bg-black/40"
@@ -268,7 +269,7 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
           ) : (
             <div className="w-full animate-in fade-in slide-in-from-bottom-2 duration-200">
               <div className="flex flex-col sm:flex-row gap-5 mb-5 relative">
-                <img 
+                <OptimizedImage 
                   src={metadata?.thumbnailUrl} 
                   alt={title || "Thumbnail"}
                   className="w-24 h-24 aspect-square object-cover object-center rounded-lg shadow-md border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-800 shrink-0"

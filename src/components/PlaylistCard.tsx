@@ -3,6 +3,7 @@ import { PlaylistGroup } from '../types';
 import { Heart, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
+import { OptimizedImage } from "./OptimizedImage";
 
 interface PlaylistCardProps {
   playlist: PlaylistGroup;
@@ -10,7 +11,7 @@ interface PlaylistCardProps {
   className?: string;
 }
 
-export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, className = 'aspect-square' }) => {
+export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({ playlist, onClick, className = 'aspect-square' }) => {
   const { token, user } = useAuth();
   const isOwner = user && playlist.user?.username === user.username;
   const { playSong } = usePlayer();
@@ -68,7 +69,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, c
       onClick={onClick}
     >
       {displayImage ? (
-        <img 
+        <OptimizedImage 
           src={displayImage} 
           alt={playlist.name}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -117,4 +118,4 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({ playlist, onClick, c
       </div>
     </div>
   );
-}
+});

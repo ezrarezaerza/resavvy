@@ -15,7 +15,7 @@ export function EmptyState() {
 
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div ref={iconRef} className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 text-gray-400 dark:text-gray-500 shadow-sm border border-gray-200 dark:border-gray-700">
+      <div ref={iconRef} className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-6 text-gray-400 dark:text-gray-500 shadow-sm border border-gray-200 dark:border-gray-700 will-change-transform">
         <Music className="w-8 h-8" />
       </div>
       <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 tracking-tight">This group is empty</h3>

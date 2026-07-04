@@ -7,7 +7,7 @@ import { Song, PlaylistGroup } from "../types";
 import { Heart } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 
-export function LikedDashboard() {
+export const LikedDashboard = React.memo(function LikedDashboard() {
   const { token } = useAuth();
   const { playSong } = usePlayer();
   const [songs, setSongs] = useState<Song[]>([]);
@@ -20,27 +20,36 @@ export function LikedDashboard() {
   });
 
   useEffect(() => {
-    fetchLikedSongs();
-  }, [token]);
+    const abortController = new AbortController();
 
-  const fetchLikedSongs = async () => {
-    if (!token) return;
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/songs?action=liked&_t=" + Date.now(), {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store'
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSongs(data);
+    const fetchLikedSongs = async () => {
+      if (!token) return;
+      setIsLoading(true);
+      try {
+        const res = await fetch("/api/songs?action=liked&_t=" + Date.now(), {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+          signal: abortController.signal
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSongs(data);
+        }
+      } catch (e: any) {
+        if (e.name !== 'AbortError') {
+          console.error(e);
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    fetchLikedSongs();
+
+    return () => abortController.abort();
+  }, [token]);
 
   useEffect(() => {
     const handleSongPlayed = (e: any) => {
@@ -194,4 +203,4 @@ export function LikedDashboard() {
       />
     </div>
   );
-}
+});

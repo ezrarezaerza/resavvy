@@ -2,9 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PlaylistGroup, Song } from '../types';
 import { PlaylistCard } from './PlaylistCard';
 import { DiscoveryShelf } from './DiscoveryShelf';
+import { SongCard } from './SongCard';
 import { Plus, Disc3, Play, Clock, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
+import { OptimizedImage } from "./OptimizedImage";
 
 interface HomeDashboardProps {
   groups: PlaylistGroup[];
@@ -12,7 +14,7 @@ interface HomeDashboardProps {
   onCreatePlaylist: () => void;
 }
 
-export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeDashboardProps) {
+export const HomeDashboard = React.memo(function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeDashboardProps) {
   const { token } = useAuth();
   const { playSong } = usePlayer();
   const [heavyRotation, setHeavyRotation] = useState<Song[]>([]);
@@ -26,14 +28,16 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
   const [globalTags, setGlobalTags] = useState<string[]>([]);
 
   useEffect(() => {
+    const abortController = new AbortController();
+    const signal = abortController.signal;
     // Fetch global trending unconditionally
-    fetch('/api/social?type=trending')
+    fetch('/api/social?type=trending', { signal })
       .then(res => res.json())
       .then(data => { if (Array.isArray(data)) setTrending(data); })
-      .catch(console.error);
+      .catch(err => { if (err.name !== 'AbortError') console.error(err); });
 
     // Fetch discovery shelves unconditionally
-    fetch('/api/social?type=discovery')
+    fetch('/api/social?type=discovery', { signal })
       .then(res => res.json())
       .then(data => {
           if (data.trending) setTrendingCurations(data.trending);
@@ -41,19 +45,20 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
           if (data.quickPicks) setQuickPicks(data.quickPicks);
           if (data.globalTags) setGlobalTags(data.globalTags);
       })
-      .catch(console.error);
+      .catch(err => { if (err.name !== 'AbortError') console.error(err); });
 
     if (token) {
-      fetch('/api/social?type=rotation', { headers: { 'Authorization': `Bearer ${token}` } })
+      fetch('/api/social?type=rotation', { headers: { 'Authorization': `Bearer ${token}` }, signal })
         .then(res => res.json())
         .then(data => { if (Array.isArray(data)) setHeavyRotation(data); })
-        .catch(console.error);
+        .catch(err => { if (err.name !== 'AbortError') console.error(err); });
         
-      fetch('/api/social?type=recommended', { headers: { 'Authorization': `Bearer ${token}` } })
+      fetch('/api/social?type=recommended', { headers: { 'Authorization': `Bearer ${token}` }, signal })
         .then(res => res.json())
         .then(data => { if (data.songs) setRecommended(data); })
-        .catch(console.error);
+        .catch(err => { if (err.name !== 'AbortError') console.error(err); });
     }
+    return () => abortController.abort();
   }, [token]);
 
   useEffect(() => {
@@ -74,50 +79,6 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
     if (url && url.includes('mqdefault.jpg')) return url.replace('mqdefault.jpg', 'hqdefault.jpg');
     return url;
   };
-
-  const renderSongCard = (song: Song, type: 'heavy' | 'trending', index: number) => (
-    <div 
-      key={song.id || song.youtubeId}
-      className="group relative flex-shrink-0 w-36 md:w-48 flex flex-col gap-3 cursor-pointer"
-      onClick={() => playSong(song)}
-    >
-      <div className="relative aspect-square rounded-xl overflow-hidden shadow-md shadow-gray-200 dark:shadow-black/50">
-        <img 
-          src={getHighResThumbnail(song.thumbnailUrl)} 
-          alt={song.title} 
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-        />
-        <div className="absolute inset-0 bg-black/20 dark:bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
-          <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
-            <Play className="w-6 h-6 text-white ml-1 fill-white" />
-          </div>
-        </div>
-        {type === 'trending' && song.globalRank && (
-          <div className={`absolute top-0 left-0 w-10 h-10 flex items-center justify-center text-white font-bold rounded-br-xl rounded-tl-xl shadow-lg z-10 ${
-            song.globalRank === 1 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
-            song.globalRank === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
-            song.globalRank === 3 ? 'bg-gradient-to-br from-amber-600 to-amber-800' :
-            'bg-black/70 backdrop-blur-md text-sm'
-          }`}>
-            #{song.globalRank}
-          </div>
-        )}
-      </div>
-      <div>
-        <h4 className="font-bold text-gray-900 dark:text-white truncate text-sm md:text-base">
-          {song.title}
-        </h4>
-        <div className="text-xs text-gray-500 dark:text-gray-400 truncate mt-1 flex items-center justify-between">
-          <span className="truncate pr-2">{song.artist || 'Unknown'}</span>
-          {type === 'trending' && (
-            <span className="shrink-0 flex items-center gap-1 font-mono font-medium text-indigo-600 dark:text-indigo-400">
-              <Play className="w-3 h-3 inline" /> {song.playCount || 0}
-            </span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   const shuffledGroups = useMemo(() => {
     return [...groups].sort(() => 0.5 - Math.random());
@@ -191,7 +152,7 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
             On Heavy Rotation
           </h3>
           <div className="flex overflow-x-auto gap-6 no-scrollbar pb-4 -mx-6 px-6 md:mx-0 md:px-0">
-            {heavyRotation.map((song, i) => renderSongCard(song, 'heavy', i))}
+            {heavyRotation.map((song, i) => <SongCard key={song.id || song.youtubeId || i} song={song} type="heavy" onClick={playSong} />)}
           </div>
         </div>
       )}
@@ -203,7 +164,7 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
         </h3>
         {trending.length > 0 ? (
           <div className="flex overflow-x-auto gap-6 no-scrollbar pb-4 -mx-6 px-6 md:mx-0 md:px-0">
-            {trending.map((song, i) => renderSongCard(song, 'trending', i))}
+            {trending.map((song, i) => <SongCard key={song.id || song.youtubeId || i} song={song} type="trending" onClick={playSong} />)}
           </div>
         ) : (
           <div className="flex flex-col py-8 px-6 bg-gray-100/50 dark:bg-white/5 border border-dashed border-gray-300 dark:border-gray-700 rounded-2xl">
@@ -222,7 +183,7 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
             Based on {recommended.basedOn.join(', ')}
           </p>
           <div className="flex overflow-x-auto gap-6 no-scrollbar pb-4 -mx-6 px-6 md:mx-0 md:px-0">
-            {recommended.songs.map((song, i) => renderSongCard(song, 'heavy', i))}
+            {recommended.songs.map((song, i) => <SongCard key={song.id || song.youtubeId || i} song={song} type="heavy" onClick={playSong} />)}
           </div>
         </div>
       )}
@@ -244,7 +205,7 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
                   className={`p-3 bg-gradient-to-r from-indigo-50/50 to-white dark:from-indigo-900/10 dark:to-white/5 backdrop-blur-md border border-indigo-100 dark:border-indigo-500/20 rounded-2xl flex items-center gap-4 hover:border-indigo-400 dark:hover:border-indigo-400 hover:shadow-md cursor-pointer transition-all group ${index >= 6 ? 'hidden md:flex' : ''}`}
                 >
                    <div className="relative w-16 h-16 shrink-0 rounded-xl overflow-hidden shadow-sm">
-                     <img src={getHighResThumbnail(song.thumbnailUrl)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                     <OptimizedImage src={getHighResThumbnail(song.thumbnailUrl)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                      <div className="absolute inset-0 bg-indigo-900/20 dark:bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                        <Play className="w-6 h-6 text-white fill-white shadow-sm" />
                      </div>
@@ -307,4 +268,4 @@ export function HomeDashboard({ groups, onSelectGroup, onCreatePlaylist }: HomeD
       )}
     </div>
   );
-}
+});

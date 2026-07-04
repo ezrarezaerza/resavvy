@@ -253,26 +253,28 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [currentSong, queue, isShuffle, repeatMode, currentGroupId, incrementPlayCount]);
 
+  const contextValue = React.useMemo(() => ({
+    currentSong,
+    queue,
+    isPlaying,
+    isShuffle,
+    repeatMode,
+    volume,
+    isExpanded,
+    setIsExpanded,
+    playSong,
+    togglePlayPause,
+    playNext,
+    playPrevious,
+    toggleShuffle,
+    toggleRepeat,
+    setVolume,
+    playerRef,
+  }), [currentSong, queue, isPlaying, isShuffle, repeatMode, volume, isExpanded, playSong, togglePlayPause, playNext, playPrevious, toggleShuffle, toggleRepeat]);
+
   return (
     <PlayerContext.Provider
-      value={{
-        currentSong,
-        queue,
-        isPlaying,
-        isShuffle,
-        repeatMode,
-        volume,
-        isExpanded,
-        setIsExpanded,
-        playSong,
-        togglePlayPause,
-        playNext,
-        playPrevious,
-        toggleShuffle,
-        toggleRepeat,
-        setVolume,
-        playerRef,
-      }}
+      value={contextValue}
     >
       {children}
     </PlayerContext.Provider>

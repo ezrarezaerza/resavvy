@@ -10,7 +10,7 @@ interface DiscoveryShelfProps {
   mobileWide?: boolean;
 }
 
-export function DiscoveryShelf({ title, description, playlists, onSelectPlaylist, mobileWide = false }: DiscoveryShelfProps) {
+export const DiscoveryShelf = React.memo(function DiscoveryShelf({ title, description, playlists, onSelectPlaylist, mobileWide = false }: DiscoveryShelfProps) {
   if (!playlists || playlists.length === 0) return null;
 
   return (
@@ -42,4 +42,4 @@ export function DiscoveryShelf({ title, description, playlists, onSelectPlaylist
       </div>
     </div>
   );
-}
+});
