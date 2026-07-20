@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { ImageOff } from 'lucide-react';
 
 interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  src?: string;
+  alt?: string;
+  className?: string;
   fallback?: React.ReactNode;
 }
 

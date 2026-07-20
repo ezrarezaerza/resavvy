@@ -118,8 +118,12 @@ export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onN
           className="hidden md:flex items-center gap-2 ml-2 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={onLogoClick}
         >
-          <div className="bg-indigo-500 p-1.5 rounded-lg shadow-md flex items-center justify-center">
-            <AudioLines className="w-5 h-5 text-white" />
+          <div className="bg-indigo-50 dark:bg-indigo-950/40 p-1.5 rounded-lg flex items-center justify-center border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm">
+            <img 
+              src={isDark ? "/icon-192x192-white.png" : "/icon-192x192.png"} 
+              alt="Resavvy logo" 
+              className="w-5 h-5 object-contain rounded-sm" 
+            />
           </div>
           <span className="font-heading font-bold text-xl tracking-tight text-gray-900 dark:text-white">Resavvy</span>
         </div>
@@ -134,8 +138,12 @@ export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onN
         className="absolute left-1/2 -translate-x-1/2 md:hidden flex items-center gap-2 cursor-pointer"
         onClick={onLogoClick}
       >
-        <div className="bg-indigo-500 p-1.5 rounded-lg shadow-md flex items-center justify-center">
-          <AudioLines className="w-5 h-5 text-white" />
+        <div className="bg-indigo-50 dark:bg-indigo-950/40 p-1.5 rounded-lg flex items-center justify-center border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm">
+          <img 
+            src={isDark ? "/icon-192x192-white.png" : "/icon-192x192.png"} 
+            alt="Resavvy logo" 
+            className="w-5 h-5 object-contain rounded-sm" 
+          />
         </div>
         <span className="font-heading font-bold text-xl tracking-tight text-gray-900 dark:text-white">Resavvy</span>
       </div>

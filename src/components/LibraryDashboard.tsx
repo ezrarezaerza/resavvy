@@ -18,34 +18,32 @@ export const LibraryDashboard = React.memo(function LibraryDashboard() {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'createdAt', direction: 'desc' });
   const [showDedupeModal, setShowDedupeModal] = useState(false);
 
+  const fetchLibrarySongs = async (signal?: AbortSignal) => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/songs?_t=' + Date.now(), {
+        headers: { 'Authorization': `Bearer ${token}` },
+        cache: 'no-store',
+        signal
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSongs(data);
+      }
+    } catch (e: any) {
+      if (e.name !== 'AbortError') {
+        console.error(e);
+      }
+    } finally {
+      if (!signal || !signal.aborted) {
+        setIsLoading(false);
+      }
+    }
+  };
+
   useEffect(() => {
     const abortController = new AbortController();
-
-    const fetchLibrarySongs = async () => {
-      if (!token) return;
-      try {
-        const res = await fetch('/api/songs?_t=' + Date.now(), {
-          headers: { 'Authorization': `Bearer ${token}` },
-          cache: 'no-store',
-          signal: abortController.signal
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSongs(data);
-        }
-      } catch (e: any) {
-        if (e.name !== 'AbortError') {
-          console.error(e);
-        }
-      } finally {
-        if (!abortController.signal.aborted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchLibrarySongs();
-
+    fetchLibrarySongs(abortController.signal);
     return () => abortController.abort();
   }, [token]);
 

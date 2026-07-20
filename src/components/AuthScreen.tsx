@@ -71,8 +71,8 @@ export function AuthScreen({ onClose }: AuthScreenProps) {
            </button>
         )}
 
-        <div className="bg-indigo-500/20 backdrop-blur-md p-3 rounded-2xl shadow-lg flex items-center justify-center mb-6 relative z-20 ring-1 ring-white/10">
-          <AudioLines className="w-8 h-8 text-indigo-400" />
+        <div className="bg-white/5 backdrop-blur-md p-3 rounded-2xl shadow-lg flex items-center justify-center mb-6 relative z-20 ring-1 ring-white/10">
+          <img src="/icon-192x192-white.png" alt="Resavvy logo" className="w-8 h-8 object-contain rounded-md" />
         </div>
 
         <h2 className="text-3xl font-extrabold text-white mb-2 tracking-tight drop-shadow-md relative z-20">

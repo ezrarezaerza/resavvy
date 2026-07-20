@@ -526,7 +526,7 @@ export const Tracklist = React.memo(function Tracklist({
               return (
                 <div
                   key={`${song.id}-${song.addedAt}`}
-                  ref={virtualItem.measureElement}
+                  ref={(virtualItem as any).measureElement}
                   data-index={virtualItem.index}
                   style={{
                     position: 'absolute',

@@ -1,20 +1,38 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Resavvy – Music Library & Curation Platform
 
-# Run and deploy your AI Studio app
+Resavvy is a premium, browser-based YouTube music library, PWA audio player, and curation platform. It allows users to easily search, organize, curate, and share their favorite YouTube tracks with a polished, native-feeling user experience.
 
-This contains everything you need to run your app locally.
+## Key Features
 
-View your app in AI Studio: https://ai.studio/apps/a22f8e23-cc8a-4966-919c-77d6f8ed61fc
+- **YouTube Search & Discovery**: Seamless search for tracks and real-time playback streaming.
+- **Custom Playlists & Social Curation**: Custom tag, like, clone, and discover public or shared playlists.
+- **Progressive Web App (PWA)**: Complete offline support capabilities, custom app manifest, and native standalone feel.
+- **Stately Audio Interface**: Smooth full-screen player, custom equalizer, track queue control, and visualizer.
+- **Rich Analytics**: Visualized tracking of play history, heavy rotation lists, and personalized recommendations.
 
-## Run Locally
+## Asset Integration & SEO
 
-**Prerequisites:**  Node.js
+- Standard **192x192px** and **512x512px** icons are located in the `/public` directory, fully registered in the Vite PWA manifest and HTML meta tags.
+- Optimized SEO meta tags are configured in `index.html` including Open Graph and Twitter cards for premium social sharing presentation.
 
+## Quick Start
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### 1. Install Dependencies
+```bash
+npm install
+```
+
+### 2. Build the Application
+```bash
+npm run build
+```
+
+### 3. Run the Development Server
+```bash
+npm run dev
+```
+
+### 4. Run the Production Server
+```bash
+npm start
+```
