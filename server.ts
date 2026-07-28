@@ -2,6 +2,13 @@ import "dotenv/config";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
+import authHandler from "./api/auth.js";
+import adminHandler from "./api/admin.js";
+import playlistsHandler from "./api/playlists.js";
+import songsHandler from "./api/songs.js";
+import socialHandler from "./api/social.js";
+import youtubeHandler from "./api/search/youtube.js";
+import globalHandler from "./api/search/global.js";
 
 async function startServer() {
   const app = express();
@@ -12,33 +19,31 @@ async function startServer() {
 
   // Consolidated Routes
   app.all("/api/auth", (async (req: any, res: any) => {
-    const handler = await import("./api/auth.js");
-    return handler.default(req, res);
+    return authHandler(req, res);
+  }) as any);
+
+  app.all("/api/admin", (async (req: any, res: any) => {
+    return adminHandler(req, res);
   }) as any);
 
   app.all("/api/playlists", (async (req: any, res: any) => {
-    const handler = await import("./api/playlists.js");
-    return handler.default(req, res);
+    return playlistsHandler(req, res);
   }) as any);
 
   app.all("/api/songs", (async (req: any, res: any) => {
-    const handler = await import("./api/songs.js");
-    return handler.default(req, res);
+    return songsHandler(req, res);
   }) as any);
 
   app.all("/api/social", (async (req: any, res: any) => {
-    const handler = await import("./api/social.js");
-    return handler.default(req, res);
+    return socialHandler(req, res);
   }) as any);
 
   app.all("/api/search/youtube", (async (req: any, res: any) => {
-    const handler = await import("./api/search/youtube.js");
-    return handler.default(req, res);
+    return youtubeHandler(req, res);
   }) as any);
 
   app.all("/api/search/global", (async (req: any, res: any) => {
-    const handler = await import("./api/search/global.js");
-    return handler.default(req, res);
+    return globalHandler(req, res);
   }) as any);
 
   // Vite middleware for development

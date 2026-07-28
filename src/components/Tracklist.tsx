@@ -1,12 +1,13 @@
 import React, { useRef, memo, useCallback, useState, useEffect } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { Clock, Play, MoreVertical, Edit2, Trash2, Heart } from "lucide-react";
+import { Clock, Play, MoreVertical, Edit2, Trash2, Heart, AlertTriangle } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { Song, PlaylistGroup } from "../types";
 import { useSettings } from "../hooks/useSettings";
 import { usePlaylist } from "../context/PlaylistContext";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { EmptyState } from "./EmptyState";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditSongModal } from "./EditSongModal";
@@ -61,6 +62,7 @@ const SongRow = memo(function SongRow({
 }: SongRowProps) {
   const { lowDataMode } = useSettings();
   const { token, setShowLoginModal } = useAuth();
+  const { addToast } = useToast();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLiked, setIsLiked] = useState(song.isLiked || false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -143,6 +145,36 @@ const SongRow = memo(function SongRow({
     e.stopPropagation();
     setIsMenuOpen(false);
     onEdit(song);
+  };
+
+  const handleReportDeadClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+
+    if (!token) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/songs?action=report-dead`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ songId: song.id }),
+      });
+
+      if (res.ok) {
+        addToast("Broken link reported successfully. Thank you for keeping curations healthy!", "success");
+      } else {
+        const data = await res.json();
+        addToast(data.error || "Failed to report dead link", "error");
+      }
+    } catch (err) {
+      addToast("Failed to report dead link", "error");
+    }
   };
 
   const formatDateString = (timestamp: number) => {
@@ -296,9 +328,32 @@ const SongRow = memo(function SongRow({
             : formatTime(song.duration)}
         </span>
       </div>
-      <div className="w-8 flex justify-end shrink-0 relative" ref={menuRef}>
+      <div className="w-8 flex justify-end shrink-0 relative items-center gap-1" ref={menuRef}>
         {variant === "explore" || isReadOnly ? (
-          <QuickAddMenu song={song} onOpenChange={setIsMenuOpen} />
+          <>
+            <QuickAddMenu song={song} />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsMenuOpen(!isMenuOpen);
+              }}
+              className="song-menu-button opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-gray-900 dark:hover:text-white text-gray-500 transition-all p-1 rounded-md focus:opacity-100"
+              title="More options"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+            {isMenuOpen && (
+              <div className="song-menu-dropdown absolute right-0 top-10 z-50 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col">
+                <button
+                  onClick={handleReportDeadClick}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-left w-full font-medium"
+                >
+                  <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                  Report Dead Link
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           !isReadOnly && (
             <>
@@ -322,8 +377,15 @@ const SongRow = memo(function SongRow({
                     Edit Song Details
                   </button>
                   <button
+                    onClick={handleReportDeadClick}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-left w-full"
+                  >
+                    <AlertTriangle className="w-4 h-4 text-rose-500" />
+                    Report Dead Link
+                  </button>
+                  <button
                     onClick={handleRemoveClick}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left w-full"
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left w-full border-t border-gray-100 dark:border-gray-700 mt-1 pt-1"
                   >
                     <Trash2 className="w-4 h-4" />
                     Remove
@@ -407,19 +469,22 @@ export const Tracklist = React.memo(function Tracklist({
 
   useGSAP(
     () => {
-      if (activeGroup.songs.length > 0) {
-        gsap.fromTo(
-          ".song-row",
-          { y: 20, opacity: 0 },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.5,
-            stagger: 0.05,
-            ease: "power2.out",
-            clearProps: "all"
-          },
-        );
+      if (activeGroup.songs.length > 0 && containerRef.current) {
+        const rows = containerRef.current.querySelectorAll(".song-row");
+        if (rows.length > 0) {
+          gsap.fromTo(
+            rows,
+            { y: 20, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
+              duration: 0.5,
+              stagger: 0.05,
+              ease: "power2.out",
+              clearProps: "all"
+            },
+          );
+        }
       }
     },
     { scope: containerRef, dependencies: [activeGroup.id] },

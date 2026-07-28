@@ -23,6 +23,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // Retrieve full database user if token is present to verify status
+  if (user) {
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+    if (dbUser && (dbUser.status === 'BANNED' || dbUser.status === 'SUSPENDED')) {
+      if (req.method !== 'GET') {
+        return res.status(403).json({ error: 'Your account is currently suspended or banned. Read-only mode active.' });
+      }
+    }
+  }
+
   // GET
   if (req.method === 'GET') {
     if (action === 'dedupe') {
@@ -82,6 +92,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // POST
   if (req.method === 'POST') {
+     if (action === 'report-dead') {
+         try {
+           const { songId } = req.body;
+           if (!songId) return res.status(400).json({ error: 'Missing songId' });
+
+           const song = await prisma.song.findUnique({
+             where: { id: songId }
+           });
+           if (!song) return res.status(404).json({ error: 'Song not found' });
+
+           const updated = await prisma.song.update({
+             where: { id: songId },
+             data: { isDeadLink: true }
+           });
+
+           // Also increment the parent playlist's deadLinkCount
+           await prisma.playlist.update({
+             where: { id: song.playlistId },
+             data: { deadLinkCount: { increment: 1 } }
+           });
+
+           return res.status(200).json(updated);
+         } catch(error: any) {
+           return res.status(500).json({ error: 'Failed to report dead link', details: error.message });
+         }
+     }
+
      if (action === 'dedupe-merge') {
          // Handle dedupe merge
          try {

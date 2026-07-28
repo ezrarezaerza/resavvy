@@ -67,7 +67,7 @@ export const Sidebar = React.memo(function Sidebar({
 
   return (
     <aside
-      className={`flex flex-col fixed inset-y-0 left-0 z-[60] md:z-30 bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border-r border-gray-200 dark:border-white/5 transition-all duration-300 ease-in-out md:relative md:translate-x-0 shrink-0 h-full md:pb-24 ${isCollapsed ? "md:w-20" : "md:w-64"} w-64 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+      className={`hidden md:flex flex-col fixed inset-y-0 left-0 z-[60] md:z-30 bg-white/80 dark:bg-[#0f172a]/80 backdrop-blur-xl border-r border-gray-200 dark:border-white/5 transition-all duration-300 ease-in-out md:relative md:translate-x-0 shrink-0 h-full md:pb-24 ${isCollapsed ? "md:w-20" : "md:w-64"} w-64 ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
     >
       <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-4 p-4 pt-20 md:p-4">
         <div className="hidden md:flex flex-col gap-1">
@@ -182,6 +182,24 @@ export const Sidebar = React.memo(function Sidebar({
                   My Library
                 </span>
               </div>
+              {user.role === "ADMIN" && (
+                <div
+                  className={`w-full flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
+                    activeGroupId === "admin"
+                      ? "bg-gray-200 dark:bg-white/10 text-gray-900 dark:text-white font-bold"
+                      : "text-red-600 dark:text-red-400 hover:bg-red-500/10 font-medium"
+                  } ${isCollapsed ? "justify-center border-transparent" : "justify-start"}`}
+                  onClick={() => setActiveGroupId("admin")}
+                  title={isCollapsed ? "Admin Panel" : undefined}
+                >
+                  <Settings className="shrink-0 w-[18px] h-[18px]" />
+                  <span
+                    className={`text-sm font-medium ${isCollapsed ? "hidden" : "block"}`}
+                  >
+                    Admin Panel
+                  </span>
+                </div>
+              )}
             </>
           )}
         </div>

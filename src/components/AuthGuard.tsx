@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { AuthScreen } from './AuthScreen';
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoading, showLoginModal, setShowLoginModal } = useAuth();
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -16,7 +15,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      {showLoginModal && <AuthScreen onClose={() => setShowLoginModal(false)} />}
     </>
   );
 }

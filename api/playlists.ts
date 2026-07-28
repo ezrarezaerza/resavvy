@@ -16,9 +16,20 @@ function getUser(req: VercelRequest) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const user = getUser(req);
+  const tokenUser = getUser(req);
   const { id, action } = req.query;
   const playlistId = typeof id === 'string' ? id : undefined;
+
+  // Retrieve full database user if token is present to verify status & role
+  let dbUser: any = null;
+  if (tokenUser) {
+    dbUser = await prisma.user.findUnique({ where: { id: tokenUser.id } });
+    if (dbUser && (dbUser.status === 'BANNED' || dbUser.status === 'SUSPENDED')) {
+      if (req.method !== 'GET') {
+        return res.status(403).json({ error: 'Your account is currently suspended or banned. Read-only mode active.' });
+      }
+    }
+  }
 
   // GET
   if (req.method === 'GET') {
@@ -26,16 +37,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        try {
          const playlist = await prisma.playlist.findUnique({
            where: { id: playlistId },
-           include: { songs: { orderBy: { order: 'asc' } }, user: { select: { name: true, username: true } } }
+           include: { songs: { orderBy: { order: 'asc' } }, user: { select: { id: true, name: true, username: true } } }
          });
          if (!playlist) return res.status(404).json({ error: 'Not found' });
-         if (playlist.visibility === 'private' && (!user || user.id !== playlist.userId)) {
+         
+         // Allow admin or owner to view hidden playlists, block others
+         if (playlist.isHidden && (!dbUser || (dbUser.role !== 'ADMIN' && dbUser.id !== playlist.userId))) {
+           return res.status(403).json({ error: 'This playlist has been hidden by administration.' });
+         }
+
+         if (playlist.visibility === 'private' && (!dbUser || dbUser.id !== playlist.userId)) {
            return res.status(403).json({ error: 'Forbidden' });
          }
          let isSaved = false;
-         if (user) {
+         if (dbUser) {
            const savedRecord = await prisma.savedPlaylist.findUnique({
-             where: { userId_playlistId: { userId: user.id, playlistId } }
+             where: { userId_playlistId: { userId: dbUser.id, playlistId } }
            });
            isSaved = !!savedRecord;
          }
@@ -44,15 +61,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          return res.status(500).json({ error: 'Failed to fetch playlist' });
        }
     } else {
-       if (!user) return res.status(401).json({ error: 'Unauthorized' });
+       if (!dbUser) return res.status(401).json({ error: 'Unauthorized' });
        try {
          const ownedPlaylists = await prisma.playlist.findMany({
-           where: { userId: user.id },
+           where: { userId: dbUser.id },
            include: { songs: { orderBy: { order: 'asc' } }, user: { select: { name: true, username: true } } }
          });
 
          const savedRecords = await prisma.savedPlaylist.findMany({
-           where: { userId: user.id },
+           where: { userId: dbUser.id },
            include: {
              playlist: {
                include: { songs: { orderBy: { order: 'asc' } }, user: { select: { name: true, username: true } } }
@@ -78,20 +95,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // Auth required for mutating
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  if (!dbUser) return res.status(401).json({ error: 'Unauthorized' });
 
   // POST
   if (req.method === 'POST') {
-    if (action === 'save' && playlistId) {
+    if (action === 'flag' && playlistId) {
+      try {
+        const { reason } = req.body;
+        if (!reason) return res.status(400).json({ error: 'Reason required' });
+
+        const original = await prisma.playlist.findUnique({ where: { id: playlistId } });
+        if (!original) return res.status(404).json({ error: 'Playlist not found' });
+
+        const updated = await prisma.playlist.update({
+          where: { id: playlistId },
+          data: {
+            isFlagged: true,
+            flagReason: reason
+          }
+        });
+        return res.status(200).json({ success: true, updated });
+      } catch (error: any) {
+        return res.status(500).json({ error: 'Failed to flag playlist', details: error.message });
+      }
+    } else if (action === 'save' && playlistId) {
       try {
         const original = await prisma.playlist.findUnique({ where: { id: playlistId } });
         if (!original) return res.status(404).json({ error: 'Not found' });
-        if (original.visibility === 'private' && original.userId !== user.id) {
+        if (original.visibility === 'private' && original.userId !== dbUser.id) {
           return res.status(403).json({ error: 'Forbidden' });
         }
         await prisma.savedPlaylist.create({
           data: {
-            userId: user.id,
+            userId: dbUser.id,
             playlistId
           }
         });
@@ -105,7 +141,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         await prisma.savedPlaylist.delete({
           where: {
             userId_playlistId: {
-              userId: user.id,
+              userId: dbUser.id,
               playlistId
             }
           }
@@ -119,13 +155,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       try {
         const original = await prisma.playlist.findUnique({ where: { id: playlistId }, include: { songs: { orderBy: { order: 'asc' } } } });
         if (!original) return res.status(404).json({ error: 'Not found' });
-        if (original.visibility === 'private' && original.userId !== user.id) {
+        if (original.visibility === 'private' && original.userId !== dbUser.id) {
           return res.status(403).json({ error: 'Forbidden' });
         }
         
         const newPlaylist = await prisma.playlist.create({
           data: {
-            userId: user.id,
+            userId: dbUser.id,
             name: `${original.name} (Copy)`,
             description: original.description,
             tags: original.tags,
@@ -145,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           include: { songs: { orderBy: { order: 'asc' } } }
         });
 
-        if (original.userId !== user.id) {
+        if (original.userId !== dbUser.id) {
             await prisma.playlist.update({ where: { id: playlistId }, data: { forksCount: { increment: 1 } }});
         }
         return res.status(201).json(newPlaylist);
@@ -159,7 +195,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!name) return res.status(400).json({ error: 'Name required' });
         const newPlaylist = await prisma.playlist.create({
           data: { 
-            userId: user.id, 
+            userId: dbUser.id, 
             name, description, tags, visibility, 
             coverType: coverType || 'random', 
             customCoverUrl 
@@ -177,7 +213,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'PUT' && playlistId) {
      try {
         const existing = await prisma.playlist.findUnique({ where: { id: playlistId } });
-        if (!existing || existing.userId !== user.id) return res.status(403).json({ error: 'Forbidden' });
+        if (!existing || existing.userId !== dbUser.id) return res.status(403).json({ error: 'Forbidden' });
 
         const { name, description, tags, visibility, coverType, customCoverUrl } = req.body;
         const updated = await prisma.playlist.update({
@@ -202,7 +238,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'DELETE' && playlistId) {
      try {
        const existing = await prisma.playlist.findUnique({ where: { id: playlistId } });
-       if (!existing || existing.userId !== user.id) return res.status(403).json({ error: 'Forbidden' });
+       if (!existing || existing.userId !== dbUser.id) return res.status(403).json({ error: 'Forbidden' });
 
        await prisma.playlist.delete({ where: { id: playlistId } });
        return res.status(204).end();

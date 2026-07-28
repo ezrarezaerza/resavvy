@@ -2,12 +2,14 @@ import React, { useState, useEffect } from "react";
 import { PlaylistGroup, Song } from "../types";
 import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
+import { useSettings } from "../context/SettingsContext";
 
 const LOCAL_STORAGE_KEY = "resavvy_data";
 
 export function usePlaylistData() {
   const { addToast } = useToast();
   const { token } = useAuth();
+  const { isMaintenanceMode, maxSongsPerPlaylist } = useSettings();
   
   const [groups, setGroups] = useState<PlaylistGroup[]>(() => {
     try {
@@ -21,11 +23,14 @@ export function usePlaylistData() {
     return [];
   });
 
+  const [isLoadingPlaylists, setIsLoadingPlaylists] = useState<boolean>(!!token);
+
   // Clear cache and fetch original data based on logged in account
   useEffect(() => {
     window.localStorage.removeItem(LOCAL_STORAGE_KEY);
     
     if (token) {
+      setIsLoadingPlaylists(true);
       const abortController = new AbortController();
       fetch('/api/playlists?_t=' + Date.now(), {
         headers: {
@@ -38,17 +43,20 @@ export function usePlaylistData() {
       .then(data => {
         if (Array.isArray(data)) {
           setGroups(data);
-          addToast('Loaded original account data', 'success');
         }
       })
       .catch(err => {
         if (err.name !== 'AbortError') {
           console.error('Failed to load user playlists', err);
         }
+      })
+      .finally(() => {
+        setIsLoadingPlaylists(false);
       });
       return () => abortController.abort();
     } else {
       setGroups([]);
+      setIsLoadingPlaylists(false);
     }
   }, [token]);
 
@@ -62,13 +70,22 @@ export function usePlaylistData() {
     }
   }, [groups, token]);
 
-  const createGroup = async (name: string) => {
+  const createGroup = async (
+    name: string,
+    description?: string,
+    tags?: string[],
+    visibility?: 'private' | 'public' | 'unlisted'
+  ) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Playlist creation is temporarily disabled.", "error");
+      return;
+    }
     if (token) {
       try {
         const res = await fetch('/api/playlists', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ name })
+          body: JSON.stringify({ name, description, tags, visibility })
         });
         if (res.ok) {
           const newGroup = await res.json();
@@ -82,6 +99,9 @@ export function usePlaylistData() {
       const newGroup: PlaylistGroup = {
         id: crypto.randomUUID(),
         name,
+        description,
+        tags,
+        visibility,
         createdAt: Date.now(),
         songs: [],
       };
@@ -91,6 +111,10 @@ export function usePlaylistData() {
   };
 
   const deleteGroup = async (groupId: string) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Playlist deletion is temporarily disabled.", "error");
+      return;
+    }
     if (token) {
       try {
         await fetch(`/api/playlists?id=${groupId}`, {
@@ -106,6 +130,15 @@ export function usePlaylistData() {
   };
 
   const addSong = async (groupId: string, song: Omit<Song, "addedAt">) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Modifying playlists is temporarily disabled.", "error");
+      return;
+    }
+    const targetGroup = groups.find((g) => g.id === groupId);
+    if (targetGroup && targetGroup.songs.length >= maxSongsPerPlaylist) {
+      addToast(`Playlist limit reached. Max allowed tracks is ${maxSongsPerPlaylist}.`, "error");
+      return;
+    }
     if (token) {
       try {
         const res = await fetch('/api/songs', {
@@ -154,6 +187,10 @@ export function usePlaylistData() {
   };
 
   const removeSong = async (groupId: string, songId: string) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Modifying playlists is temporarily disabled.", "error");
+      return;
+    }
     if (token) {
       try {
         await fetch(`/api/songs?songId=${songId}`, {
@@ -179,6 +216,10 @@ export function usePlaylistData() {
   };
 
   const renameGroup = async (groupId: string, newName: string) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Playlist renaming is temporarily disabled.", "error");
+      return;
+    }
     if (token) {
       try {
         await fetch(`/api/playlists?id=${groupId}`, {
@@ -202,6 +243,10 @@ export function usePlaylistData() {
   };
 
   const reorderSongs = async (groupId: string, newSongs: Song[]) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Playlist reordering is temporarily disabled.", "error");
+      return;
+    }
     if (token) {
       try {
         await fetch(`/api/songs?action=reorder`, {
@@ -225,6 +270,10 @@ export function usePlaylistData() {
   };
 
   const editSong = async (groupId: string, songId: string, updates: { title: string, artist: string }) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Modifying tracks is temporarily disabled.", "error");
+      return;
+    }
     if (token) {
       try {
         await fetch(`/api/songs?songId=${songId}`, {
@@ -359,6 +408,10 @@ export function usePlaylistData() {
   };
 
   const updatePlaylistDetails = async (groupId: string, details: Partial<Pick<PlaylistGroup, 'name' | 'description' | 'tags' | 'visibility'>>) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Modifying playlist settings is temporarily disabled.", "error");
+      return;
+    }
     if (token) {
       try {
         await fetch(`/api/playlists?id=${groupId}`, {
@@ -382,6 +435,10 @@ export function usePlaylistData() {
   };
 
   const updatePlaylistCover = async (groupId: string, type: 'random' | 'custom', url?: string) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Modifying playlist cover is temporarily disabled.", "error");
+      return;
+    }
     if (token) {
       try {
         await fetch(`/api/playlists?id=${groupId}`, {
@@ -405,6 +462,10 @@ export function usePlaylistData() {
   };
 
   const clonePlaylist = async (playlistId: string) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Cloning playlists is temporarily disabled.", "error");
+      return;
+    }
     if (!token) return;
     try {
       const res = await fetch(`/api/playlists?id=${playlistId}&action=import`, {
@@ -424,6 +485,10 @@ export function usePlaylistData() {
   };
 
   const savePlaylist = async (playlistId: string) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Saving playlists is temporarily disabled.", "error");
+      return;
+    }
     if (!token) return;
     try {
       const res = await fetch(`/api/playlists?id=${playlistId}&action=save`, {
@@ -449,6 +514,10 @@ export function usePlaylistData() {
   };
 
   const unsavePlaylist = async (playlistId: string) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Modifying library state is temporarily disabled.", "error");
+      return;
+    }
     if (!token) return;
     try {
       const res = await fetch(`/api/playlists?id=${playlistId}&action=unsave`, {
@@ -468,6 +537,7 @@ export function usePlaylistData() {
 
   const playlistDataValue = React.useMemo(() => ({
     groups,
+    isLoadingPlaylists,
     createGroup,
     deleteGroup,
     renameGroup,
@@ -483,7 +553,7 @@ export function usePlaylistData() {
     savePlaylist,
     unsavePlaylist,
     clonePlaylist,
-  }), [groups, token]);
+  }), [groups, token, isLoadingPlaylists]);
 
   return playlistDataValue;
 }

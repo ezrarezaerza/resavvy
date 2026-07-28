@@ -62,37 +62,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const { tag } = req.query;
        if (tag && typeof tag === 'string') {
          const playlists = await prisma.playlist.findMany({
-           where: { visibility: 'public', tags: { has: tag } },
+           where: { visibility: 'public', tags: { has: tag }, isHidden: false },
            include: { songs: true, user: { select: { name: true, username: true } } },
            orderBy: { likesCount: 'desc' }
          });
          return res.status(200).json({ playlists });
        }
 
+       // Fetch Featured Curations (Quadrant 1)
+       const featured = await prisma.playlist.findMany({
+         where: { visibility: 'public', isFeatured: true, isHidden: false },
+         orderBy: { featuredAt: 'desc' },
+         take: 10,
+         include: { songs: true, user: { select: { name: true, username: true } } }
+       });
+
        const trending = await prisma.playlist.findMany({
-         where: { visibility: 'public' },
+         where: { visibility: 'public', isHidden: false },
          orderBy: { likesCount: 'desc' }, take: 10,
          include: { songs: true, user: { select: { name: true, username: true } } }
        });
 
        const fresh = await prisma.playlist.findMany({
-         where: { visibility: 'public' },
+         where: { visibility: 'public', isHidden: false },
          orderBy: { createdAt: 'desc' }, take: 10,
          include: { songs: true, user: { select: { name: true, username: true } } }
        });
 
        const allPublicPlaylists = await prisma.playlist.findMany({
-         where: { visibility: 'public' }, select: { tags: true }
+         where: { visibility: 'public', isHidden: false }, select: { tags: true }
        });
 
        const tagCounts: Record<string, number> = {};
        for (const p of allPublicPlaylists) {
          for (const t of p.tags) tagCounts[t] = (tagCounts[t] || 0) + 1;
        }
-       const globalTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).map(e => e[0]);
+
+       // Merge with official taxonomy tags (Quadrant 4)
+       const systemTagsList = await prisma.systemTag.findMany({ select: { name: true } });
+       const systemTagNames = systemTagsList.map(t => t.name);
+       const combinedTags = [...new Set([...systemTagNames, ...Object.keys(tagCounts)])];
+       const globalTags = combinedTags.sort((a, b) => {
+         const countA = tagCounts[a] || 0;
+         const countB = tagCounts[b] || 0;
+         return countB - countA;
+       });
 
        const popularSongs = await prisma.song.findMany({
-         where: { playlist: { visibility: 'public' } },
+         where: { playlist: { visibility: 'public', isHidden: false } },
          orderBy: { playCount: 'desc' },
          take: 9,
          include: {
@@ -110,13 +127,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          }
        });
 
-       
-       const allSongsCount = await prisma.song.count({ where: { playlist: { visibility: 'public' } } });
+       const allSongsCount = await prisma.song.count({ where: { playlist: { visibility: 'public', isHidden: false } } });
        let quickPicks = [];
        if (allSongsCount > 0) {
            const skip = Math.max(0, Math.floor(Math.random() * allSongsCount) - 9);
            quickPicks = await prisma.song.findMany({
-             where: { playlist: { visibility: 'public' } },
+             where: { playlist: { visibility: 'public', isHidden: false } },
              skip: Math.max(0, skip),
              take: 9,
              include: { playlist: { select: { id: true } } }
@@ -133,6 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const mapSaved = (p) => ({ ...p, isSaved: savedPlaylistIds.has(p.id) });
        
        return res.status(200).json({ 
+         featured: featured.map(mapSaved),
          trending: trending.map(mapSaved), 
          fresh: fresh.map(mapSaved), 
          globalTags, 
@@ -140,7 +157,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          popularUsers, 
          quickPicks 
        });
-
 
      } catch (err) {
        return res.status(500).json({ error: 'Failed discovery' });
@@ -215,7 +231,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        
        const recommended = await prisma.song.findMany({
          where: { 
-           playlist: { visibility: 'public' },
+           playlist: { visibility: 'public', isHidden: false },
            artist: { in: artists },
            NOT: { playlist: { userId: user.id } }
          },

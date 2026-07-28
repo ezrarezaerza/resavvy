@@ -6,6 +6,9 @@ export interface User {
   username: string;
   bio?: string;
   avatarUrl?: string;
+  role?: string;
+  status?: string;
+  moderationWarning?: string;
 }
 
 interface AuthContextType {
@@ -16,6 +19,7 @@ interface AuthContextType {
   logout: () => void;
   updateProfile: (updatedData: Partial<User>) => Promise<void>;
   deleteAccount: () => Promise<void>;
+  acknowledgeWarning: () => Promise<void>;
   showLoginModal: boolean;
   setShowLoginModal: (show: boolean) => void;
 }
@@ -26,7 +30,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showLoginModalState, setShowLoginModalState] = useState(false);
+  const setShowLoginModal = (show: boolean) => {
+    if (show) {
+      if (typeof window !== "undefined") {
+        window.history.pushState(null, "", "/auth");
+        window.dispatchEvent(new Event("popstate"));
+      }
+    } else {
+      if (typeof window !== "undefined" && window.location.pathname === "/auth") {
+        window.history.pushState(null, "", "/");
+        window.dispatchEvent(new Event("popstate"));
+      }
+    }
+  };
+  const showLoginModal = false;
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -42,13 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const data = await res.json();
             setToken(storedToken);
             setUser(data);
-          } else {
+          } else if (res.status === 401 || res.status === 403) {
             localStorage.removeItem('resavvy_token');
           }
         } catch (e: any) {
           if (e.name !== 'AbortError') {
             console.error('Failed to authenticate token with backend', e);
-            localStorage.removeItem('resavvy_token');
+            // Do not remove stored token on network/transient failure
           }
         }
       }
@@ -105,6 +123,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const acknowledgeWarning = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/auth?action=acknowledge-warning', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to acknowledge warning');
+      const data = await res.json();
+      setUser(data);
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
+  };
+
   const contextValue = React.useMemo(() => ({
     user,
     token,
@@ -113,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     logout,
     updateProfile,
     deleteAccount,
+    acknowledgeWarning,
     showLoginModal,
     setShowLoginModal
   }), [user, token, isLoading, showLoginModal]);

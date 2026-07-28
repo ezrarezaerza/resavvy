@@ -8,15 +8,19 @@ datasource db {
 }
 
 model User {
-  id             String          @id @default(uuid())
-  name           String
-  username       String          @unique
-  passwordHash   String
-  bio            String?
-  avatarUrl      String?
-  createdAt      DateTime        @default(now())
-  playlists      Playlist[]
-  savedPlaylists SavedPlaylist[]
+  id                  String          @id @default(uuid())
+  name                String
+  username            String          @unique
+  passwordHash        String
+  bio                 String?
+  avatarUrl           String?
+  createdAt           DateTime        @default(now())
+  role                String          @default("USER") // ADMIN, VERIFIED_CURATOR, USER
+  status              String          @default("ACTIVE") // ACTIVE, SUSPENDED, BANNED
+  suspensionExpiresAt DateTime?
+  moderationWarning   String?
+  playlists           Playlist[]
+  savedPlaylists      SavedPlaylist[]
 }
 
 model Playlist {
@@ -31,6 +35,12 @@ model Playlist {
   likesCount     Int             @default(0)
   forksCount     Int             @default(0)
   createdAt      DateTime        @default(now())
+  isFlagged      Boolean         @default(false)
+  flagReason     String?
+  isHidden       Boolean         @default(false)
+  isFeatured     Boolean         @default(false)
+  featuredAt     DateTime?
+  deadLinkCount  Int             @default(0)
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   songs          Song[]
   savedBy        SavedPlaylist[]
@@ -49,16 +59,47 @@ model SavedPlaylist {
 }
 
 model Song {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   playlistId   String
   youtubeId    String
   title        String
   artist       String
   thumbnailUrl String
   duration     String
-  playCount    Int      @default(0)
-  createdAt    DateTime @default(now())
-  order        Int      @default(0)
-  isLiked      Boolean  @default(false)
-  playlist     Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  playCount    Int       @default(0)
+  createdAt    DateTime  @default(now())
+  order        Int       @default(0)
+  isLiked      Boolean   @default(false)
+  isDeadLink   Boolean   @default(false)
+  lastChecked  DateTime?
+  playlist     Playlist  @relation(fields: [playlistId], references: [id], onDelete: Cascade)
 }
+
+model SystemTag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model SystemConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model SystemLog {
+  id        String   @id @default(uuid())
+  level     String   // INFO, WARNING, ERROR, AUDIT
+  message   String
+  details   String?
+  createdAt DateTime @default(now())
+}
+
+model ApiQuotaUsage {
+  id        String   @id @default(uuid())
+  date      String   @unique // YYYY-MM-DD
+  requests  Int      @default(0)
+  quotaUsed Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+

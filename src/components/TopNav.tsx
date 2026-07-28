@@ -11,12 +11,14 @@ import {
   LogOut,
   X,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Shield
 } from "lucide-react";
 import { useSettings } from "../hooks/useSettings";
 import { useAuth } from "../context/AuthContext";
 import { GlobalSearchBar } from "./GlobalSearchBar";
 import { OptimizedImage } from "./OptimizedImage";
+import { MobileProfileMenu } from "./MobileProfileMenu";
 
 interface TopNavProps {
   onMenuClick: () => void;
@@ -35,6 +37,17 @@ export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onN
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isSystemModalOpen, setIsSystemModalOpen] = useState(false);
   const [isDangerZoneOpen, setIsDangerZoneOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
@@ -118,11 +131,11 @@ export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onN
           className="hidden md:flex items-center gap-2 ml-2 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={onLogoClick}
         >
-          <div className="bg-indigo-50 dark:bg-indigo-950/40 p-1.5 rounded-lg flex items-center justify-center border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm">
+          <div className="p-1 rounded-lg flex items-center justify-center">
             <img 
               src={isDark ? "/icon-192x192-white.png" : "/icon-192x192.png"} 
               alt="Resavvy logo" 
-              className="w-5 h-5 object-contain rounded-sm" 
+              className="w-6 h-6 object-contain" 
             />
           </div>
           <span className="font-heading font-bold text-xl tracking-tight text-gray-900 dark:text-white">Resavvy</span>
@@ -138,11 +151,11 @@ export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onN
         className="absolute left-1/2 -translate-x-1/2 md:hidden flex items-center gap-2 cursor-pointer"
         onClick={onLogoClick}
       >
-        <div className="bg-indigo-50 dark:bg-indigo-950/40 p-1.5 rounded-lg flex items-center justify-center border border-indigo-100/50 dark:border-indigo-500/20 shadow-sm">
+        <div className="p-1 rounded-lg flex items-center justify-center">
           <img 
             src={isDark ? "/icon-192x192-white.png" : "/icon-192x192.png"} 
             alt="Resavvy logo" 
-            className="w-5 h-5 object-contain rounded-sm" 
+            className="w-6 h-6 object-contain" 
           />
         </div>
         <span className="font-heading font-bold text-xl tracking-tight text-gray-900 dark:text-white">Resavvy</span>
@@ -161,7 +174,13 @@ export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onN
           <div className="relative" ref={menuRef}>
             <button 
               type="button"
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              onClick={() => {
+                if (isMobile) {
+                  setIsMobileMenuOpen(true);
+                } else {
+                  setIsProfileOpen(!isProfileOpen);
+                }
+              }}
               className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm cursor-pointer hover:opacity-80 transition-opacity shrink-0 focus:outline-none overflow-hidden"
             >
               {user.avatarUrl ? (
@@ -175,7 +194,13 @@ export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onN
             <div className="absolute right-0 top-full mt-3 w-64 rounded-2xl shadow-2xl bg-white/95 dark:bg-[#1e293b]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 overflow-hidden z-50 transform origin-top-right transition-all">
               {/* Top Section (User Info) */}
               <button 
-                onClick={() => { setIsProfileModalOpen(true); setIsProfileOpen(false); }}
+                onClick={() => { 
+                  setIsProfileOpen(false);
+                  if (typeof window !== "undefined") {
+                    window.history.pushState(null, "", "/settings");
+                    window.dispatchEvent(new Event("popstate"));
+                  }
+                }}
                 className="w-full text-left p-4 border-b border-gray-200 dark:border-white/10 flex items-center gap-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 transition-colors focus:outline-none"
               >
                 <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm cursor-pointer shrink-0 overflow-hidden">
@@ -213,10 +238,25 @@ export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onN
                   <BarChart2 className="w-4 h-4" />
                   Analytics
                 </button>
+                {user?.role === "ADMIN" && (
+                  <button 
+                    onClick={() => {
+                      setIsProfileOpen(false);
+                      onNavigate?.('admin');
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors text-left"
+                  >
+                    <Shield className="w-4 h-4 text-rose-500" />
+                    Admin Panel
+                  </button>
+                )}
                 <button 
                   onClick={() => {
-                    setIsSystemModalOpen(true);
                     setIsProfileOpen(false);
+                    if (typeof window !== "undefined") {
+                      window.history.pushState(null, "", "/settings");
+                      window.dispatchEvent(new Event("popstate"));
+                    }
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors text-left"
                 >
@@ -403,6 +443,14 @@ export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onN
           </div>
         </div>
       )}
+      <MobileProfileMenu 
+        isOpen={isMobileMenuOpen} 
+        onClose={() => setIsMobileMenuOpen(false)} 
+        onNavigate={(id) => {
+          setIsMobileMenuOpen(false);
+          onNavigate?.(id);
+        }}
+      />
     </>
   );
 });

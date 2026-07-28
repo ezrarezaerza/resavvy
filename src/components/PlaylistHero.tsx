@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon, Share2 } from "lucide-react";
+import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon, Share2, Flag } from "lucide-react";
 import { PlaylistGroup } from "../types";
 import { usePlaylist } from "../context/PlaylistContext";
 import { usePlayer } from "../context/PlayerContext";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditCoverModal } from "./EditCoverModal";
 import { EditPlaylistModal } from "./EditPlaylistModal";
 import { OptimizedImage } from "./OptimizedImage";
+import { Modal } from "./Modal";
 
 interface PlaylistHeroProps {
   activeGroup: PlaylistGroup;
@@ -19,15 +21,59 @@ export function PlaylistHero({ activeGroup, onAddSong, isReadOnly = false }: Pla
   const { renameGroup, deleteGroup, updatePlaylistCover, updatePlaylistDetails } = usePlaylist();
   const { playSong } = usePlayer();
   const { addToast } = useToast();
+  const { token, setShowLoginModal } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(activeGroup.name);
   const [showOptions, setShowOptions] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showCoverModal, setShowCoverModal] = useState(false);
   const [showEditDetailsModal, setShowEditDetailsModal] = useState(false);
+  const [showFlagModal, setShowFlagModal] = useState(false);
+  const [flagReason, setFlagReason] = useState("");
+  const [isSubmittingFlag, setIsSubmittingFlag] = useState(false);
   const [displayImage, setDisplayImage] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
+
+  const handleFlagClick = () => {
+    if (!token) {
+      setShowLoginModal(true);
+      return;
+    }
+    setShowFlagModal(true);
+  };
+
+  const handleFlagSubmit = async () => {
+    if (!flagReason.trim()) {
+      addToast("Please provide a reason for flagging.", "error");
+      return;
+    }
+
+    setIsSubmittingFlag(true);
+    try {
+      const res = await fetch(`/api/playlists?id=${activeGroup.id}&action=flag`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: flagReason }),
+      });
+
+      if (res.ok) {
+        addToast("Playlist flagged successfully! Thank you for helping keep the community safe.", "success");
+        setShowFlagModal(false);
+        setFlagReason("");
+      } else {
+        const data = await res.json();
+        addToast(data.error || "Failed to flag playlist", "error");
+      }
+    } catch (err) {
+      addToast("Failed to flag playlist", "error");
+    } finally {
+      setIsSubmittingFlag(false);
+    }
+  };
 
   useEffect(() => {
     setEditName(activeGroup.name);
@@ -177,7 +223,6 @@ export function PlaylistHero({ activeGroup, onAddSong, isReadOnly = false }: Pla
                     <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white break-words drop-shadow-sm py-1">
                       {activeGroup.name}
                     </h1>
-                    {!isReadOnly && (
                     <div className="relative" ref={optionsRef}>
                       <button
                         onClick={() => setShowOptions(!showOptions)}
@@ -195,40 +240,57 @@ export function PlaylistHero({ activeGroup, onAddSong, isReadOnly = false }: Pla
                             <Share2 className="w-4 h-4" />
                             Share Playlist
                           </button>
-                          <button
-                            onClick={() => {
-                              setShowEditDetailsModal(true);
-                              setShowOptions(false);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                            Edit Details
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowCoverModal(true);
-                              setShowOptions(false);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
-                          >
-                            <ImageIcon className="w-4 h-4" />
-                            Customize Cover
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowDeleteConfirm(true);
-                              setShowOptions(false);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete Playlist
-                          </button>
+                          {!isReadOnly && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setShowEditDetailsModal(true);
+                                  setShowOptions(false);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                                Edit Details
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowCoverModal(true);
+                                  setShowOptions(false);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 flex items-center gap-2"
+                              >
+                                <ImageIcon className="w-4 h-4" />
+                                Customize Cover
+                              </button>
+                            </>
+                          )}
+                          {isReadOnly && (
+                            <button
+                              onClick={() => {
+                                handleFlagClick();
+                                setShowOptions(false);
+                              }}
+                              className="w-full text-left px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-2 font-medium"
+                            >
+                              <Flag className="w-4 h-4 text-rose-500" />
+                              Flag Playlist
+                            </button>
+                          )}
+                          {!isReadOnly && (
+                            <button
+                              onClick={() => {
+                                setShowDeleteConfirm(true);
+                                setShowOptions(false);
+                              }}
+                              className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 border-t border-gray-100 dark:border-gray-700 mt-1 pt-1"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete Playlist
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
-                    )}
                   </>
                 )}
               </div>
@@ -300,6 +362,53 @@ export function PlaylistHero({ activeGroup, onAddSong, isReadOnly = false }: Pla
           playlist={activeGroup}
           onSave={(details) => updatePlaylistDetails(activeGroup.id, details)}
         />
+      )}
+
+      {showFlagModal && (
+        <Modal
+          isOpen={showFlagModal}
+          onClose={() => {
+            setShowFlagModal(false);
+            setFlagReason("");
+          }}
+          title="Flag Playlist"
+        >
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+              Please let administration know why this playlist should be moderated. Your report is anonymous.
+            </p>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Reason for reporting
+              </label>
+              <textarea
+                value={flagReason}
+                onChange={(e) => setFlagReason(e.target.value)}
+                placeholder="e.g., Inappropriate content, dead links, misleading description..."
+                className="w-full min-h-[100px] p-3 text-sm text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none placeholder-gray-400"
+              />
+            </div>
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => {
+                  setShowFlagModal(false);
+                  setFlagReason("");
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+                disabled={isSubmittingFlag}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleFlagSubmit}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50"
+                disabled={isSubmittingFlag}
+              >
+                {isSubmittingFlag ? "Submitting..." : "Submit Flag"}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </>
   );

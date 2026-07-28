@@ -4,7 +4,8 @@ import { PlaylistGroup, Song } from '../types';
 
 interface PlaylistContextType {
   groups: PlaylistGroup[];
-  createGroup: (name: string) => void;
+  isLoadingPlaylists: boolean;
+  createGroup: (name: string, description?: string, tags?: string[], visibility?: 'private' | 'public' | 'unlisted') => void;
   deleteGroup: (groupId: string) => void;
   renameGroup: (groupId: string, newName: string) => void;
   addSong: (groupId: string, song: Omit<Song, 'addedAt'>) => void;

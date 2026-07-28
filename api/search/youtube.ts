@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import ytSearch from 'yt-search';
+import { recordQuotaUsage } from '../admin/helpers.js';
 
 export default async function handler(req: Request, res: Response) {
   // Only allow GET requests
@@ -12,6 +13,9 @@ export default async function handler(req: Request, res: Response) {
     if (!q || typeof q !== 'string') {
       return res.status(400).json({ error: 'Query parameter "q" is required' });
     }
+
+    // Record YouTube API quota usage (1 search request = 100 quota units)
+    await recordQuotaUsage(100);
 
     // Perform the search
     const r = await ytSearch(q);

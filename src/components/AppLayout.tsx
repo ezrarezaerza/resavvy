@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Suspense } from "react";
 import { Sidebar } from "./Sidebar";
+import { MobileSidebar } from "./MobileSidebar";
 import { Tracklist } from "./Tracklist";
 import { PlayerBar } from "./PlayerBar";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
@@ -14,12 +15,19 @@ const LibraryDashboard = React.lazy(() => import("./LibraryDashboard").then(m =>
 const DiscoveryDashboard = React.lazy(() => import("./DiscoveryDashboard").then(m => ({ default: m.DiscoveryDashboard })));
 const AnalyticsDashboard = React.lazy(() => import("./AnalyticsDashboard").then(m => ({ default: m.AnalyticsDashboard })));
 const LikedDashboard = React.lazy(() => import("./LikedDashboard").then(m => ({ default: m.LikedDashboard })));
+const AdminDashboard = React.lazy(() => import("./AdminDashboard").then(m => ({ default: m.AdminDashboard })));
 import { MobileBottomNav } from "./MobileBottomNav";
 const PublicPlaylistPage = React.lazy(() => import("./PublicPlaylistPage").then(m => ({ default: m.PublicPlaylistPage })));
 const PublicProfilePage = React.lazy(() => import("./PublicProfilePage").then(m => ({ default: m.PublicProfilePage })));
+const SettingsScreen = React.lazy(() => import("./SettingsScreen").then(m => ({ default: m.SettingsScreen })));
+const AuthScreen = React.lazy(() => import("./AuthScreen").then(m => ({ default: m.AuthScreen })));
+import { motion, AnimatePresence } from "framer-motion";
 
 import { usePlayer } from "../context/PlayerContext";
 import { useAuth } from "../context/AuthContext";
+import { useSettings } from "../context/SettingsContext";
+import { Megaphone, ShieldAlert, X } from "lucide-react";
+import { toast } from "sonner";
 
 export function AppLayout({
   currentPath = typeof window !== "undefined" ? window.location.pathname : "/",
@@ -40,7 +48,13 @@ export function AppLayout({
   const { groups, createGroup, deleteGroup, addSong, removeSong } =
     usePlaylist();
   const { currentSong } = usePlayer();
-  const { user, setShowLoginModal } = useAuth();
+  const { user, setShowLoginModal, acknowledgeWarning } = useAuth();
+  const { isMaintenanceMode, systemAlertBanner } = useSettings();
+  
+  const [dismissedBanner, setDismissedBanner] = useState<string | null>(() => {
+    return typeof window !== "undefined" ? window.sessionStorage.getItem("dismissed_system_banner") : null;
+  });
+
   const [activeGroupId, setActiveGroupId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
@@ -57,6 +71,9 @@ export function AppLayout({
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isCreatingModalOpen, setIsCreatingModalOpen] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState("");
+  const [newPlaylistDescription, setNewPlaylistDescription] = useState("");
+  const [newPlaylistTagsStr, setNewPlaylistTagsStr] = useState("");
+  const [newPlaylistVisibility, setNewPlaylistVisibility] = useState<'private' | 'public' | 'unlisted'>("public");
 
   useEffect(() => {
     if (isSidebarOpen && window.innerWidth < 768) {
@@ -84,6 +101,7 @@ export function AppLayout({
       activeGroupId !== "discovery" &&
       activeGroupId !== "liked" &&
       activeGroupId !== "analytics" &&
+      activeGroupId !== "admin" &&
       !groups.find((g) => g.id === activeGroupId)
     ) {
       setActiveGroupId(null);
@@ -110,7 +128,8 @@ export function AppLayout({
       id !== "library" &&
       id !== "discovery" &&
       id !== "liked" &&
-      id !== "analytics"
+      id !== "analytics" &&
+      id !== "admin"
     ) {
       if (!groups.find((g) => g.id === id)) {
         // It's a public playlist not in our local library
@@ -137,14 +156,31 @@ export function AppLayout({
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isMaintenanceMode) {
+      toast.error("System is under maintenance. Playlist creation is temporarily disabled.");
+      return;
+    }
     if (newPlaylistName.trim()) {
-      createGroup(newPlaylistName.trim());
+      const tags = newPlaylistTagsStr.split(',').map(t => t.trim()).filter(Boolean);
+      createGroup(
+        newPlaylistName.trim(),
+        newPlaylistDescription.trim() || undefined,
+        tags.length > 0 ? tags : undefined,
+        newPlaylistVisibility
+      );
       setNewPlaylistName("");
+      setNewPlaylistDescription("");
+      setNewPlaylistTagsStr("");
+      setNewPlaylistVisibility("public");
       setIsCreatingModalOpen(false);
     }
   };
 
   const openCreatePlaylistModal = () => {
+    if (isMaintenanceMode) {
+      toast.error("System is under maintenance. Playlist creation is temporarily disabled.");
+      return;
+    }
     if (!user) {
       setShowLoginModal(true);
       return;
@@ -159,6 +195,19 @@ export function AppLayout({
   const profileUsernamePath = isPublicProfile
     ? currentPath.split("/u/")[1]
     : null;
+
+  const isAuthPage = currentPath === "/auth";
+  const isSettingsPage = currentPath === "/settings";
+
+  const activeRouteKey = isAuthPage 
+    ? "auth" 
+    : isSettingsPage 
+    ? "settings" 
+    : isPublicPlaylist && playlistIdPath 
+    ? `public-playlist-${playlistIdPath}` 
+    : isPublicProfile && profileUsernamePath 
+    ? `public-profile-${profileUsernamePath}` 
+    : activeGroupId || "home";
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors font-sans antialiased relative">
@@ -190,6 +239,62 @@ export function AppLayout({
           onNavigate={handleGroupSelect}
           isSidebarCollapsed={isSidebarCollapsed}
         />
+        
+        {/* Global Broadcast Announcement Banner */}
+        {systemAlertBanner && systemAlertBanner !== dismissedBanner && (
+          <div id="user-broadcast-banner" className="bg-gradient-to-r from-indigo-600 to-violet-700 border-b border-indigo-500/20 text-white px-4 py-3 text-xs flex items-center justify-between gap-4 z-[51] animate-fadeIn shrink-0 relative shadow-md">
+            <div className="flex items-center gap-3">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/20 text-white shrink-0">
+                <Megaphone className="w-3.5 h-3.5 animate-pulse" />
+              </span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span className="font-extrabold tracking-wider bg-white/20 px-1.5 py-0.5 rounded text-[8px] uppercase self-start sm:self-auto">SYSTEM ANNOUNCEMENT</span>
+                <span className="font-semibold text-white/95 leading-snug">{systemAlertBanner}</span>
+              </div>
+            </div>
+            <button 
+              id="dismiss-broadcast-banner-btn"
+              onClick={() => {
+                window.sessionStorage.setItem("dismissed_system_banner", systemAlertBanner);
+                setDismissedBanner(systemAlertBanner);
+              }}
+              className="text-white/70 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-all shrink-0"
+              title="Dismiss Announcement"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Global Maintenance Mode Banner */}
+        {isMaintenanceMode && (
+          <div id="user-maintenance-banner" className="bg-gradient-to-r from-amber-500 to-orange-600 border-b border-orange-500/20 text-white px-4 py-2.5 text-xs flex items-center justify-between gap-4 z-[51] animate-fadeIn shrink-0 shadow-md">
+            <div className="flex items-center gap-3">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/20 text-white shrink-0">
+                <ShieldAlert className="w-3.5 h-3.5" />
+              </span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                <span className="font-extrabold tracking-wider bg-white/20 px-1.5 py-0.5 rounded text-[8px] uppercase self-start sm:self-auto">MAINTENANCE ACTIVE</span>
+                <span className="font-semibold text-white/95">The database is in read-only maintenance mode. Playlist creation, modifications, and community social actions are temporarily restricted. Playback and browsing remain fully available.</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {user && user.moderationWarning && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-500 px-4 py-2.5 text-xs flex items-center justify-between gap-4 z-50 animate-fadeIn shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="font-bold uppercase tracking-wider bg-amber-500/20 px-1.5 py-0.5 rounded text-[9px]">Account Warning</span>
+              <span className="font-medium text-amber-600 dark:text-amber-400">"{user.moderationWarning}"</span>
+            </div>
+            <button 
+              onClick={() => acknowledgeWarning()}
+              className="hover:text-amber-400 font-bold underline cursor-pointer hover:no-underline text-[11px] whitespace-nowrap"
+            >
+              Acknowledge & Clear
+            </button>
+          </div>
+        )}
         <div className="flex flex-1 w-full overflow-hidden relative">
           <Sidebar
             groups={groups}
@@ -203,56 +308,80 @@ export function AppLayout({
             onCreatePlaylist={openCreatePlaylistModal}
           />
 
-          {/* Mobile Overlay */}
-          {isSidebarOpen && (
-            <div
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] md:hidden transition-opacity"
-              onClick={() => setIsSidebarOpen(false)}
-            />
-          )}
+          <MobileSidebar
+            groups={groups}
+            activeGroupId={activeGroupId}
+            setActiveGroupId={handleGroupSelect}
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            onCreatePlaylist={openCreatePlaylistModal}
+          />
 
           <FullscreenPlayer />
 
           <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-transparent relative no-scrollbar pb-[150px] md:pb-[100px]">
-            <Suspense fallback={<div className="flex-1 flex items-center justify-center h-full"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>}>
-            {isPublicPlaylist && playlistIdPath ? (
-              <PublicPlaylistPage playlistId={playlistIdPath} />
-            ) : isPublicProfile && profileUsernamePath ? (
-              <PublicProfilePage username={profileUsernamePath} />
-            ) : activeGroupId === "discovery" ? (
-              <DiscoveryDashboard
-                onSelectGroup={handleGroupSelect}
-                initialSearchQuery={globalSearchQuery}
-              />
-            ) : activeGroupId === "analytics" ? (
-              <AnalyticsDashboard onSelectGroup={setActiveGroupId} />
-            ) : activeGroupId === "liked" ? (
-              <LikedDashboard />
-            ) : activeGroupId === "library" ? (
-              <LibraryDashboard />
-            ) : activeGroup ? (
-              <div className="w-full flex-1 flex flex-col">
-                <PlaylistHero
-                  activeGroup={activeGroup}
-                  onAddSong={() => setIsAddSongModalOpen(true)}
-                  isReadOnly={activeGroup.isSaved}
-                />
-                <div className="max-w-5xl mx-auto w-full px-6 md:px-8 mt-6">
-                  <Tracklist
-                    activeGroup={activeGroup}
-                    removeSong={(songId) => removeSong(activeGroup.id, songId)}
-                    isReadOnly={activeGroup.isSaved}
-                  />
-                </div>
-              </div>
-            ) : (
-              <HomeDashboard
-                groups={groups}
-                onSelectGroup={handleGroupSelect}
-                onCreatePlaylist={openCreatePlaylistModal}
-              />
-            )}
-            </Suspense>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeRouteKey}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                className="flex-1 w-full flex flex-col"
+              >
+                <Suspense fallback={<div className="flex-1 flex items-center justify-center h-full"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+                  {isAuthPage ? (
+                    <AuthScreen />
+                  ) : isSettingsPage ? (
+                    <SettingsScreen />
+                  ) : isPublicPlaylist && playlistIdPath ? (
+                    <PublicPlaylistPage playlistId={playlistIdPath} />
+                  ) : isPublicProfile && profileUsernamePath ? (
+                    <PublicProfilePage username={profileUsernamePath} />
+                  ) : activeGroupId === "discovery" ? (
+                    <DiscoveryDashboard
+                      onSelectGroup={handleGroupSelect}
+                      initialSearchQuery={globalSearchQuery}
+                    />
+                  ) : activeGroupId === "analytics" ? (
+                    <AnalyticsDashboard onSelectGroup={setActiveGroupId} />
+                  ) : activeGroupId === "liked" ? (
+                    <LikedDashboard />
+                  ) : activeGroupId === "library" ? (
+                    <LibraryDashboard />
+                  ) : activeGroupId === "admin" ? (
+                    <AdminDashboard />
+                  ) : activeGroup ? (
+                    <div className="w-full flex-1 flex flex-col">
+                      <PlaylistHero
+                        activeGroup={activeGroup}
+                        onAddSong={() => {
+                          if (isMaintenanceMode) {
+                            toast.error("System is under maintenance. Adding tracks is temporarily disabled.");
+                            return;
+                          }
+                          setIsAddSongModalOpen(true);
+                        }}
+                        isReadOnly={activeGroup.isSaved || isMaintenanceMode}
+                      />
+                      <div className="max-w-5xl mx-auto w-full px-6 md:px-8 mt-6">
+                        <Tracklist
+                          activeGroup={activeGroup}
+                          removeSong={(songId) => removeSong(activeGroup.id, songId)}
+                          isReadOnly={activeGroup.isSaved || isMaintenanceMode}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <HomeDashboard
+                      groups={groups}
+                      onSelectGroup={handleGroupSelect}
+                      onCreatePlaylist={openCreatePlaylistModal}
+                    />
+                  )}
+                </Suspense>
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
         <PlayerBar />
@@ -275,35 +404,80 @@ export function AppLayout({
           onClose={() => {
             setIsCreatingModalOpen(false);
             setNewPlaylistName("");
+            setNewPlaylistDescription("");
+            setNewPlaylistTagsStr("");
+            setNewPlaylistVisibility("public");
           }}
-          title="New Playlist"
+          title="Create New Playlist"
         >
           <form
             onSubmit={handleCreateSubmit}
-            className="flex flex-col gap-4 mt-2"
+            className="space-y-4 text-left mt-2"
           >
-            <input
-              autoFocus
-              type="text"
-              placeholder="E.g., Workout Mix, Chill Vibes..."
-              value={newPlaylistName}
-              onChange={(e) => setNewPlaylistName(e.target.value)}
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-            />
-            <div className="flex justify-end gap-3 mt-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Name</label>
+              <input
+                autoFocus
+                type="text"
+                placeholder="E.g., Workout Mix, Chill Vibes..."
+                value={newPlaylistName}
+                onChange={(e) => setNewPlaylistName(e.target.value)}
+                className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm transition-all"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Description</label>
+              <textarea
+                value={newPlaylistDescription}
+                onChange={(e) => setNewPlaylistDescription(e.target.value)}
+                className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm h-24 resize-none transition-all"
+                placeholder="What's this playlist about?"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Tags (comma-separated)</label>
+              <input
+                type="text"
+                value={newPlaylistTagsStr}
+                onChange={(e) => setNewPlaylistTagsStr(e.target.value)}
+                className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm transition-all"
+                placeholder="workout, chill, focus"
+              />
+            </div>
+
+            <div>
+               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Visibility</label>
+               <select
+                 value={newPlaylistVisibility}
+                 onChange={(e) => setNewPlaylistVisibility(e.target.value as any)}
+                 className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm transition-all"
+               >
+                 <option value="private">Private</option>
+                 <option value="unlisted">Unlisted</option>
+                 <option value="public">Public</option>
+               </select>
+            </div>
+
+            <div className="pt-4 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => {
                   setIsCreatingModalOpen(false);
                   setNewPlaylistName("");
+                  setNewPlaylistDescription("");
+                  setNewPlaylistTagsStr("");
+                  setNewPlaylistVisibility("public");
                 }}
-                className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white rounded-xl transition-colors"
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors shadow-sm focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md transition-all font-medium shadow-md hover:shadow-lg active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={!newPlaylistName.trim()}
               >
                 Create
