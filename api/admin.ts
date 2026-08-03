@@ -469,5 +469,60 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  if (action === 'sync-artists') {
+    try {
+      const songs = await prisma.song.findMany({
+        select: { artist: true }
+      });
+      const uniqueArtists = Array.from(new Set(
+        songs
+          .map(s => s.artist?.trim())
+          .filter(name => name && name.toLowerCase() !== 'unknown' && name.toLowerCase() !== 'unknown artist')
+      ));
+
+      let insertedCount = 0;
+      for (const artistName of uniqueArtists) {
+        try {
+          const exists = await prisma.artist.findUnique({
+            where: { name: artistName }
+          });
+          if (!exists) {
+            await prisma.artist.create({
+              data: { name: artistName }
+            });
+            insertedCount++;
+          }
+        } catch (e) {
+          // Ignore unique constraints
+        }
+      }
+
+      await logSystemEvent('AUDIT', `Admin ${adminUser.username} triggered Artist database sync-migration. Found ${uniqueArtists.length} unique artists, imported ${insertedCount} new ones.`);
+      return res.status(200).json({
+        success: true,
+        totalFound: uniqueArtists.length,
+        newlyImported: insertedCount
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Failed to synchronize artists database', details: err.message });
+    }
+  }
+
+  if (action === 'get-artists-stats') {
+    try {
+      const totalArtists = await prisma.artist.count();
+      const sampleArtists = await prisma.artist.findMany({
+        orderBy: { name: 'asc' },
+        take: 15
+      });
+      return res.status(200).json({
+        totalArtists,
+        sampleArtists
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Failed to fetch artists stats', details: err.message });
+    }
+  }
+
   return res.status(405).json({ error: 'Action not matched or method not supported' });
 }

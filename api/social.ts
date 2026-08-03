@@ -102,11 +102,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const systemTagsList = await prisma.systemTag.findMany({ select: { name: true } });
        const systemTagNames = systemTagsList.map(t => t.name);
        const combinedTags = [...new Set([...systemTagNames, ...Object.keys(tagCounts)])];
-       const globalTags = combinedTags.sort((a, b) => {
+       const sortedTags = combinedTags.sort((a, b) => {
          const countA = tagCounts[a] || 0;
          const countB = tagCounts[b] || 0;
          return countB - countA;
        });
+
+       // Load Moods & Genres settings
+       const moodsLimitCfg = await prisma.systemConfig.findUnique({ where: { key: 'MOOD_GENRES_LIMIT' } });
+       const moodsLimit = moodsLimitCfg ? parseInt(moodsLimitCfg.value, 10) || 15 : 15;
+
+       const moodsCustomTagsCfg = await prisma.systemConfig.findUnique({ where: { key: 'MOOD_GENRES_CUSTOM_TAGS' } });
+       const moodsCustomTags = moodsCustomTagsCfg?.value || "";
+
+       const globalTags = moodsCustomTags.trim()
+         ? moodsCustomTags.split(',').map(t => t.trim()).filter(Boolean).slice(0, moodsLimit)
+         : sortedTags.slice(0, moodsLimit);
 
        const popularSongs = await prisma.song.findMany({
          where: { playlist: { visibility: 'public', isHidden: false } },
@@ -147,16 +158,110 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          saved.forEach(s => savedPlaylistIds.add(s.playlistId));
        }
        const mapSaved = (p) => ({ ...p, isSaved: savedPlaylistIds.has(p.id) });
-       
-       return res.status(200).json({ 
-         featured: featured.map(mapSaved),
-         trending: trending.map(mapSaved), 
-         fresh: fresh.map(mapSaved), 
-         globalTags, 
-         popularSongs, 
-         popularUsers, 
-         quickPicks 
-       });
+
+       // Phase 2: Customizable song collection or playlist category
+        const collectionEnabledCfg = await prisma.systemConfig.findUnique({ where: { key: 'FEATURED_COLLECTION_ENABLED' } });
+        const collectionTitleCfg = await prisma.systemConfig.findUnique({ where: { key: 'FEATURED_COLLECTION_TITLE' } });
+        const collectionPlaylistIdCfg = await prisma.systemConfig.findUnique({ where: { key: 'FEATURED_COLLECTION_PLAYLIST_ID' } });
+        const collectionDescCfg = await prisma.systemConfig.findUnique({ where: { key: 'FEATURED_COLLECTION_DESC' } });
+
+        let featuredCollection = null;
+        if (collectionEnabledCfg?.value === 'true' && collectionPlaylistIdCfg?.value) {
+          const playlist = await prisma.playlist.findUnique({
+            where: { id: collectionPlaylistIdCfg.value },
+            include: { songs: true, user: { select: { name: true, username: true } } }
+          });
+          if (playlist) {
+            featuredCollection = {
+              title: collectionTitleCfg?.value || 'Featured Collection',
+              description: collectionDescCfg?.value || 'A special curation hand-picked by the admin team to soundtrack your mood.',
+              playlist: mapSaved(playlist)
+            };
+          }
+        }
+
+        // Customizable Collection Row (Playlists or Songs)
+        const customEnabledCfg = await prisma.systemConfig.findUnique({ where: { key: 'CUSTOM_ROW_ENABLED' } });
+        const customTitleCfg = await prisma.systemConfig.findUnique({ where: { key: 'CUSTOM_ROW_TITLE' } });
+        const customSubtitleCfg = await prisma.systemConfig.findUnique({ where: { key: 'CUSTOM_ROW_SUBTITLE' } });
+        const customTypeCfg = await prisma.systemConfig.findUnique({ where: { key: 'CUSTOM_ROW_TYPE' } });
+        const customIdsCfg = await prisma.systemConfig.findUnique({ where: { key: 'CUSTOM_ROW_IDS' } });
+
+        let customCollection = null;
+        if (customEnabledCfg?.value === 'true') {
+          const rowType = customTypeCfg?.value || 'playlists';
+          const idsString = customIdsCfg?.value || '';
+          const idList = idsString.split(',').map(id => id.trim()).filter(id => id.length > 0);
+
+          let resolvedItems = [];
+
+          if (idList.length > 0) {
+            if (rowType === 'playlists') {
+              const playlists = await prisma.playlist.findMany({
+                where: {
+                  id: { in: idList },
+                  visibility: 'public',
+                  isHidden: false
+                },
+                include: {
+                  songs: true,
+                  user: { select: { id: true, name: true, username: true, avatarUrl: true } }
+                }
+              });
+
+              // Map & order playlists to match compilation sequence
+              const mappedPlaylists = playlists.map(mapSaved);
+              resolvedItems = idList
+                .map(id => mappedPlaylists.find(p => p.id === id))
+                .filter(Boolean);
+            } else if (rowType === 'songs') {
+              const songs = await prisma.song.findMany({
+                where: {
+                  id: { in: idList },
+                  playlist: { visibility: 'public', isHidden: false }
+                },
+                include: {
+                  playlist: { select: { id: true, name: true, userId: true, visibility: true } }
+                }
+              });
+
+              // Order songs to match compilation sequence
+              resolvedItems = idList
+                .map(id => songs.find(s => s.id === id))
+                .filter(Boolean);
+            }
+          }
+
+          customCollection = {
+            title: customTitleCfg?.value || 'Custom Collection',
+            subtitle: customSubtitleCfg?.value || 'Handpicked curation',
+            type: rowType,
+            items: resolvedItems
+          };
+        }
+
+        const homepageLayoutCfg = await prisma.systemConfig.findUnique({ where: { key: 'HOMEPAGE_LAYOUT' } });
+        let homepageLayout = null;
+        if (homepageLayoutCfg?.value) {
+          try {
+            homepageLayout = JSON.parse(homepageLayoutCfg.value);
+          } catch (e) {
+            console.error('Failed to parse HOMEPAGE_LAYOUT config:', e);
+          }
+        }
+        
+        return res.status(200).json({ 
+          featured: featured.map(mapSaved),
+          trending: trending.map(mapSaved), 
+          fresh: fresh.map(mapSaved), 
+          globalTags, 
+          popularSongs, 
+          popularUsers, 
+          quickPicks,
+          featuredCollection,
+          customCollection,
+          homepageLayout
+        });
 
      } catch (err) {
        return res.status(500).json({ error: 'Failed discovery' });
@@ -218,38 +323,78 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
      const user = getUser(req);
      if (!user) return res.status(401).json({ error: 'Unauthorized' });
      try {
-       const topSongs = await prisma.song.findMany({
-         where: { playlist: { userId: user.id } },
-         orderBy: { playCount: 'desc' },
-         take: 20
-       });
-       const artists = [...new Set(topSongs.filter(s => s.artist).map(s => s.artist))].slice(0, 5);
-       
-       if (artists.length === 0) {
-           return res.status(200).json({ songs: [], basedOn: [] });
+       // Load Recommendation configurations
+       const recLimitCfg = await prisma.systemConfig.findUnique({ where: { key: 'RECOMMENDED_LIMIT' } });
+       const recLimit = recLimitCfg ? parseInt(recLimitCfg.value, 10) || 20 : 20;
+
+       const recStrategyCfg = await prisma.systemConfig.findUnique({ where: { key: 'RECOMMENDED_STRATEGY' } });
+       const recStrategy = recStrategyCfg?.value || "artist_match";
+
+       const recExcludePlayedCfg = await prisma.systemConfig.findUnique({ where: { key: 'RECOMMENDED_EXCLUDE_PLAYED' } });
+       const recExcludePlayed = recExcludePlayedCfg ? recExcludePlayedCfg.value === "true" : true;
+
+       let recommendedSongs: any[] = [];
+       let basedOnArtists: string[] = [];
+
+       if (recStrategy === "artist_match") {
+         const topSongs = await prisma.song.findMany({
+           where: { playlist: { userId: user.id } },
+           orderBy: { playCount: 'desc' },
+           take: 20
+         });
+         basedOnArtists = [...new Set(topSongs.filter(s => s.artist).map(s => s.artist))].slice(0, 5);
        }
-       
-       const recommended = await prisma.song.findMany({
-         where: { 
+
+       // Fetch recommendations based on artists if we have them
+       if (basedOnArtists.length > 0) {
+         const whereFilter: any = {
            playlist: { visibility: 'public', isHidden: false },
-           artist: { in: artists },
-           NOT: { playlist: { userId: user.id } }
-         },
-         include: { playlist: { select: { id: true, name: true, userId: true } } },
-         take: 20,
-         orderBy: { playCount: 'desc' }
-       });
-       
+           artist: { in: basedOnArtists }
+         };
+
+         if (recExcludePlayed) {
+           whereFilter.NOT = { playlist: { userId: user.id } };
+         }
+
+         recommendedSongs = await prisma.song.findMany({
+           where: whereFilter,
+           include: { playlist: { select: { id: true, name: true, userId: true } } },
+           take: recLimit * 2,
+           orderBy: { playCount: 'desc' }
+         });
+       }
+
+       // Fallback or Global Discovery strategy
+       if (recommendedSongs.length === 0) {
+         const whereFilter: any = {
+           playlist: { visibility: 'public', isHidden: false }
+         };
+
+         if (recExcludePlayed) {
+           whereFilter.NOT = { playlist: { userId: user.id } };
+         }
+
+         recommendedSongs = await prisma.song.findMany({
+           where: whereFilter,
+           include: { playlist: { select: { id: true, name: true, userId: true } } },
+           take: recLimit * 2,
+           orderBy: { playCount: 'desc' }
+         });
+       }
+
        const uniqueRecs = [];
        const seen = new Set();
-       for (const song of recommended) {
+       for (const song of recommendedSongs) {
            if (!seen.has(song.youtubeId)) {
                seen.add(song.youtubeId);
                uniqueRecs.push(song);
+               if (uniqueRecs.length >= recLimit) {
+                   break;
+               }
            }
        }
-       
-       return res.status(200).json({ songs: uniqueRecs, basedOn: artists });
+
+       return res.status(200).json({ songs: uniqueRecs, basedOn: basedOnArtists });
      } catch (err) {
        console.error(err);
        return res.status(500).json({ error: 'Failed recommended' });

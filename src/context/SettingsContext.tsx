@@ -54,15 +54,20 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [systemConfigs, setSystemConfigs] = useState<SystemConfig[]>([]);
   const [isLoadingConfigs, setIsLoadingConfigs] = useState<boolean>(true);
 
-  const refreshConfigs = async (retries = 3, delay = 500) => {
+  const refreshConfigs = async (retries = 5, delay = 1000) => {
     try {
       const res = await fetch('/api/auth?action=system-config');
       if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setSystemConfigs(data);
-          setIsLoadingConfigs(false);
-          return;
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setSystemConfigs(data);
+            setIsLoadingConfigs(false);
+            return;
+          }
+        } else {
+          throw new Error('Response content-type is not JSON. Expected application/json.');
         }
       }
       throw new Error(`Response status: ${res.status}`);
@@ -70,7 +75,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (retries > 0) {
         console.warn(`System config fetch failed, retrying in ${delay}ms... (${retries} retries left)`, err);
         await new Promise(resolve => setTimeout(resolve, delay));
-        return refreshConfigs(retries - 1, delay * 2);
+        return refreshConfigs(retries - 1, delay * 1.5);
       }
       console.error('Failed to load global system configurations', err);
       setIsLoadingConfigs(false);

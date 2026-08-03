@@ -40,6 +40,27 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
   const [title, setTitle] = useState('');
   const [stagedDuration, setStagedDuration] = useState<string | number>('');
 
+  // Artist Auto-Suggest states
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const fetchArtistSuggestions = async (val: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/songs?action=artists&q=${encodeURIComponent(val)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSuggestions(data);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     setIsSearching(true);
@@ -275,15 +296,49 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
                   className="w-24 h-24 aspect-square object-cover object-center rounded-lg shadow-md border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-800 shrink-0"
                 />
                 <div className="flex-1 flex flex-col gap-3">
-                  <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1.5 relative">
                     <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Artist</label>
-                    <input 
-                      type="text" 
-                      value={artist}
-                      onChange={(e) => setArtist(e.target.value)}
-                      placeholder="Artist name"
-                      className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
-                    />
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        value={artist}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setArtist(val);
+                          fetchArtistSuggestions(val);
+                          setShowSuggestions(true);
+                        }}
+                        onFocus={() => {
+                          fetchArtistSuggestions(artist);
+                          setShowSuggestions(true);
+                        }}
+                        placeholder="Artist name"
+                        className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
+                      />
+                      {showSuggestions && suggestions.length > 0 && (
+                        <>
+                          <div 
+                            className="fixed inset-0 z-10" 
+                            onClick={() => setShowSuggestions(false)}
+                          />
+                          <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-[#1e293b] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl z-20 max-h-48 overflow-y-auto overflow-x-hidden divide-y divide-gray-100 dark:divide-white/5">
+                            {suggestions.map((item: any) => (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  setArtist(item.name);
+                                  setShowSuggestions(false);
+                                }}
+                                className="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                              >
+                                {item.name}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Title</label>

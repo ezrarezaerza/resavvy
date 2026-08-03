@@ -21,9 +21,13 @@ export const DiscoveryDashboard = React.memo(function DiscoveryDashboard({ onSel
   const [popularSongs, setPopularSongs] = useState<any[]>([]);
   const [popularUsers, setPopularUsers] = useState<any[]>([]);
   const [taggedPlaylists, setTaggedPlaylists] = useState<PlaylistGroup[]>([]);
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(() => {
+    return initialSearchQuery && initialSearchQuery.startsWith('#') ? initialSearchQuery.slice(1) : null;
+  });
   
-  const [searchQuery, setSearchQuery] = useState(initialSearchQuery);
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return initialSearchQuery && initialSearchQuery.startsWith('#') ? '' : initialSearchQuery;
+  });
   const [searchResults, setSearchResults] = useState<{ playlists: any[], songs: any[], users: any[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
@@ -102,8 +106,12 @@ export const DiscoveryDashboard = React.memo(function DiscoveryDashboard({ onSel
 
   // Synchronize external prop changes (from topnav)
   useEffect(() => {
-    if (initialSearchQuery !== searchQuery) {
-       setSearchQuery(initialSearchQuery);
+    if (initialSearchQuery && initialSearchQuery.startsWith('#')) {
+      setSelectedTag(initialSearchQuery.slice(1));
+      setSearchQuery('');
+    } else if (initialSearchQuery !== searchQuery) {
+      setSearchQuery(initialSearchQuery);
+      setSelectedTag(null);
     }
   }, [initialSearchQuery]);
 

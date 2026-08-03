@@ -4,6 +4,47 @@ import { prisma } from '../src/lib/prisma.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development';
 
+async function ensureArtistExists(name: string | null | undefined) {
+  if (!name) return;
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.toLowerCase() === 'unknown' || trimmed.toLowerCase() === 'unknown artist') return;
+  try {
+    await prisma.artist.upsert({
+      where: { name: trimmed },
+      update: {},
+      create: { name: trimmed }
+    });
+  } catch (e) {
+    // Ignore duplicate or constraint errors
+  }
+}
+
+async function ensureArtistsExist(names: (string | null | undefined)[]) {
+  const uniqueNames = Array.from(new Set(
+    names
+      .map(n => n?.trim())
+      .filter((n): n is string => !!n && n.toLowerCase() !== 'unknown' && n.toLowerCase() !== 'unknown artist')
+  ));
+  if (uniqueNames.length === 0) return;
+  
+  try {
+    await prisma.artist.createMany({
+      data: uniqueNames.map(name => ({ name })),
+      skipDuplicates: true
+    });
+  } catch (e) {
+    for (const name of uniqueNames) {
+      try {
+        await prisma.artist.upsert({
+          where: { name },
+          update: {},
+          create: { name }
+        });
+      } catch (err) {}
+    }
+  }
+}
+
 function getUser(req: VercelRequest) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
@@ -65,6 +106,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
          return res.status(200).json(duplicates);
        } catch (error) {
          return res.status(500).json({ error: 'Failed' });
+       }
+    } else if (action === 'artists') {
+       try {
+         const { q } = req.query;
+         const searchQuery = q && typeof q === 'string' ? q.trim() : '';
+         const artists = await prisma.artist.findMany({
+           where: searchQuery ? {
+             name: { contains: searchQuery, mode: 'insensitive' }
+           } : {},
+           orderBy: { name: 'asc' },
+           take: 30
+         });
+         return res.status(200).json(artists);
+       } catch (error) {
+         return res.status(500).json({ error: 'Failed to fetch artists' });
        }
     } else if (action === 'liked') {
        try {
@@ -175,6 +231,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
            }));
 
            await prisma.song.createMany({ data: dataToInsert });
+           ensureArtistsExist(items.map((item: any) => item.artist)).catch(() => {});
            return res.status(201).json({ added: dataToInsert.length });
          } catch(error) {
            return res.status(500).json({ error: 'Failed' });
@@ -232,6 +289,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
        const song = await prisma.song.create({
          data: { playlistId, youtubeId, title, artist, thumbnailUrl, duration: duration !== undefined ? String(duration) : '0:00', order: nextOrder }
        });
+       ensureArtistExists(artist).catch(() => {});
        return res.status(201).json(song);
      } catch(error) {
        return res.status(500).json({ error: 'Failed' });
@@ -253,6 +311,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
            ...(duration !== undefined && { duration }),
          }
        });
+       if (artist) {
+         ensureArtistExists(artist).catch(() => {});
+       }
        return res.status(200).json(updatedSong);
      } catch(error) {
        return res.status(500).json({ error: 'Failed to update song' });
