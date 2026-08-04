@@ -17,6 +17,7 @@ const AnalyticsDashboard = React.lazy(() => import("./AnalyticsDashboard").then(
 const LikedDashboard = React.lazy(() => import("./LikedDashboard").then(m => ({ default: m.LikedDashboard })));
 const AdminDashboard = React.lazy(() => import("./AdminDashboard").then(m => ({ default: m.AdminDashboard })));
 import { MobileBottomNav } from "./MobileBottomNav";
+import { getThumbnailUrl } from "../utils/youtube";
 const PublicPlaylistPage = React.lazy(() => import("./PublicPlaylistPage").then(m => ({ default: m.PublicPlaylistPage })));
 const PublicProfilePage = React.lazy(() => import("./PublicProfilePage").then(m => ({ default: m.PublicProfilePage })));
 const SettingsScreen = React.lazy(() => import("./SettingsScreen").then(m => ({ default: m.SettingsScreen })));
@@ -75,8 +76,36 @@ export function AppLayout({
   const [newPlaylistTagsStr, setNewPlaylistTagsStr] = useState("");
   const [newPlaylistVisibility, setNewPlaylistVisibility] = useState<'private' | 'public' | 'unlisted'>("public");
 
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768
+  );
+
   useEffect(() => {
-    if (isSidebarOpen && window.innerWidth < 768) {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      if (
+        activeGroupId === "admin" ||
+        activeGroupId === "analytics" ||
+        activeGroupId === "liked" ||
+        activeGroupId === "library"
+      ) {
+        setActiveGroupId(null);
+      }
+    } else if (activeGroupId === "admin" && user.role !== "ADMIN") {
+      setActiveGroupId(null);
+    }
+  }, [user, activeGroupId]);
+
+  useEffect(() => {
+    if (isSidebarOpen && isMobile) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
@@ -84,10 +113,10 @@ export function AppLayout({
     return () => {
       document.body.style.overflow = "unset";
     };
-  }, [isSidebarOpen]);
+  }, [isSidebarOpen, isMobile]);
 
   const toggleSidebar = () => {
-    if (window.innerWidth < 768) {
+    if (isMobile) {
       setIsSidebarOpen(!isSidebarOpen);
     } else {
       setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -219,10 +248,7 @@ export function AppLayout({
 
       {currentSong?.thumbnailUrl && (
         <img
-          src={currentSong.thumbnailUrl.replace(
-            "mqdefault.jpg",
-            "hqdefault.jpg",
-          )}
+          src={getThumbnailUrl(currentSong.thumbnailUrl, 'mqdefault')}
           alt=""
           className="fixed inset-0 w-full h-full object-cover blur-[120px] opacity-30 dark:opacity-20 pointer-events-none transition-all duration-1000 z-0"
         />
@@ -312,7 +338,7 @@ export function AppLayout({
             groups={groups}
             activeGroupId={activeGroupId}
             setActiveGroupId={handleGroupSelect}
-            isOpen={isSidebarOpen}
+            isOpen={isSidebarOpen && isMobile}
             onClose={() => setIsSidebarOpen(false)}
             onCreatePlaylist={openCreatePlaylistModal}
           />

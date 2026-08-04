@@ -10,6 +10,7 @@ import { EditCoverModal } from "./EditCoverModal";
 import { EditPlaylistModal } from "./EditPlaylistModal";
 import { OptimizedImage } from "./OptimizedImage";
 import { Modal } from "./Modal";
+import { getThumbnailUrl } from "../utils/youtube";
 
 interface PlaylistHeroProps {
   activeGroup: PlaylistGroup;
@@ -87,7 +88,7 @@ export function PlaylistHero({ activeGroup, onAddSong, isReadOnly = false }: Pla
         const coverSong = activeGroup.songs[0];
         let url = coverSong.thumbnailUrl;
         if (url) {
-          url = url.replace('mqdefault.jpg', 'maxresdefault.jpg').replace('hqdefault.jpg', 'maxresdefault.jpg');
+          url = getThumbnailUrl(url, 'mqdefault');
           setDisplayImage(url);
         } else {
           setDisplayImage('');

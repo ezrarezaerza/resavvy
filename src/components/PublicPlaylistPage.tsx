@@ -7,6 +7,7 @@ import { useToast } from "../context/ToastContext";
 import { Play, Plus, Check, Copy, Heart } from "lucide-react";
 import { AuthScreen } from "./AuthScreen";
 import { Tracklist } from "./Tracklist";
+import { getThumbnailUrl } from "../utils/youtube";
 
 interface PublicPlaylistPageProps {
   playlistId: string;
@@ -151,9 +152,7 @@ export function PublicPlaylistPage({ playlistId }: PublicPlaylistPageProps) {
   if (playlist.coverType === "custom" && playlist.customCoverUrl) {
     displayImage = playlist.customCoverUrl;
   } else if (playlist.songs.length > 0 && playlist.songs[0].thumbnailUrl) {
-    displayImage = playlist.songs[0].thumbnailUrl
-      .replace("mqdefault.jpg", "maxresdefault.jpg")
-      .replace("hqdefault.jpg", "maxresdefault.jpg");
+    displayImage = getThumbnailUrl(playlist.songs[0].thumbnailUrl, 'mqdefault');
   }
 
   return (

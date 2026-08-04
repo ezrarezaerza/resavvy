@@ -19,6 +19,7 @@ import {
 import { usePlayer } from "../context/PlayerContext";
 import { PlaybackProgressBar } from "./PlaybackProgressBar";
 import { OptimizedImage } from "./OptimizedImage";
+import { getThumbnailUrl } from "../utils/youtube";
 
 // Equalizer Presets definition
 const PRESETS = {
@@ -101,8 +102,8 @@ export function FullscreenPlayer() {
 
   if (!currentSong) return null;
 
-  const hqThumbnail = currentSong.thumbnailUrl 
-    ? currentSong.thumbnailUrl.replace('mqdefault.jpg', 'maxresdefault.jpg')
+  const thumbnailSrc = currentSong.thumbnailUrl 
+    ? getThumbnailUrl(currentSong.thumbnailUrl, 'mqdefault')
     : '';
 
   return (
@@ -114,7 +115,7 @@ export function FullscreenPlayer() {
       {/* Dynamic Immersive Background */}
       <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden z-[-2]">
          <OptimizedImage 
-           src={hqThumbnail} 
+           src={thumbnailSrc} 
            alt="" 
            className="w-full h-full object-cover scale-150 blur-3xl opacity-80 dark:opacity-60 saturate-200 transition-all duration-1000" 
          />
@@ -141,7 +142,7 @@ export function FullscreenPlayer() {
         <div className="flex flex-col items-center justify-center w-full max-w-sm flex-none">
           <div className="relative w-64 h-64 md:w-80 md:h-80 aspect-square shrink-0 rounded-2xl overflow-hidden shadow-2xl bg-gray-200 dark:bg-gray-800 border border-white/20 dark:border-white/5">
             <OptimizedImage 
-              src={hqThumbnail} 
+              src={thumbnailSrc} 
               alt={currentSong.title}
               className="w-full h-full object-cover"
             />
@@ -320,7 +321,7 @@ export function FullscreenPlayer() {
                           }`}
                         >
                           <OptimizedImage
-                            src={song.thumbnailUrl}
+                            src={getThumbnailUrl(song.thumbnailUrl, 'mqdefault')}
                             alt=""
                             className="w-10 h-10 object-cover rounded-md flex-shrink-0"
                           />

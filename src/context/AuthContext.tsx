@@ -86,6 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('resavvy_token');
     setToken(null);
     setUser(null);
+    if (typeof window !== "undefined") {
+      window.history.pushState(null, "", "/");
+      window.dispatchEvent(new Event("popstate"));
+    }
   };
 
   const updateProfile = async (updatedData: Partial<User>) => {

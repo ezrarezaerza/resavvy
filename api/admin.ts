@@ -336,6 +336,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  if (action === 'bulk-update-configs') {
+    try {
+      const { configs } = req.body;
+      if (!configs || !Array.isArray(configs)) {
+        return res.status(400).json({ error: 'configs array is required' });
+      }
+
+      const results = [];
+      for (const item of configs) {
+        const { key, value } = item;
+        if (!key || value === undefined) continue;
+        const config = await prisma.systemConfig.upsert({
+          where: { key },
+          update: { value: String(value) },
+          create: { key, value: String(value) }
+        });
+        results.push(config);
+      }
+
+      await logSystemEvent('AUDIT', `Admin ${adminUser.username} bulk updated ${results.length} configurations`);
+      return res.status(200).json({ success: true, count: results.length });
+    } catch (err: any) {
+      return res.status(500).json({ error: 'Failed to bulk update configs', details: err.message });
+    }
+  }
+
   if (action === 'bulk-moderate-playlists') {
     try {
       const { playlistIds, updates } = req.body;

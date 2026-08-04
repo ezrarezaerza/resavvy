@@ -41,45 +41,45 @@ export function EditPlaylistModal({ isOpen, onClose, playlist, onSave }: EditPla
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Edit Playlist Details">
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Name</label>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm transition-all"
+            className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
             required
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Description</label>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Description</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm h-24 resize-none transition-all"
+            className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-sm h-24 resize-none"
             placeholder="What's this playlist about?"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Tags (comma-separated)</label>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Tags (comma-separated)</label>
           <input
             type="text"
             value={tagsStr}
             onChange={(e) => setTagsStr(e.target.value)}
-            className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm transition-all"
+            className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-sm"
             placeholder="workout, chill, focus"
           />
         </div>
 
         <div>
-           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Visibility</label>
+           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Visibility</label>
            <select
              value={visibility}
              onChange={(e) => setVisibility(e.target.value as any)}
-             className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm transition-all"
+             className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all text-sm cursor-pointer"
            >
              <option value="private">Private</option>
              <option value="unlisted">Unlisted</option>
@@ -87,17 +87,17 @@ export function EditPlaylistModal({ isOpen, onClose, playlist, onSave }: EditPla
            </select>
         </div>
 
-        <div className="pt-4 flex justify-end gap-3">
+        <div className="pt-2 flex justify-end gap-3 border-t border-gray-100 dark:border-white/5 mt-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors"
+            className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md transition-all font-medium shadow-md hover:shadow-lg active:scale-95"
+            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-sm transition-colors cursor-pointer"
           >
             Save Changes
           </button>

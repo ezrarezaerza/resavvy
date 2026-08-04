@@ -9,6 +9,7 @@ import { usePlayer } from '../context/PlayerContext';
 import { usePlaylist } from '../context/PlaylistContext';
 import { useSettings } from '../context/SettingsContext';
 import { OptimizedImage } from "./OptimizedImage";
+import { getThumbnailUrl } from '../utils/youtube';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface HomeDashboardProps {
@@ -121,9 +122,8 @@ export const HomeDashboard = React.memo(function HomeDashboard({ groups, onSelec
     return () => window.removeEventListener('resavvy_song_played', handleSongPlayed);
   }, []);
 
-  const getHighResThumbnail = (url: string) => {
-    if (url && url.includes('mqdefault.jpg')) return url.replace('mqdefault.jpg', 'hqdefault.jpg');
-    return url;
+  const getOptimizedThumbnail = (url: string) => {
+    return getThumbnailUrl(url, 'mqdefault');
   };
 
   const shuffledGroups = useMemo(() => {
@@ -436,7 +436,7 @@ export const HomeDashboard = React.memo(function HomeDashboard({ groups, onSelec
                           className="w-[80vw] md:w-80 shrink-0 p-3 bg-gradient-to-r from-indigo-50/50 to-white dark:from-indigo-900/10 dark:to-white/5 backdrop-blur-md border border-indigo-100 dark:border-indigo-500/20 rounded-2xl flex items-center gap-4 hover:border-indigo-400 dark:hover:border-indigo-400 hover:shadow-md cursor-pointer transition-all group"
                         >
                           <div className="relative w-16 h-16 shrink-0 rounded-xl overflow-hidden shadow-sm">
-                            <OptimizedImage src={getHighResThumbnail(song.thumbnailUrl)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <OptimizedImage src={getOptimizedThumbnail(song.thumbnailUrl)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                             <div className="absolute inset-0 bg-indigo-900/20 dark:bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                               <Play className="w-6 h-6 text-white fill-white shadow-sm" />
                             </div>
@@ -457,7 +457,7 @@ export const HomeDashboard = React.memo(function HomeDashboard({ groups, onSelec
                             className={`p-3 bg-gradient-to-r from-indigo-50/50 to-white dark:from-indigo-900/10 dark:to-white/5 backdrop-blur-md border border-indigo-100 dark:border-indigo-500/20 rounded-2xl flex items-center gap-4 hover:border-indigo-400 dark:hover:border-indigo-400 hover:shadow-md cursor-pointer transition-all group ${index >= 6 ? 'hidden md:flex' : ''}`}
                           >
                              <div className="relative w-16 h-16 shrink-0 rounded-xl overflow-hidden shadow-sm">
-                               <OptimizedImage src={getHighResThumbnail(song.thumbnailUrl)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                               <OptimizedImage src={getOptimizedThumbnail(song.thumbnailUrl)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                                <div className="absolute inset-0 bg-indigo-900/20 dark:bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                  <Play className="w-6 h-6 text-white fill-white shadow-sm" />
                                </div>
@@ -563,7 +563,7 @@ export const HomeDashboard = React.memo(function HomeDashboard({ groups, onSelec
                             >
                               <div className="relative w-11 h-11 shrink-0 rounded-lg overflow-hidden shadow-sm">
                                 <OptimizedImage 
-                                  src={getHighResThumbnail(song.thumbnailUrl)} 
+                                  src={getOptimizedThumbnail(song.thumbnailUrl)} 
                                   alt="" 
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
                                 />

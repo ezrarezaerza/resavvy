@@ -104,7 +104,7 @@ export function DedupeModal({ isOpen, onClose, onRefresh }: DedupeModalProps) {
           </div>
         ) : (
           <>
-            <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-lg p-4 flex gap-3 text-orange-800 dark:text-orange-200 text-sm">
+            <div className="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900 rounded-xl p-4 flex gap-3 text-orange-800 dark:text-orange-200 text-sm">
               <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
               <div>
                 <strong>Found {duplicates.length} duplicated tracks</strong>
@@ -114,13 +114,13 @@ export function DedupeModal({ isOpen, onClose, onRefresh }: DedupeModalProps) {
 
             <div className="max-h-64 overflow-y-auto pr-2 space-y-2 no-scrollbar">
               {duplicates.map(dup => (
-                <div key={dup.youtubeId} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-800">
-                  <OptimizedImage src={dup.thumbnailUrl} alt={dup.title} className="w-10 h-10 rounded object-cover" />
+                <div key={dup.youtubeId} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
+                  <OptimizedImage src={dup.thumbnailUrl} alt={dup.title} className="w-10 h-10 rounded-lg object-cover" />
                   <div className="min-w-0 flex-1">
                     <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{dup.title}</div>
                     <div className="text-xs text-gray-500 truncate">{dup.artist || 'Unknown'}</div>
                   </div>
-                  <div className="shrink-0 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-bold px-2 py-1 rounded">
+                  <div className="shrink-0 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs font-bold px-2 py-1 rounded-md">
                     {dup.count} copies
                   </div>
                 </div>
@@ -128,7 +128,7 @@ export function DedupeModal({ isOpen, onClose, onRefresh }: DedupeModalProps) {
             </div>
 
             {showConfirm ? (
-              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-lg p-4 pt-4 mt-4">
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl p-4 pt-4 mt-4">
                 <p className="text-red-800 dark:text-red-200 text-sm font-medium mb-3">Are you sure? This action is irreversible.</p>
                 <div className="flex items-center justify-end gap-3">
                   <button 
@@ -141,7 +141,7 @@ export function DedupeModal({ isOpen, onClose, onRefresh }: DedupeModalProps) {
                   <button 
                     onClick={handleMergeAll}
                     disabled={isMerging}
-                    className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-md text-sm font-semibold transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {isMerging ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                     {isMerging ? 'Merging...' : 'Yes, Merge All'}
@@ -152,7 +152,7 @@ export function DedupeModal({ isOpen, onClose, onRefresh }: DedupeModalProps) {
               <div className="flex justify-end pt-4 mt-4">
                 <button 
                   onClick={() => setShowConfirm(true)}
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2 rounded-md text-sm font-semibold transition-colors"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer"
                 >
                   Merge All Duplicates
                 </button>

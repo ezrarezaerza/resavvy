@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { extractYouTubeId, fetchYouTubeMetadata } from '../utils/youtube';
+import { extractYouTubeId, fetchYouTubeMetadata, getThumbnailUrl } from '../utils/youtube';
 import { parseYouTubeTitle } from '../utils/metadata';
 import { Song } from '../types';
 import { OptimizedImage } from "./OptimizedImage";
@@ -112,12 +112,12 @@ export function AddSongInput({ onAdd }: AddSongInputProps) {
       const data = await fetchYouTubeMetadata(url);
       const parsed = parseYouTubeTitle(data.title);
       
-      const hqThumbnail = `https://i.ytimg.com/vi/${videoId}/hq720.jpg`;
+      const mqThumbnail = getThumbnailUrl(videoId, 'mqdefault');
       
       setMetadata({
         videoId,
         originalTitle: data.title,
-        thumbnailUrl: hqThumbnail,
+        thumbnailUrl: mqThumbnail,
       });
       setArtist(parsed.artist);
       setTitle(parsed.title);

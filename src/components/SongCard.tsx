@@ -2,6 +2,7 @@ import React from 'react';
 import { Play } from 'lucide-react';
 import { Song } from '../types';
 import { OptimizedImage } from "./OptimizedImage";
+import { getThumbnailUrl } from '../utils/youtube';
 
 interface SongCardProps {
   song: Song;
@@ -10,13 +11,7 @@ interface SongCardProps {
 }
 
 export const SongCard = React.memo(function SongCard({ song, type, onClick }: SongCardProps) {
-  const getHighResThumbnail = (url: string) => {
-    if (!url) return '';
-    if (url.includes('mqdefault.jpg')) {
-      return url.replace('mqdefault.jpg', 'hqdefault.jpg');
-    }
-    return url;
-  };
+  const imageSrc = getThumbnailUrl(song.thumbnailUrl || song.youtubeId || song.id, 'mqdefault');
 
   return (
     <div 
@@ -25,7 +20,7 @@ export const SongCard = React.memo(function SongCard({ song, type, onClick }: So
     >
       <div className="relative aspect-square rounded-xl overflow-hidden shadow-md shadow-gray-200 dark:shadow-black/50">
         <OptimizedImage 
-          src={getHighResThumbnail(song.thumbnailUrl)} 
+          src={imageSrc} 
           alt={song.title} 
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />

@@ -41,6 +41,7 @@ import {
   Image,
   Sparkles,
   Megaphone,
+  Save,
   ChevronLeft,
   ChevronRight,
   Monitor,
@@ -133,7 +134,9 @@ interface SystemConfig {
 
 export function AdminDashboard() {
   const { token, user: currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<"moderation" | "users" | "monitoring" | "config" | "promotions">("moderation");
+  const [activeTab, setActiveTab] = useState<"moderation" | "users" | "monitoring" | "homepage" | "promotions" | "config">("moderation");
+  const [moderationSubTab, setModerationSubTab] = useState<"playlists" | "curation">("playlists");
+  const [configSubTab, setConfigSubTab] = useState<"security" | "layout" | "discovery">("security");
   
   // Real-Time Live Preview state variables
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
@@ -173,7 +176,12 @@ export function AdminDashboard() {
   const [maxSongsInput, setMaxSongsInput] = useState("100");
   const [cacheExpiryInput, setCacheExpiryInput] = useState("24");
   const [alertBannerInput, setAlertBannerInput] = useState("");
+  const [registrationDisabledInput, setRegistrationDisabledInput] = useState(false);
+  const [maintenanceModeInput, setMaintenanceModeInput] = useState(false);
+  const [enableCommunityPostsInput, setEnableCommunityPostsInput] = useState(false);
+  const [strictModerationInput, setStrictModerationInput] = useState(false);
 
+  const [featuredCollectionEnabledInput, setFeaturedCollectionEnabledInput] = useState(false);
   const [featuredTitleInput, setFeaturedTitleInput] = useState("");
   const [featuredPlaylistIdInput, setFeaturedPlaylistIdInput] = useState("");
   const [featuredDescInput, setFeaturedDescInput] = useState("");
@@ -190,6 +198,7 @@ export function AdminDashboard() {
   const [rowSearchLoading, setRowSearchLoading] = useState(false);
 
   // Homepage Layout Customizer States
+  const [homepageLayoutInput, setHomepageLayoutInput] = useState<any[]>([]);
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
   const [editingSectionTitle, setEditingSectionTitle] = useState<string>("");
   const [draggedSectionIndex, setDraggedSectionIndex] = useState<number | null>(null);
@@ -201,28 +210,6 @@ export function AdminDashboard() {
   const [recommendedExcludePlayedInput, setRecommendedExcludePlayedInput] = useState(true);
   const [moodsGenresLimitInput, setMoodsGenresLimitInput] = useState("15");
   const [moodsGenresCustomTagsInput, setMoodsGenresCustomTagsInput] = useState("");
-
-  useEffect(() => {
-    const titleVal = configs.find(c => c.key === "FEATURED_COLLECTION_TITLE")?.value || "";
-    const playlistIdVal = configs.find(c => c.key === "FEATURED_COLLECTION_PLAYLIST_ID")?.value || "";
-    const descVal = configs.find(c => c.key === "FEATURED_COLLECTION_DESC")?.value || "";
-    setFeaturedTitleInput(titleVal);
-    setFeaturedPlaylistIdInput(playlistIdVal);
-    setFeaturedDescInput(descVal);
-
-    const customEnabledVal = configs.find(c => c.key === "CUSTOM_ROW_ENABLED")?.value === "true";
-    const customTitleVal = configs.find(c => c.key === "CUSTOM_ROW_TITLE")?.value || "";
-    const customSubtitleVal = configs.find(c => c.key === "CUSTOM_ROW_SUBTITLE")?.value || "";
-    const customTypeVal = (configs.find(c => c.key === "CUSTOM_ROW_TYPE")?.value as "playlists" | "songs") || "playlists";
-    const customIdsVal = configs.find(c => c.key === "CUSTOM_ROW_IDS")?.value || "";
-    const idList = customIdsVal.split(",").map((id: string) => id.trim()).filter((id: string) => id.length > 0);
-
-    setCustomRowEnabledInput(customEnabledVal);
-    setCustomRowTitleInput(customTitleVal);
-    setCustomRowSubtitleInput(customSubtitleVal);
-    setCustomRowTypeInput(customTypeVal);
-    setCustomRowIdsInput(idList);
-  }, [configs]);
 
   // Promotional Banners States
   const [bannersList, setBannersList] = useState<any[]>([]);
@@ -254,6 +241,41 @@ export function AdminDashboard() {
       const intervalVal = configs.find(c => c.key === "SYSTEM_PROMO_INTERVAL")?.value;
       if (intervalVal) setSlideshowIntervalInput(intervalVal);
 
+      const regDisVal = configs.find(c => c.key === "DISABLE_REGISTRATION")?.value === "true";
+      setRegistrationDisabledInput(regDisVal);
+
+      const maintVal = configs.find(c => c.key === "MAINTENANCE_MODE")?.value === "true";
+      setMaintenanceModeInput(maintVal);
+
+      const commPostsVal = configs.find(c => c.key === "ENABLE_COMMUNITY_POSTS")?.value !== "false";
+      setEnableCommunityPostsInput(commPostsVal);
+
+      const strictModVal = configs.find(c => c.key === "STRICT_MODERATION")?.value === "true";
+      setStrictModerationInput(strictModVal);
+
+      const featuredEnabledVal = configs.find(c => c.key === "FEATURED_COLLECTION_ENABLED")?.value === "true";
+      setFeaturedCollectionEnabledInput(featuredEnabledVal);
+
+      const titleVal = configs.find(c => c.key === "FEATURED_COLLECTION_TITLE")?.value || "";
+      const playlistIdVal = configs.find(c => c.key === "FEATURED_COLLECTION_PLAYLIST_ID")?.value || "";
+      const descVal = configs.find(c => c.key === "FEATURED_COLLECTION_DESC")?.value || "";
+      setFeaturedTitleInput(titleVal);
+      setFeaturedPlaylistIdInput(playlistIdVal);
+      setFeaturedDescInput(descVal);
+
+      const customEnabledVal = configs.find(c => c.key === "CUSTOM_ROW_ENABLED")?.value === "true";
+      const customTitleVal = configs.find(c => c.key === "CUSTOM_ROW_TITLE")?.value || "";
+      const customSubtitleVal = configs.find(c => c.key === "CUSTOM_ROW_SUBTITLE")?.value || "";
+      const customTypeVal = (configs.find(c => c.key === "CUSTOM_ROW_TYPE")?.value as "playlists" | "songs") || "playlists";
+      const customIdsVal = configs.find(c => c.key === "CUSTOM_ROW_IDS")?.value || "";
+      const idList = customIdsVal.split(",").map((id: string) => id.trim()).filter((id: string) => id.length > 0);
+
+      setCustomRowEnabledInput(customEnabledVal);
+      setCustomRowTitleInput(customTitleVal);
+      setCustomRowSubtitleInput(customSubtitleVal);
+      setCustomRowTypeInput(customTypeVal);
+      setCustomRowIdsInput(idList);
+
       const bannersVal = configs.find(c => c.key === "SYSTEM_PROMO_BANNERS")?.value;
       if (bannersVal) {
         try {
@@ -282,6 +304,36 @@ export function AdminDashboard() {
 
       const mgCustomTags = configs.find(c => c.key === "MOOD_GENRES_CUSTOM_TAGS")?.value;
       if (mgCustomTags !== undefined) setMoodsGenresCustomTagsInput(mgCustomTags);
+
+      const defaultSections = [
+        { id: "promoBanners", name: "Advertisement Banners", visible: true, title: "Special Offers", layoutStyle: "carousel" },
+        { id: "yourCurations", name: "Your Curations", visible: true, title: "Your Curations", layoutStyle: "carousel" },
+        { id: "heavyRotation", name: "On Heavy Rotation", visible: true, title: "On Heavy Rotation", layoutStyle: "carousel" },
+        { id: "trending", name: "Trending Worldwide", visible: true, title: "Trending Worldwide", layoutStyle: "carousel" },
+        { id: "recommended", name: "Recommended for You", visible: true, title: "Recommended for You", layoutStyle: "carousel" },
+        { id: "quickPicks", name: "Quick Picks", visible: true, title: "Quick Picks", layoutStyle: "grid" },
+        { id: "spotlight", name: "Spotlight Curation", visible: true, title: "Spotlight Curation", layoutStyle: "hero" },
+        { id: "customCollection", name: "Customizable Collection Row", visible: true, title: "Customizable Collection Row", layoutStyle: "carousel" },
+        { id: "communityFavorites", name: "Community Favorites", visible: true, title: "Community Favorites", layoutStyle: "carousel" },
+        { id: "freshFinds", name: "Fresh Finds", visible: true, title: "Fresh Finds", layoutStyle: "carousel" },
+        { id: "moodsGenres", name: "Moods & Genres", visible: true, title: "Moods & Genres", layoutStyle: "grid" }
+      ];
+      const layoutStr = configs.find(c => c.key === "HOMEPAGE_LAYOUT")?.value;
+      let layout: any[] = [];
+      if (layoutStr) {
+        try {
+          layout = JSON.parse(layoutStr);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      const merged = [...layout];
+      defaultSections.forEach(defSec => {
+        if (!merged.some(s => s.id === defSec.id)) {
+          merged.push(defSec);
+        }
+      });
+      setHomepageLayoutInput(merged);
     }
   }, [configs]);
 
@@ -784,6 +836,280 @@ export function AdminDashboard() {
     }
   };
 
+  const isDirty = (() => {
+    if (configs.length === 0) return false;
+
+    const findVal = (key: string) => configs.find(c => c.key === key)?.value || "";
+
+    const dDisableReg = findVal("DISABLE_REGISTRATION") === "true";
+    const dMaintenance = findVal("MAINTENANCE_MODE") === "true";
+    const dCommPosts = findVal("ENABLE_COMMUNITY_POSTS") !== "false";
+    const dStrictMod = findVal("STRICT_MODERATION") === "true";
+
+    const dMaxSongs = findVal("MAX_SONGS_PER_PLAYLIST") || "100";
+    const dCacheExpiry = findVal("CACHE_EXPIRY_HOURS") || "24";
+    const dAlertBanner = findVal("SYSTEM_ALERT_BANNER") || "";
+    const dSlideshowInterval = findVal("SYSTEM_PROMO_INTERVAL") || "6";
+
+    const dRecLimit = findVal("RECOMMENDED_LIMIT") || "20";
+    const dRecStrategy = findVal("RECOMMENDED_STRATEGY") || "artist_match";
+    const dRecExcludePlayed = findVal("RECOMMENDED_EXCLUDE_PLAYED") === "true";
+
+    const dMgLimit = findVal("MOOD_GENRES_LIMIT") || "15";
+    const dMgCustomTags = findVal("MOOD_GENRES_CUSTOM_TAGS") || "";
+
+    const dFeaturedEnabled = findVal("FEATURED_COLLECTION_ENABLED") === "true";
+    const dFeaturedTitle = findVal("FEATURED_COLLECTION_TITLE") || "";
+    const dFeaturedPlaylistId = findVal("FEATURED_COLLECTION_PLAYLIST_ID") || "";
+    const dFeaturedDesc = findVal("FEATURED_COLLECTION_DESC") || "";
+
+    const dCustomEnabled = findVal("CUSTOM_ROW_ENABLED") === "true";
+    const dCustomTitle = findVal("CUSTOM_ROW_TITLE") || "";
+    const dCustomSubtitle = findVal("CUSTOM_ROW_SUBTITLE") || "";
+    const dCustomType = findVal("CUSTOM_ROW_TYPE") || "playlists";
+    const dCustomIds = findVal("CUSTOM_ROW_IDS") || "";
+
+    const dLayout = findVal("HOMEPAGE_LAYOUT") || "";
+    const dBanners = findVal("SYSTEM_PROMO_BANNERS") || "";
+
+    if (registrationDisabledInput !== dDisableReg) return true;
+    if (maintenanceModeInput !== dMaintenance) return true;
+    if (enableCommunityPostsInput !== dCommPosts) return true;
+    if (strictModerationInput !== dStrictMod) return true;
+
+    if (maxSongsInput !== dMaxSongs) return true;
+    if (cacheExpiryInput !== dCacheExpiry) return true;
+    if (alertBannerInput !== dAlertBanner) return true;
+    if (slideshowIntervalInput !== dSlideshowInterval) return true;
+
+    if (recommendedLimitInput !== dRecLimit) return true;
+    if (recommendedStrategyInput !== dRecStrategy) return true;
+    if (recommendedExcludePlayedInput !== dRecExcludePlayed) return true;
+
+    if (moodsGenresLimitInput !== dMgLimit) return true;
+    if (moodsGenresCustomTagsInput !== dMgCustomTags) return true;
+
+    if (featuredCollectionEnabledInput !== dFeaturedEnabled) return true;
+    if (featuredTitleInput !== dFeaturedTitle) return true;
+    if (featuredPlaylistIdInput !== dFeaturedPlaylistId) return true;
+    if (featuredDescInput !== dFeaturedDesc) return true;
+
+    if (customRowEnabledInput !== dCustomEnabled) return true;
+    if (customRowTitleInput !== dCustomTitle) return true;
+    if (customRowSubtitleInput !== dCustomSubtitle) return true;
+    if (customRowTypeInput !== dCustomType) return true;
+    if (customRowIdsInput.join(",") !== dCustomIds) return true;
+
+    // Homepage layout and banners list check
+    if (JSON.stringify(homepageLayoutInput) !== (dLayout || "[]")) return true;
+    if (JSON.stringify(bannersList) !== (dBanners || "[]")) return true;
+
+    return false;
+  })();
+
+  const handleSavePanelConfigs = async (keys: string[], values: Record<string, string>, panelName: string) => {
+    try {
+      const configItems = keys.map(key => ({
+        key,
+        value: values[key]
+      }));
+
+      const res = await fetch("/api/admin?action=bulk-update-configs", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ configs: configItems })
+      });
+
+      if (!res.ok) throw new Error(`Failed to save ${panelName} settings`);
+
+      toast.success(`${panelName} settings saved successfully`);
+      
+      setConfigs(prev => {
+        const next = [...prev];
+        configItems.forEach(item => {
+          const index = next.findIndex(c => c.key === item.key);
+          if (index > -1) {
+            next[index] = { ...next[index], value: item.value, updatedAt: new Date().toISOString() };
+          } else {
+            next.push({ key: item.key, value: item.value, updatedAt: new Date().toISOString() });
+          }
+        });
+        return next;
+      });
+    } catch (err: any) {
+      toast.error(err.message || `Failed to save ${panelName} settings`);
+    }
+  };
+
+  const handleSaveAllConfigs = async () => {
+    try {
+      const configItems = [
+        { key: "DISABLE_REGISTRATION", value: registrationDisabledInput ? "true" : "false" },
+        { key: "MAINTENANCE_MODE", value: maintenanceModeInput ? "true" : "false" },
+        { key: "ENABLE_COMMUNITY_POSTS", value: enableCommunityPostsInput ? "true" : "false" },
+        { key: "STRICT_MODERATION", value: strictModerationInput ? "true" : "false" },
+        { key: "MAX_SONGS_PER_PLAYLIST", value: maxSongsInput },
+        { key: "CACHE_EXPIRY_HOURS", value: cacheExpiryInput },
+        { key: "FEATURED_COLLECTION_ENABLED", value: featuredCollectionEnabledInput ? "true" : "false" },
+        { key: "FEATURED_COLLECTION_TITLE", value: featuredTitleInput.trim() },
+        { key: "FEATURED_COLLECTION_DESC", value: featuredDescInput.trim() },
+        { key: "FEATURED_COLLECTION_PLAYLIST_ID", value: featuredPlaylistIdInput },
+        { key: "CUSTOM_ROW_ENABLED", value: customRowEnabledInput ? "true" : "false" },
+        { key: "CUSTOM_ROW_TITLE", value: customRowTitleInput.trim() },
+        { key: "CUSTOM_ROW_SUBTITLE", value: customRowSubtitleInput.trim() },
+        { key: "CUSTOM_ROW_TYPE", value: customRowTypeInput },
+        { key: "CUSTOM_ROW_IDS", value: customRowIdsInput.join(",") },
+        { key: "RECOMMENDED_LIMIT", value: recommendedLimitInput },
+        { key: "RECOMMENDED_STRATEGY", value: recommendedStrategyInput },
+        { key: "RECOMMENDED_EXCLUDE_PLAYED", value: recommendedExcludePlayedInput ? "true" : "false" },
+        { key: "MOOD_GENRES_LIMIT", value: moodsGenresLimitInput },
+        { key: "MOOD_GENRES_CUSTOM_TAGS", value: moodsGenresCustomTagsInput.trim() },
+        { key: "SYSTEM_ALERT_BANNER", value: alertBannerInput.trim() },
+        { key: "SYSTEM_PROMO_INTERVAL", value: slideshowIntervalInput },
+        { key: "SYSTEM_PROMO_BANNERS", value: JSON.stringify(bannersList) },
+        { key: "HOMEPAGE_LAYOUT", value: JSON.stringify(homepageLayoutInput) }
+      ];
+
+      const res = await fetch("/api/admin?action=bulk-update-configs", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ configs: configItems })
+      });
+
+      if (!res.ok) throw new Error("Failed to save configurations");
+
+      toast.success("All system configurations saved successfully");
+      
+      setConfigs(prev => {
+        const next = [...prev];
+        configItems.forEach(item => {
+          const index = next.findIndex(c => c.key === item.key);
+          if (index > -1) {
+            next[index] = { ...next[index], value: item.value, updatedAt: new Date().toISOString() };
+          } else {
+            next.push({ key: item.key, value: item.value, updatedAt: new Date().toISOString() });
+          }
+        });
+        return next;
+      });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to save configurations");
+    }
+  };
+
+  const handleDiscardChanges = () => {
+    if (configs.length > 0) {
+      const regDis = configs.find(c => c.key === "DISABLE_REGISTRATION")?.value === "true";
+      setRegistrationDisabledInput(regDis);
+
+      const maint = configs.find(c => c.key === "MAINTENANCE_MODE")?.value === "true";
+      setMaintenanceModeInput(maint);
+
+      const commPosts = configs.find(c => c.key === "ENABLE_COMMUNITY_POSTS")?.value !== "false";
+      setEnableCommunityPostsInput(commPosts);
+
+      const strictMod = configs.find(c => c.key === "STRICT_MODERATION")?.value === "true";
+      setStrictModerationInput(strictMod);
+
+      const maxSongs = configs.find(c => c.key === "MAX_SONGS_PER_PLAYLIST")?.value || "100";
+      setMaxSongsInput(maxSongs);
+
+      const cacheExpiry = configs.find(c => c.key === "CACHE_EXPIRY_HOURS")?.value || "24";
+      setCacheExpiryInput(cacheExpiry);
+
+      const alertBanner = configs.find(c => c.key === "SYSTEM_ALERT_BANNER")?.value || "";
+      setAlertBannerInput(alertBanner);
+
+      const intervalVal = configs.find(c => c.key === "SYSTEM_PROMO_INTERVAL")?.value || "6";
+      setSlideshowIntervalInput(intervalVal);
+
+      const bannersVal = configs.find(c => c.key === "SYSTEM_PROMO_BANNERS")?.value;
+      if (bannersVal) {
+        try {
+          setBannersList(JSON.parse(bannersVal));
+        } catch (e) {
+          setBannersList([]);
+        }
+      } else {
+        setBannersList([]);
+      }
+
+      const recLimit = configs.find(c => c.key === "RECOMMENDED_LIMIT")?.value || "20";
+      setRecommendedLimitInput(recLimit);
+
+      const recStrategy = configs.find(c => c.key === "RECOMMENDED_STRATEGY")?.value || "artist_match";
+      setRecommendedStrategyInput(recStrategy);
+
+      const recExcludePlayed = configs.find(c => c.key === "RECOMMENDED_EXCLUDE_PLAYED")?.value === "true";
+      setRecommendedExcludePlayedInput(recExcludePlayed);
+
+      const mgLimit = configs.find(c => c.key === "MOOD_GENRES_LIMIT")?.value || "15";
+      setMoodsGenresLimitInput(mgLimit);
+
+      const mgCustomTags = configs.find(c => c.key === "MOOD_GENRES_CUSTOM_TAGS")?.value || "";
+      setMoodsGenresCustomTagsInput(mgCustomTags);
+
+      const titleVal = configs.find(c => c.key === "FEATURED_COLLECTION_TITLE")?.value || "";
+      setFeaturedTitleInput(titleVal);
+
+      const playlistIdVal = configs.find(c => c.key === "FEATURED_COLLECTION_PLAYLIST_ID")?.value || "";
+      setFeaturedPlaylistIdInput(playlistIdVal);
+
+      const descVal = configs.find(c => c.key === "FEATURED_COLLECTION_DESC")?.value || "";
+      setFeaturedDescInput(descVal);
+
+      const customEnabledVal = configs.find(c => c.key === "CUSTOM_ROW_ENABLED")?.value === "true";
+      const customTitleVal = configs.find(c => c.key === "CUSTOM_ROW_TITLE")?.value || "";
+      const customSubtitleVal = configs.find(c => c.key === "CUSTOM_ROW_SUBTITLE")?.value || "";
+      const customTypeVal = (configs.find(c => c.key === "CUSTOM_ROW_TYPE")?.value as "playlists" | "songs") || "playlists";
+      const customIdsVal = configs.find(c => c.key === "CUSTOM_ROW_IDS")?.value || "";
+      const idList = customIdsVal.split(",").map((id: string) => id.trim()).filter((id: string) => id.length > 0);
+
+      setCustomRowEnabledInput(customEnabledVal);
+      setCustomRowTitleInput(customTitleVal);
+      setCustomRowSubtitleInput(customSubtitleVal);
+      setCustomRowTypeInput(customTypeVal);
+      setCustomRowIdsInput(idList);
+
+      const layoutStr = configs.find(c => c.key === "HOMEPAGE_LAYOUT")?.value;
+      let layout: any[] = [];
+      if (layoutStr) {
+        try {
+          layout = JSON.parse(layoutStr);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      const defaultSections = [
+        { id: "promoBanners", name: "Advertisement Banners", visible: true, title: "Special Offers", layoutStyle: "carousel" },
+        { id: "yourCurations", name: "Your Curations", visible: true, title: "Your Curations", layoutStyle: "carousel" },
+        { id: "heavyRotation", name: "On Heavy Rotation", visible: true, title: "On Heavy Rotation", layoutStyle: "carousel" },
+        { id: "trending", name: "Trending Worldwide", visible: true, title: "Trending Worldwide", layoutStyle: "carousel" },
+        { id: "recommended", name: "Recommended for You", visible: true, title: "Recommended for You", layoutStyle: "carousel" },
+        { id: "quickPicks", name: "Quick Picks", visible: true, title: "Quick Picks", layoutStyle: "grid" },
+        { id: "spotlight", name: "Spotlight Curation", visible: true, title: "Spotlight Curation", layoutStyle: "hero" },
+        { id: "customCollection", name: "Customizable Collection Row", visible: true, title: "Customizable Collection Row", layoutStyle: "carousel" },
+        { id: "communityFavorites", name: "Community Favorites", visible: true, title: "Community Favorites", layoutStyle: "carousel" },
+        { id: "freshFinds", name: "Fresh Finds", visible: true, title: "Fresh Finds", layoutStyle: "carousel" },
+        { id: "moodsGenres", name: "Moods & Genres", visible: true, title: "Moods & Genres", layoutStyle: "grid" }
+      ];
+      const merged = [...layout];
+      defaultSections.forEach(defSec => {
+        if (!merged.some(s => s.id === defSec.id)) {
+          merged.push(defSec);
+        }
+      });
+      setHomepageLayoutInput(merged);
+    }
+    toast.success("Draft configurations discarded");
+  };
+
   const handleSearchCustomRowItems = async (q: string) => {
     setRowSearchQuery(q);
     if (!q.trim()) {
@@ -807,27 +1133,25 @@ export function AdminDashboard() {
     }
   };
 
-  const handleAddItemToCustomRow = async (item: any) => {
+  const handleAddItemToCustomRow = (item: any) => {
     if (compiledItems.some(i => i.id === item.id)) {
       toast.error("Item is already added to the compiled collection row");
       return;
     }
     const nextItems = [...compiledItems, item];
     setCompiledItems(nextItems);
-    const idsString = nextItems.map(i => i.id).join(",");
-    await handleUpdateConfig("CUSTOM_ROW_IDS", idsString);
-    toast.success("Added to compilation row!");
+    setCustomRowIdsInput(nextItems.map(i => i.id));
+    toast.success("Added to compilation row draft!");
   };
 
-  const handleRemoveItemFromCustomRow = async (id: string) => {
+  const handleRemoveItemFromCustomRow = (id: string) => {
     const nextItems = compiledItems.filter(i => i.id !== id);
     setCompiledItems(nextItems);
-    const idsString = nextItems.map(i => i.id).join(",");
-    await handleUpdateConfig("CUSTOM_ROW_IDS", idsString);
-    toast.success("Removed from compilation row");
+    setCustomRowIdsInput(nextItems.map(i => i.id));
+    toast.success("Removed from compilation row draft");
   };
 
-  const handleMoveItemInCustomRow = async (index: number, direction: "up" | "down") => {
+  const handleMoveItemInCustomRow = (index: number, direction: "up" | "down") => {
     const nextItems = [...compiledItems];
     if (direction === "up" && index > 0) {
       const temp = nextItems[index];
@@ -839,11 +1163,10 @@ export function AdminDashboard() {
       nextItems[index + 1] = temp;
     }
     setCompiledItems(nextItems);
-    const idsString = nextItems.map(i => i.id).join(",");
-    await handleUpdateConfig("CUSTOM_ROW_IDS", idsString);
+    setCustomRowIdsInput(nextItems.map(i => i.id));
   };
 
-  const handleToggleCustomRowType = async (type: "playlists" | "songs") => {
+  const handleToggleCustomRowType = (type: "playlists" | "songs") => {
     if (compiledItems.length > 0) {
       if (!window.confirm("Changing collection row type will clear current compiled items. Continue?")) {
         return;
@@ -851,11 +1174,10 @@ export function AdminDashboard() {
     }
     setCustomRowTypeInput(type);
     setCompiledItems([]);
+    setCustomRowIdsInput([]);
     setRowSearchResults({ playlists: [], songs: [] });
     setRowSearchQuery("");
-    await handleUpdateConfig("CUSTOM_ROW_TYPE", type);
-    await handleUpdateConfig("CUSTOM_ROW_IDS", "");
-    toast.success(`Row type changed to ${type}. Current selection cleared.`);
+    toast.success(`Row type changed to ${type}. Click Save to persist.`);
   };
 
   const handleAddBanner = () => {
@@ -911,7 +1233,6 @@ export function AdminDashboard() {
     }
 
     setBannersList(updatedList);
-    handleUpdateConfig("SYSTEM_PROMO_BANNERS", JSON.stringify(updatedList));
     
     // Clear inputs
     setNewBannerImage("");
@@ -945,7 +1266,6 @@ export function AdminDashboard() {
   const handleDeleteBanner = (id: string) => {
     const updatedList = bannersList.filter(b => b.id !== id);
     setBannersList(updatedList);
-    handleUpdateConfig("SYSTEM_PROMO_BANNERS", JSON.stringify(updatedList));
     toast.success("Promotional banner deleted successfully");
     if (editingBannerId === id) {
       handleCancelEdit();
@@ -959,7 +1279,6 @@ export function AdminDashboard() {
     updatedList[index] = updatedList[index - 1];
     updatedList[index - 1] = temp;
     setBannersList(updatedList);
-    handleUpdateConfig("SYSTEM_PROMO_BANNERS", JSON.stringify(updatedList));
   };
 
   const handleMoveBannerDown = (index: number) => {
@@ -969,7 +1288,6 @@ export function AdminDashboard() {
     updatedList[index] = updatedList[index + 1];
     updatedList[index + 1] = temp;
     setBannersList(updatedList);
-    handleUpdateConfig("SYSTEM_PROMO_BANNERS", JSON.stringify(updatedList));
   };
 
   const handleLoadTemplate = (type: "spotlight" | "ad") => {
@@ -1064,6 +1382,17 @@ export function AdminDashboard() {
           )}
         </button>
         <button
+          onClick={() => setActiveTab("homepage")}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all ${
+            activeTab === "homepage"
+              ? "border-indigo-500 text-indigo-400 font-bold"
+              : "border-transparent text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          <Layout className="w-4 h-4" />
+          Homepage Settings
+        </button>
+        <button
           onClick={() => setActiveTab("users")}
           className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all ${
             activeTab === "users"
@@ -1086,17 +1415,6 @@ export function AdminDashboard() {
           Platform Monitoring
         </button>
         <button
-          onClick={() => setActiveTab("promotions")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all ${
-            activeTab === "promotions"
-              ? "border-indigo-500 text-indigo-400 font-bold"
-              : "border-transparent text-gray-400 hover:text-gray-200"
-          }`}
-        >
-          <Megaphone className="w-4 h-4" />
-          Promotions & Broadcasts
-        </button>
-        <button
           onClick={() => setActiveTab("config")}
           className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all ${
             activeTab === "config"
@@ -1107,15 +1425,27 @@ export function AdminDashboard() {
           <Settings className="w-4 h-4" />
           System Settings
         </button>
+        <button
+          onClick={() => setActiveTab("promotions")}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all ${
+            activeTab === "promotions"
+              ? "border-indigo-500 text-indigo-400 font-bold"
+              : "border-transparent text-gray-400 hover:text-gray-200"
+          }`}
+        >
+          <Megaphone className="w-4 h-4" />
+          Promotions & Broadcasts
+        </button>
       </div>
 
       {/* Tabs Content */}
 
       {/* Tab 1: Moderation */}
       {activeTab === "moderation" && (
-        <div className="flex flex-col gap-8 animate-fadeIn">
-          {/* Section 1: Playlists moderation queue */}
-          <div className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
+        <div className="flex flex-col gap-6 animate-fadeIn">
+
+            
+            <div className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div>
                 <h2 className="text-lg font-bold">Public Playlists Moderation</h2>
@@ -1341,9 +1671,8 @@ export function AdminDashboard() {
               </table>
             </div>
           </div>
-
-          {/* Section 2: Dead-Link Detection queue */}
-          <div className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
+              
+              <div className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
             <div className="mb-6">
               <h2 className="text-lg font-bold flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-red-400" />
@@ -1467,8 +1796,27 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          {/* Spotlight Curation Manager */}
-          <div id="featured-homepage-section-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
+        </div>
+      )}
+
+      {/* Tab 4: Homepage Settings */}
+      {activeTab === "homepage" && (
+        <div className="flex flex-col gap-6 animate-fadeIn">
+          {/* Top Overview Banner */}
+          <div className="bg-gradient-to-r from-indigo-950/40 via-slate-900/40 to-violet-950/40 border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h2 className="text-xl font-extrabold flex items-center gap-2 text-white">
+                <Layout className="w-5 h-5 text-indigo-400" />
+                Homepage Settings & Customization
+              </h2>
+              <p className="text-xs text-gray-400 mt-1 max-w-2xl">
+                Configure spotlight banners, section visibility, layouts, custom curated shelves, and discovery recommendation engines.
+              </p>
+            </div>
+          </div>
+
+{/* Spotlight Curation Manager */}
+              <div id="featured-homepage-section-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
             <h2 className="text-lg font-bold flex items-center gap-2 mb-1">
               <Zap className="w-5 h-5 text-indigo-400" />
               Spotlight Curation
@@ -1482,22 +1830,22 @@ export function AdminDashboard() {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-xs text-gray-200">Display Status</span>
                     <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${
-                      configs.find(c => c.key === "FEATURED_COLLECTION_ENABLED")?.value === "true" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                      featuredCollectionEnabledInput ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
                     }`}>
-                      {configs.find(c => c.key === "FEATURED_COLLECTION_ENABLED")?.value === "true" ? "LIVE" : "DISABLED"}
+                      {featuredCollectionEnabledInput ? "LIVE (unsaved)" : "DISABLED (unsaved)"}
                     </span>
                   </div>
                   <span className="text-[10px] text-gray-400">Toggle whether this customizable spotlight curation is active on the homepage.</span>
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleUpdateConfig("FEATURED_COLLECTION_ENABLED", (configs.find(c => c.key === "FEATURED_COLLECTION_ENABLED")?.value === "true") ? "false" : "true")}
+                  onClick={() => setFeaturedCollectionEnabledInput(!featuredCollectionEnabledInput)}
                   className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${
-                    (configs.find(c => c.key === "FEATURED_COLLECTION_ENABLED")?.value === "true") ? "bg-emerald-600" : "bg-slate-700"
+                    featuredCollectionEnabledInput ? "bg-emerald-600" : "bg-slate-700"
                   }`}
                 >
                   <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                    (configs.find(c => c.key === "FEATURED_COLLECTION_ENABLED")?.value === "true") ? "translate-x-4" : "translate-x-0"
+                    featuredCollectionEnabledInput ? "translate-x-4" : "translate-x-0"
                   }`} />
                 </button>
               </div>
@@ -1516,13 +1864,6 @@ export function AdminDashboard() {
                     placeholder="Spotlight Curation..."
                     className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500"
                   />
-                  <button
-                    type="button"
-                    onClick={() => handleUpdateConfig("FEATURED_COLLECTION_TITLE", featuredTitleInput.trim())}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-all shadow cursor-pointer"
-                  >
-                    Save Title
-                  </button>
                 </div>
               </div>
 
@@ -1540,13 +1881,6 @@ export function AdminDashboard() {
                     placeholder="A special curation hand-picked by the admin team..."
                     className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500 resize-none"
                   />
-                  <button
-                    type="button"
-                    onClick={() => handleUpdateConfig("FEATURED_COLLECTION_DESC", featuredDescInput.trim())}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-all shadow cursor-pointer h-fit self-end"
-                  >
-                    Save Description
-                  </button>
                 </div>
               </div>
 
@@ -1558,11 +1892,7 @@ export function AdminDashboard() {
                 </div>
                 <select
                   value={featuredPlaylistIdInput}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setFeaturedPlaylistIdInput(val);
-                    handleUpdateConfig("FEATURED_COLLECTION_PLAYLIST_ID", val);
-                  }}
+                  onChange={(e) => setFeaturedPlaylistIdInput(e.target.value)}
                   className="w-full mt-2 bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-indigo-500"
                 >
                   <option value="">-- Choose Public Playlist --</option>
@@ -1574,6 +1904,32 @@ export function AdminDashboard() {
                       </option>
                     ))}
                 </select>
+              </div>
+
+              {/* Save Button for Spotlight Curation */}
+              <div className="flex justify-end mt-4 pt-4 border-t border-white/5">
+                <button
+                  type="button"
+                  onClick={() => handleSavePanelConfigs(
+                    [
+                      "FEATURED_COLLECTION_ENABLED",
+                      "FEATURED_COLLECTION_TITLE",
+                      "FEATURED_COLLECTION_DESC",
+                      "FEATURED_COLLECTION_PLAYLIST_ID"
+                    ],
+                    {
+                      FEATURED_COLLECTION_ENABLED: featuredCollectionEnabledInput ? "true" : "false",
+                      FEATURED_COLLECTION_TITLE: featuredTitleInput.trim(),
+                      FEATURED_COLLECTION_DESC: featuredDescInput.trim(),
+                      FEATURED_COLLECTION_PLAYLIST_ID: featuredPlaylistIdInput
+                    },
+                    "Spotlight Curation"
+                  )}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Save Spotlight Curation
+                </button>
               </div>
             </div>
           </div>
@@ -1597,18 +1953,14 @@ export function AdminDashboard() {
                       <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${
                         customRowEnabledInput ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
                       }`}>
-                        {customRowEnabledInput ? "LIVE" : "DISABLED"}
+                        {customRowEnabledInput ? "LIVE (unsaved)" : "DISABLED (unsaved)"}
                       </span>
                     </div>
                     <span className="text-[10px] text-gray-400">Toggle whether this customizable category row is active on the homepage.</span>
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      const nextVal = !customRowEnabledInput;
-                      setCustomRowEnabledInput(nextVal);
-                      handleUpdateConfig("CUSTOM_ROW_ENABLED", nextVal ? "true" : "false");
-                    }}
+                    onClick={() => setCustomRowEnabledInput(!customRowEnabledInput)}
                     className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${
                       customRowEnabledInput ? "bg-emerald-600" : "bg-slate-700"
                     }`}
@@ -1625,21 +1977,14 @@ export function AdminDashboard() {
                     <span className="font-semibold text-xs text-gray-200 block">Row Title</span>
                     <span className="text-[10px] text-gray-400 block mt-0.5">The main section heading displayed to visitors.</span>
                   </div>
-                  <div className="flex gap-2 mt-2">
+                  <div className="mt-1">
                     <input
                       type="text"
                       value={customRowTitleInput}
                       onChange={(e) => setCustomRowTitleInput(e.target.value)}
                       placeholder="e.g. Community Favorites, Late Night Grooves"
-                      className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500"
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateConfig("CUSTOM_ROW_TITLE", customRowTitleInput.trim())}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-all shadow cursor-pointer"
-                    >
-                      Save
-                    </button>
                   </div>
                 </div>
 
@@ -1649,21 +1994,14 @@ export function AdminDashboard() {
                     <span className="font-semibold text-xs text-gray-200 block">Row Subtitle</span>
                     <span className="text-[10px] text-gray-400 block mt-0.5">The supporting descriptive text or tagline shown below the title.</span>
                   </div>
-                  <div className="flex gap-2 mt-2">
+                  <div className="mt-1">
                     <input
                       type="text"
                       value={customRowSubtitleInput}
                       onChange={(e) => setCustomRowSubtitleInput(e.target.value)}
                       placeholder="e.g. Hand-picked playlists by our global curators"
-                      className="flex-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500"
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleUpdateConfig("CUSTOM_ROW_SUBTITLE", customRowSubtitleInput.trim())}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-all shadow cursor-pointer"
-                    >
-                      Save
-                    </button>
                   </div>
                 </div>
 
@@ -1843,12 +2181,456 @@ export function AdminDashboard() {
                   )}
                 </div>
               </div>
+
+              {/* Individual Save Button for Customizable Homepage Collection Row */}
+              <div className="flex justify-end mt-6 pt-4 border-t border-white/5 col-span-1 lg:col-span-2">
+                <button
+                  type="button"
+                  onClick={() => handleSavePanelConfigs(
+                    [
+                      "CUSTOM_ROW_ENABLED",
+                      "CUSTOM_ROW_TITLE",
+                      "CUSTOM_ROW_SUBTITLE",
+                      "CUSTOM_ROW_TYPE",
+                      "CUSTOM_ROW_IDS"
+                    ],
+                    {
+                      CUSTOM_ROW_ENABLED: customRowEnabledInput ? "true" : "false",
+                      CUSTOM_ROW_TITLE: customRowTitleInput.trim(),
+                      CUSTOM_ROW_SUBTITLE: customRowSubtitleInput.trim(),
+                      CUSTOM_ROW_TYPE: customRowTypeInput,
+                      CUSTOM_ROW_IDS: customRowIdsInput.join(",")
+                    },
+                    "Collection Row"
+                  )}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Save Collection Row
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Homepage Layout Customizer & Section Order  */}
+          {(() => {
+            // Fallback to default sections if empty or not fully populated
+            const defaultSections = [
+              { id: "promoBanners", name: "Advertisement Banners", visible: true, title: "Special Offers", layoutStyle: "carousel" },
+              { id: "yourCurations", name: "Your Curations", visible: true, title: "Your Curations", layoutStyle: "carousel" },
+              { id: "heavyRotation", name: "On Heavy Rotation", visible: true, title: "On Heavy Rotation", layoutStyle: "carousel" },
+              { id: "trending", name: "Trending Worldwide", visible: true, title: "Trending Worldwide", layoutStyle: "carousel" },
+              { id: "recommended", name: "Recommended for You", visible: true, title: "Recommended for You", layoutStyle: "carousel" },
+              { id: "quickPicks", name: "Quick Picks", visible: true, title: "Quick Picks", layoutStyle: "grid" },
+              { id: "spotlight", name: "Spotlight Curation", visible: true, title: "Spotlight Curation", layoutStyle: "hero" },
+              { id: "customCollection", name: "Customizable Collection Row", visible: true, title: "Customizable Collection Row", layoutStyle: "carousel" },
+              { id: "communityFavorites", name: "Community Favorites", visible: true, title: "Community Favorites", layoutStyle: "carousel" },
+              { id: "freshFinds", name: "Fresh Finds", visible: true, title: "Fresh Finds", layoutStyle: "carousel" },
+              { id: "moodsGenres", name: "Moods & Genres", visible: true, title: "Moods & Genres", layoutStyle: "grid" }
+            ];
+
+            const mergedLayout = homepageLayoutInput.length > 0 ? homepageLayoutInput : defaultSections;
+
+            const handleMoveSection = (index: number, direction: "up" | "down") => {
+              const nextLayout = [...mergedLayout];
+              if (direction === "up" && index > 0) {
+                const temp = nextLayout[index];
+                nextLayout[index] = nextLayout[index - 1];
+                nextLayout[index - 1] = temp;
+              } else if (direction === "down" && index < nextLayout.length - 1) {
+                const temp = nextLayout[index];
+                nextLayout[index] = nextLayout[index + 1];
+                nextLayout[index + 1] = temp;
+              }
+              setHomepageLayoutInput(nextLayout);
+            };
+
+            const handleToggleSectionVisibility = (id: string) => {
+              const nextLayout = mergedLayout.map(s => s.id === id ? { ...s, visible: !s.visible } : s);
+              setHomepageLayoutInput(nextLayout);
+            };
+
+            const handleUpdateSectionTitle = (id: string, title: string) => {
+              const nextLayout = mergedLayout.map(s => s.id === id ? { ...s, title } : s);
+              setHomepageLayoutInput(nextLayout);
+            };
+
+            const handleUpdateSectionStyle = (id: string, layoutStyle: string) => {
+              const nextLayout = mergedLayout.map(s => s.id === id ? { ...s, layoutStyle } : s);
+              setHomepageLayoutInput(nextLayout);
+            };
+
+            const handleResetLayoutToDefault = () => {
+              if (window.confirm("Are you sure you want to reset the homepage layout to the system defaults?")) {
+                setHomepageLayoutInput(defaultSections);
+              }
+            };
+
+            return (
+              <div id="homepage-layout-customizer-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="text-md font-bold mb-1 flex items-center gap-2 text-white">
+                      <Layout className="w-4 h-4 text-indigo-400" />
+                      Homepage Layout Customizer & Section Order
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      Drag or reorder content sections globally. Configure search grids, carousels, visibility gates, and dynamic catalog structures on the main landing index.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    id="reset-homepage-layout-btn"
+                    onClick={handleResetLayoutToDefault}
+                    className="text-xs text-gray-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-xl border border-white/5 transition-all self-start md:self-auto"
+                  >
+                    Reset to Defaults
+                  </button>
+                </div>
+
+                {/* Section Stack container */}
+                <div className="flex flex-col gap-3">
+                  {mergedLayout.map((section, idx) => {
+                    const canMoveUp = idx > 0;
+                    const canMoveDown = idx < mergedLayout.length - 1;
+                    const isEditing = editingSectionId === section.id;
+
+                    return (
+                      <div
+                        key={section.id}
+                        className={`flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border transition-all ${
+                          section.visible
+                            ? "bg-[#1e293b]/45 border-white/5 hover:border-indigo-500/20"
+                            : "bg-[#020617]/30 border-white/5 opacity-60"
+                        }`}
+                      >
+                        {/* Left: Grab/Grip icon + Title or Editor */}
+                        <div className="flex items-center gap-3 mb-3 md:mb-0">
+                          <span className="text-gray-600 cursor-grab active:cursor-grabbing hover:text-gray-400 transition-colors">
+                            <GripVertical className="w-4 h-4" />
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-xs text-indigo-400 font-mono">0{idx + 1}</span>
+                            <div className="flex flex-col">
+                              <span className="font-bold text-xs text-gray-200">{section.name}</span>
+                              {isEditing ? (
+                                <div className="flex gap-1.5 mt-1 items-center">
+                                  <input
+                                    type="text"
+                                    value={editingSectionTitle}
+                                    onChange={(e) => setEditingSectionTitle(e.target.value)}
+                                    className="bg-slate-950 border border-white/10 rounded-lg px-2 py-0.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500 w-36"
+                                    placeholder="Custom title..."
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleUpdateSectionTitle(section.id, editingSectionTitle.trim());
+                                      setEditingSectionId(null);
+                                    }}
+                                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold px-2 py-1 rounded transition-all"
+                                  >
+                                    Save
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingSectionId(null)}
+                                    className="text-gray-400 hover:text-white text-[10px] font-bold px-1 py-1 transition-all"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[10px] text-gray-400">
+                                    Title: <strong className="text-gray-300">"{section.title || section.name}"</strong>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingSectionId(section.id);
+                                      setEditingSectionTitle(section.title || section.name);
+                                    }}
+                                    className="text-gray-500 hover:text-white p-0.5 rounded transition-colors"
+                                    title="Edit Title Override"
+                                  >
+                                    <Edit2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Right: Layout Style picker + Show/Hide toggle + Reordering controls */}
+                        <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
+                          {/* Layout Style choice (if relevant) */}
+                          {["trending", "heavyRotation", "recommended", "communityFavorites", "freshFinds", "quickPicks", "moodsGenres"].includes(section.id) && (
+                            <div className="flex items-center gap-1 bg-black/30 border border-white/5 p-1 rounded-xl">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateSectionStyle(section.id, "carousel")}
+                                className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-all ${
+                                  section.layoutStyle !== "grid"
+                                    ? "bg-indigo-600/80 text-white"
+                                    : "text-gray-400 hover:text-gray-200"
+                                }`}
+                              >
+                                Carousel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateSectionStyle(section.id, "grid")}
+                                className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-all ${
+                                  section.layoutStyle === "grid"
+                                    ? "bg-indigo-600/80 text-white"
+                                    : "text-gray-400 hover:text-gray-200"
+                                }`}
+                              >
+                                Grid
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Visibility toggler */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleSectionVisibility(section.id)}
+                            className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl border transition-all ${
+                              section.visible
+                                ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20"
+                                : "bg-slate-800 text-gray-500 border-transparent hover:bg-slate-700 hover:text-gray-400"
+                            }`}
+                          >
+                            {section.visible ? (
+                              <>
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>VISIBLE</span>
+                              </>
+                            ) : (
+                              <>
+                                <EyeOff className="w-3.5 h-3.5" />
+                                <span>HIDDEN</span>
+                              </>
+                            )}
+                          </button>
+
+                          {/* Reordering Up & Down buttons */}
+                          <div className="flex items-center bg-black/20 rounded-xl p-1 border border-white/5 gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleMoveSection(idx, "up")}
+                              disabled={!canMoveUp}
+                              className={`p-1 rounded-lg transition-colors ${
+                                canMoveUp
+                                  ? "text-gray-300 hover:bg-slate-800 hover:text-white cursor-pointer"
+                                  : "text-gray-600 cursor-not-allowed opacity-30"
+                              }`}
+                              title="Move Up"
+                            >
+                              <ArrowUp className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveSection(idx, "down")}
+                              disabled={!canMoveDown}
+                              className={`p-1 rounded-lg transition-colors ${
+                                canMoveDown
+                                  ? "text-gray-300 hover:bg-slate-800 hover:text-white cursor-pointer"
+                                  : "text-gray-600 cursor-not-allowed opacity-30"
+                                }`}
+                              title="Move Down"
+                            >
+                              <ArrowDown className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Individual Save Button for Homepage Layout Customizer */}
+                <div className="flex justify-end mt-6 pt-4 border-t border-white/5">
+                  <button
+                    type="button"
+                    id="save-homepage-layout-btn"
+                    onClick={() => handleSavePanelConfigs(
+                      ["HOMEPAGE_LAYOUT"],
+                      { HOMEPAGE_LAYOUT: JSON.stringify(mergedLayout) },
+                      "Homepage Layout"
+                    )}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    Save Homepage Layout
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Homepage Section Configuration Settings Panel  */}
+          <div id="homepage-sections-settings-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
+            <div className="mb-6">
+              <h3 className="text-md font-bold mb-1 flex items-center gap-2 text-white">
+                <Sliders className="w-4 h-4 text-indigo-400" />
+                Homepage Section Configuration Settings
+              </h3>
+              <p className="text-xs text-gray-400">
+                Customize advanced behaviors, display limits, recommendation models, and category overrides for 'Recommended for You' and 'Moods & Genres'.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left: Recommended for You Settings */}
+              <div className="bg-slate-900/35 border border-white/5 rounded-xl p-5 flex flex-col gap-4">
+                <div className="flex items-center gap-2 border-b border-white/5 pb-3">
+                  <Sparkles className="w-4 h-4 text-indigo-400" />
+                  <h4 className="text-sm font-bold text-gray-200">Recommended for You Settings</h4>
+                </div>
+
+                {/* Recommendation Strategy */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-gray-300">Recommendation Strategy</label>
+                  <select
+                    value={recommendedStrategyInput}
+                    onChange={(e) => setRecommendedStrategyInput(e.target.value)}
+                    className="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-indigo-500 w-full"
+                  >
+                    <option value="artist_match">Personalized (User's Played Artists Match)</option>
+                    <option value="all_songs">Global Discovery (Trending Public Tracks Fallback)</option>
+                  </select>
+                  <span className="text-[10px] text-gray-500">
+                    Choose how the system determines songs recommended to users.
+                  </span>
+                </div>
+
+                {/* Recommendation Limit */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-gray-300">Recommendation Limit (Max Songs)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="100"
+                    value={recommendedLimitInput}
+                    onChange={(e) => setRecommendedLimitInput(e.target.value)}
+                    className="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-indigo-500 w-full"
+                    placeholder="e.g. 20"
+                  />
+                  <span className="text-[10px] text-gray-500">
+                    The maximum number of recommended songs to fetch and display.
+                  </span>
+                </div>
+
+                {/* Recommendation Exclude Played */}
+                <div className="flex items-center justify-between p-3 bg-black/20 border border-white/5 rounded-xl mt-1">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-xs font-semibold text-gray-300">Exclude Own Tracks</span>
+                    <span className="text-[10px] text-gray-500">Filter out songs from the user's own playlists.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRecommendedExcludePlayedInput(!recommendedExcludePlayedInput)}
+                    className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${
+                      recommendedExcludePlayedInput ? "bg-emerald-600" : "bg-slate-700"
+                    }`}
+                  >
+                    <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                      recommendedExcludePlayedInput ? "translate-x-4" : "translate-x-0"
+                    }`} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Right: Moods & Genres Settings */}
+              <div className="bg-slate-900/35 border border-white/5 rounded-xl p-5 flex flex-col gap-4">
+                <div className="flex items-center gap-2 border-b border-white/5 pb-3">
+                  <LayoutGrid className="w-4 h-4 text-indigo-400" />
+                  <h4 className="text-sm font-bold text-gray-200">Moods & Genres Settings</h4>
+                </div>
+
+                {/* Moods Custom Tags override */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-gray-300">Custom Tags Override</label>
+                  <input
+                    type="text"
+                    value={moodsGenresCustomTagsInput}
+                    onChange={(e) => setMoodsGenresCustomTagsInput(e.target.value)}
+                    className="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-indigo-500 w-full"
+                    placeholder="e.g. lofi, study, synthwave, energetic, acoustic"
+                  />
+                  <span className="text-[10px] text-gray-500">
+                    Enter comma-separated tags to enforce specific moods/genres on the homepage. Leave empty to compile automatically based on platform taxonomy.
+                  </span>
+                </div>
+
+                {/* Moods display limit */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-gray-300">Moods Display Limit</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={moodsGenresLimitInput}
+                    onChange={(e) => setMoodsGenresLimitInput(e.target.value)}
+                    className="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-indigo-500 w-full"
+                    placeholder="e.g. 15"
+                  />
+                  <span className="text-[10px] text-gray-500">
+                    The maximum number of moods/genres chips shown in the row.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button for Discovery & Moods Configuration */}
+            <div className="flex justify-end mt-6 pt-4 border-t border-white/5">
+              <button
+                type="button"
+                id="save-discovery-settings-btn"
+                onClick={() => {
+                  const limitVal = parseInt(recommendedLimitInput, 10);
+                  if (isNaN(limitVal) || limitVal <= 0) {
+                    toast.error("Please enter a valid positive recommended limit");
+                    return;
+                  }
+                  const moodsLimitVal = parseInt(moodsGenresLimitInput, 10);
+                  if (isNaN(moodsLimitVal) || moodsLimitVal <= 0) {
+                    toast.error("Please enter a valid positive moods display limit");
+                    return;
+                  }
+                  handleSavePanelConfigs(
+                    [
+                      "RECOMMENDED_STRATEGY",
+                      "RECOMMENDED_LIMIT",
+                      "RECOMMENDED_EXCLUDE_PLAYED",
+                      "MOOD_GENRES_CUSTOM_TAGS",
+                      "MOOD_GENRES_LIMIT"
+                    ],
+                    {
+                      RECOMMENDED_STRATEGY: recommendedStrategyInput,
+                      RECOMMENDED_LIMIT: recommendedLimitInput,
+                      RECOMMENDED_EXCLUDE_PLAYED: recommendedExcludePlayedInput ? "true" : "false",
+                      MOOD_GENRES_CUSTOM_TAGS: moodsGenresCustomTagsInput.trim(),
+                      MOOD_GENRES_LIMIT: moodsGenresLimitInput
+                    },
+                    "Discovery Sections"
+                  );
+                }}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5"
+              >
+                <Save className="w-3.5 h-3.5" />
+                Save Discovery Settings
+              </button>
+            </div>
+          </div>
+
+              
         </div>
       )}
 
-      {/* Tab 2: Users */}
+{/* Tab 2: Users */}
       {activeTab === "users" && (
         <div className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6 animate-fadeIn">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -2526,11 +3308,7 @@ export function AdminDashboard() {
       {/* Tab 4: System Settings */}
       {activeTab === "config" && (() => {
         // Compute active configuration values
-        const maintenanceMode = configs.find(c => c.key === "MAINTENANCE_MODE")?.value === "true";
-        const enableCommunityPosts = configs.find(c => c.key === "ENABLE_COMMUNITY_POSTS")?.value !== "false";
-        const strictModeration = configs.find(c => c.key === "STRICT_MODERATION")?.value === "true";
         const disableSongUploads = configs.find(c => c.key === "DISABLE_USER_SONG_UPLOADS")?.value === "true";
-        const featuredCollectionEnabled = configs.find(c => c.key === "FEATURED_COLLECTION_ENABLED")?.value === "true";
         
         // Filter the pre-approved tags
         const filteredTags = tags.filter(tag => tag.name.toLowerCase().includes(tagQuery.toLowerCase()));
@@ -2554,8 +3332,9 @@ export function AdminDashboard() {
               </div>
             </div>
 
+            {/* Flat Dashboard Layout - No Sub-tabs */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Left Column: Security and Feature Switches + Emergency Banner */}
+              {/* Column 1: Security and Performance */}
               <div className="flex flex-col gap-8">
                 {/* 1. Feature Switches & Security Gates */}
                 <div id="security-switches-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
@@ -2572,22 +3351,23 @@ export function AdminDashboard() {
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-xs text-gray-200">Account Registration Gate</span>
                           <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${
-                            registrationDisabled ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            registrationDisabledInput ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                           }`}>
-                            {registrationDisabled ? "LOCKED" : "ACTIVE"}
+                            {registrationDisabledInput ? "LOCKED" : "ACTIVE"}
                           </span>
                         </div>
                         <span className="text-[10px] text-gray-400">Lock new user registration to prevent spam signups.</span>
                       </div>
                       <button
+                        type="button"
                         id="toggle-registration-btn"
-                        onClick={() => handleUpdateConfig("DISABLE_REGISTRATION", registrationDisabled ? "false" : "true")}
-                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${
-                          registrationDisabled ? "bg-rose-600" : "bg-emerald-600"
+                        onClick={() => setRegistrationDisabledInput(!registrationDisabledInput)}
+                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none cursor-pointer ${
+                          registrationDisabledInput ? "bg-rose-600" : "bg-emerald-600"
                         }`}
                       >
                         <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                          registrationDisabled ? "translate-x-4" : "translate-x-0"
+                          registrationDisabledInput ? "translate-x-4" : "translate-x-0"
                         }`} />
                       </button>
                     </div>
@@ -2598,22 +3378,23 @@ export function AdminDashboard() {
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-xs text-gray-200">Global Maintenance Mode</span>
                           <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${
-                            maintenanceMode ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-slate-500/10 text-gray-400 border border-white/10"
+                            maintenanceModeInput ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-slate-500/10 text-gray-400 border border-white/10"
                           }`}>
-                            {maintenanceMode ? "MAINTENANCE" : "OFFLINE"}
+                            {maintenanceModeInput ? "MAINTENANCE" : "OFFLINE"}
                           </span>
                         </div>
                         <span className="text-[10px] text-gray-400">Lock database writes and limit public app views to read-only.</span>
                       </div>
                       <button
+                        type="button"
                         id="toggle-maintenance-btn"
-                        onClick={() => handleUpdateConfig("MAINTENANCE_MODE", maintenanceMode ? "false" : "true")}
-                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${
-                          maintenanceMode ? "bg-amber-600" : "bg-slate-700"
+                        onClick={() => setMaintenanceModeInput(!maintenanceModeInput)}
+                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none cursor-pointer ${
+                          maintenanceModeInput ? "bg-amber-600" : "bg-slate-700"
                         }`}
                       >
                         <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                          maintenanceMode ? "translate-x-4" : "translate-x-0"
+                          maintenanceModeInput ? "translate-x-4" : "translate-x-0"
                         }`} />
                       </button>
                     </div>
@@ -2624,22 +3405,23 @@ export function AdminDashboard() {
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-xs text-gray-200">Community Social Features</span>
                           <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${
-                            enableCommunityPosts ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                            enableCommunityPostsInput ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
                           }`}>
-                            {enableCommunityPosts ? "ENABLED" : "RESTRICTED"}
+                            {enableCommunityPostsInput ? "ENABLED" : "RESTRICTED"}
                           </span>
                         </div>
                         <span className="text-[10px] text-gray-400">Allow community user forks, playlist likes, and public reviews.</span>
                       </div>
                       <button
+                        type="button"
                         id="toggle-social-btn"
-                        onClick={() => handleUpdateConfig("ENABLE_COMMUNITY_POSTS", enableCommunityPosts ? "false" : "true")}
-                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${
-                          enableCommunityPosts ? "bg-emerald-600" : "bg-rose-600"
+                        onClick={() => setEnableCommunityPostsInput(!enableCommunityPostsInput)}
+                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none cursor-pointer ${
+                          enableCommunityPostsInput ? "bg-emerald-600" : "bg-rose-600"
                         }`}
                       >
                         <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                          enableCommunityPosts ? "translate-x-4" : "translate-x-0"
+                          enableCommunityPostsInput ? "translate-x-4" : "translate-x-0"
                         }`} />
                       </button>
                     </div>
@@ -2650,32 +3432,57 @@ export function AdminDashboard() {
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-xs text-gray-200">Strict Metadata Filtering</span>
                           <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded ${
-                            strictModeration ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" : "bg-slate-500/10 text-gray-400 border border-white/10"
+                            strictModerationInput ? "bg-purple-500/10 text-purple-400 border border-purple-500/20" : "bg-slate-500/10 text-gray-400 border border-white/10"
                           }`}>
-                            {strictModeration ? "ENFORCED" : "STANDARD"}
+                            {strictModerationInput ? "ENFORCED" : "STANDARD"}
                           </span>
                         </div>
                         <span className="text-[10px] text-gray-400">Automatically flag playlists targeting unauthorized content or external urls.</span>
                       </div>
                       <button
+                        type="button"
                         id="toggle-strict-mod-btn"
-                        onClick={() => handleUpdateConfig("STRICT_MODERATION", strictModeration ? "false" : "true")}
-                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${
-                          strictModeration ? "bg-purple-600" : "bg-slate-700"
+                        onClick={() => setStrictModerationInput(!strictModerationInput)}
+                        className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none cursor-pointer ${
+                          strictModerationInput ? "bg-purple-600" : "bg-slate-700"
                         }`}
                       >
                         <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                          strictModeration ? "translate-x-4" : "translate-x-0"
+                          strictModerationInput ? "translate-x-4" : "translate-x-0"
                         }`} />
                       </button>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Right Column: Performance Parameters and Search Taxonomy Tags */}
-              <div className="flex flex-col gap-8">
-                {/* 3. Performance & Resource Bounds */}
+                  {/* Individual Save Button for Security Switches */}
+                  <div className="flex justify-end mt-6 pt-4 border-t border-white/5">
+                    <button
+                      type="button"
+                      id="save-security-switches-btn"
+                      onClick={() => handleSavePanelConfigs(
+                        [
+                          "DISABLE_REGISTRATION",
+                          "MAINTENANCE_MODE",
+                          "ENABLE_COMMUNITY_POSTS",
+                          "STRICT_MODERATION"
+                        ],
+                        {
+                          DISABLE_REGISTRATION: registrationDisabledInput ? "true" : "false",
+                          MAINTENANCE_MODE: maintenanceModeInput ? "true" : "false",
+                          ENABLE_COMMUNITY_POSTS: enableCommunityPostsInput ? "true" : "false",
+                          STRICT_MODERATION: strictModerationInput ? "true" : "false"
+                        },
+                        "Security & Feature Settings"
+                      )}
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      Save Security Switches
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Performance & Resource Bounds */}
                 <div id="performance-parameters-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
                   <h3 className="text-md font-bold mb-1 flex items-center gap-2 text-white">
                     <Sliders className="w-4 h-4 text-indigo-400" />
@@ -2700,13 +3507,6 @@ export function AdminDashboard() {
                           onChange={(e) => setMaxSongsInput(e.target.value)}
                           className="w-full sm:w-20 bg-slate-950 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-center font-mono focus:outline-none focus:border-indigo-500"
                         />
-                        <button
-                          id="save-max-songs-btn"
-                          onClick={() => handleUpdateConfig("MAX_SONGS_PER_PLAYLIST", maxSongsInput)}
-                          className="bg-indigo-600/80 hover:bg-indigo-600 text-white text-[10px] font-bold px-2.5 py-2 rounded-lg transition-all"
-                        >
-                          Save
-                        </button>
                       </div>
                     </div>
 
@@ -2726,19 +3526,38 @@ export function AdminDashboard() {
                           onChange={(e) => setCacheExpiryInput(e.target.value)}
                           className="w-full sm:w-20 bg-slate-950 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-center font-mono focus:outline-none focus:border-indigo-500"
                         />
-                        <button
-                          id="save-cache-ttl-btn"
-                          onClick={() => handleUpdateConfig("CACHE_EXPIRY_HOURS", cacheExpiryInput)}
-                          className="bg-indigo-600/80 hover:bg-indigo-600 text-white text-[10px] font-bold px-2.5 py-2 rounded-lg transition-all"
-                        >
-                          Save
-                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* 4. Taxonomy and Discovery Tag Control */}
+                  {/* Individual Save Button for Performance Bounds */}
+                  <div className="flex justify-end mt-6 pt-4 border-t border-white/5">
+                    <button
+                      type="button"
+                      id="save-performance-bounds-btn"
+                      onClick={() => handleSavePanelConfigs(
+                        [
+                          "MAX_SONGS_PER_PLAYLIST",
+                          "CACHE_EXPIRY_HOURS"
+                        ],
+                        {
+                          MAX_SONGS_PER_PLAYLIST: maxSongsInput,
+                          CACHE_EXPIRY_HOURS: cacheExpiryInput
+                        },
+                        "Performance Bounds"
+                      )}
+                      className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      Save Performance Settings
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Column 2: Discovery and Taxonomy */}
+              <div className="flex flex-col gap-8">
+                {/* 3. Taxonomy and Discovery Tag Control */}
                 <div id="taxonomy-tags-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6 flex flex-col justify-between">
                   <div>
                     <h3 className="text-md font-bold mb-1 flex items-center gap-2 text-white">
@@ -2789,7 +3608,7 @@ export function AdminDashboard() {
                         <button
                           type="submit"
                           id="submit-tag-btn"
-                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3.5 rounded-xl flex items-center shadow active:scale-95 transition-all"
+                          className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs px-3.5 rounded-xl flex items-center shadow active:scale-95 transition-all cursor-pointer"
                         >
                           Add
                         </button>
@@ -2809,7 +3628,7 @@ export function AdminDashboard() {
                             type="button"
                             id={`delete-tag-btn-${tag.id}`}
                             onClick={() => handleDeleteTag(tag.id)}
-                            className="text-gray-500 hover:text-red-400 transition-colors"
+                            className="text-gray-500 hover:text-red-400 transition-colors cursor-pointer"
                             title={`Delete taxonomy tag #${tag.name}`}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -2831,8 +3650,8 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* 5. Artist Database Registry & Auto-Suggest Sync */}
-                <div id="artist-registry-sync-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6 flex flex-col justify-between mt-8">
+                {/* 4. Artist Registry & Auto-Suggest Sync */}
+                <div id="artist-registry-sync-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6 flex flex-col justify-between">
                   <div>
                     <h3 className="text-md font-bold mb-1 flex items-center gap-2 text-white">
                       <Music className="w-4 h-4 text-indigo-400" />
@@ -2883,484 +3702,6 @@ export function AdminDashboard() {
                 </div>
               </div>
             </div>
-
-            {(() => {
-              // Homepage Layout Config Parsing
-              const homepageLayoutStr = configs.find(c => c.key === "HOMEPAGE_LAYOUT")?.value;
-              let homepageLayout: any[] = [];
-              try {
-                if (homepageLayoutStr) {
-                  homepageLayout = JSON.parse(homepageLayoutStr);
-                }
-              } catch (e) {
-                console.error("Failed to parse homepage layout", e);
-              }
-
-              // Fallback to default sections if empty or not fully populated
-              const defaultSections = [
-                { id: "promoBanners", name: "Advertisement Banners", visible: true, title: "Special Offers", layoutStyle: "carousel" },
-                { id: "yourCurations", name: "Your Curations", visible: true, title: "Your Curations", layoutStyle: "carousel" },
-                { id: "heavyRotation", name: "On Heavy Rotation", visible: true, title: "On Heavy Rotation", layoutStyle: "carousel" },
-                { id: "trending", name: "Trending Worldwide", visible: true, title: "Trending Worldwide", layoutStyle: "carousel" },
-                { id: "recommended", name: "Recommended for You", visible: true, title: "Recommended for You", layoutStyle: "carousel" },
-                { id: "quickPicks", name: "Quick Picks", visible: true, title: "Quick Picks", layoutStyle: "grid" },
-                { id: "spotlight", name: "Spotlight Curation", visible: true, title: "Spotlight Curation", layoutStyle: "hero" },
-                { id: "customCollection", name: "Customizable Collection Row", visible: true, title: "Customizable Collection Row", layoutStyle: "carousel" },
-                { id: "communityFavorites", name: "Community Favorites", visible: true, title: "Community Favorites", layoutStyle: "carousel" },
-                { id: "freshFinds", name: "Fresh Finds", visible: true, title: "Fresh Finds", layoutStyle: "carousel" },
-                { id: "moodsGenres", name: "Moods & Genres", visible: true, title: "Moods & Genres", layoutStyle: "grid" }
-              ];
-
-              // Ensure all default sections are present, maintaining the configured order of existing ones
-              const mergedLayout = [...homepageLayout];
-              defaultSections.forEach(defSec => {
-                if (!mergedLayout.some(s => s.id === defSec.id)) {
-                  mergedLayout.push(defSec);
-                }
-              });
-
-              const handleSaveLayout = async (newLayout: any[]) => {
-                await handleUpdateConfig("HOMEPAGE_LAYOUT", JSON.stringify(newLayout));
-              };
-
-              const handleMoveSection = (index: number, direction: "up" | "down") => {
-                const nextLayout = [...mergedLayout];
-                if (direction === "up" && index > 0) {
-                  const temp = nextLayout[index];
-                  nextLayout[index] = nextLayout[index - 1];
-                  nextLayout[index - 1] = temp;
-                } else if (direction === "down" && index < nextLayout.length - 1) {
-                  const temp = nextLayout[index];
-                  nextLayout[index] = nextLayout[index + 1];
-                  nextLayout[index + 1] = temp;
-                }
-                handleSaveLayout(nextLayout);
-              };
-
-              const handleToggleSectionVisibility = (id: string) => {
-                const nextLayout = mergedLayout.map(s => s.id === id ? { ...s, visible: !s.visible } : s);
-                handleSaveLayout(nextLayout);
-              };
-
-              const handleUpdateSectionTitle = (id: string, title: string) => {
-                const nextLayout = mergedLayout.map(s => s.id === id ? { ...s, title } : s);
-                handleSaveLayout(nextLayout);
-              };
-
-              const handleUpdateSectionStyle = (id: string, layoutStyle: string) => {
-                const nextLayout = mergedLayout.map(s => s.id === id ? { ...s, layoutStyle } : s);
-                handleSaveLayout(nextLayout);
-              };
-
-              const handleResetLayoutToDefault = () => {
-                if (window.confirm("Are you sure you want to reset the homepage layout to the system defaults?")) {
-                  handleSaveLayout(defaultSections);
-                }
-              };
-
-              return (
-                <>
-                  <div id="homepage-layout-customizer-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6 mt-8">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <div>
-                      <h3 className="text-md font-bold mb-1 flex items-center gap-2 text-white">
-                        <LayoutGrid className="w-4 h-4 text-indigo-400" />
-                        Homepage Layout Customizer & Section Order
-                      </h3>
-                      <p className="text-xs text-gray-400">
-                        Reorder, rename, or toggle visibility of core elements on the homepage. Drag/move items up or down and override display titles dynamically.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleResetLayoutToDefault}
-                      className="bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all self-start md:self-auto flex items-center gap-1.5 active:scale-95"
-                    >
-                      Reset Layout to Default
-                    </button>
-                  </div>
-
-                  <div className="flex flex-col gap-3">
-                    {mergedLayout.map((section, idx) => {
-                      const isEditing = editingSectionId === section.id;
-                      const canMoveUp = idx > 0;
-                      const canMoveDown = idx < mergedLayout.length - 1;
-
-                      return (
-                        <div
-                          key={section.id}
-                          draggable={true}
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData("text/plain", idx.toString());
-                            setDraggedSectionIndex(idx);
-                            e.dataTransfer.effectAllowed = "move";
-                          }}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                          }}
-                          onDragEnter={() => {
-                            setDragOverSectionIndex(idx);
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const sourceIdxStr = e.dataTransfer.getData("text/plain");
-                            const sourceIdx = sourceIdxStr ? parseInt(sourceIdxStr) : draggedSectionIndex;
-                            if (sourceIdx !== null && sourceIdx !== idx) {
-                              const nextLayout = [...mergedLayout];
-                              const [movedSection] = nextLayout.splice(sourceIdx, 1);
-                              nextLayout.splice(idx, 0, movedSection);
-                              handleSaveLayout(nextLayout);
-                              toast.success(`Moved "${section.name}" section`);
-                            }
-                          }}
-                          onDragEnd={() => {
-                            setDraggedSectionIndex(null);
-                            setDragOverSectionIndex(null);
-                          }}
-                          className={`flex flex-col md:flex-row md:items-center justify-between p-4 bg-slate-900/40 border rounded-xl gap-4 transition-all hover:bg-slate-900/65 ${
-                            draggedSectionIndex === idx
-                              ? "opacity-30 border-dashed border-indigo-500 scale-[0.98]"
-                              : dragOverSectionIndex === idx
-                              ? "border-indigo-500/70 bg-indigo-500/5 shadow-indigo-500/5 shadow-lg scale-[1.01]"
-                              : section.visible
-                              ? "border-white/5"
-                              : "border-white/5 opacity-60 bg-slate-900/20"
-                          } cursor-grab active:cursor-grabbing`}
-                        >
-                          {/* Left: Section Drag order index indicator + Section Basic Info */}
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <div className="text-gray-500 hover:text-gray-300 cursor-grab shrink-0">
-                              <GripVertical className="w-4 h-4" />
-                            </div>
-                            <div className="flex flex-col gap-1 items-center justify-center font-mono text-[10px] font-bold bg-black/40 border border-white/10 text-gray-400 w-7 h-7 rounded-lg shrink-0">
-                              {idx + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-xs text-gray-100 truncate">
-                                  {section.name}
-                                </span>
-                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-800 text-gray-400 font-mono">
-                                  id: {section.id}
-                                </span>
-                              </div>
-
-                              {/* Inline title editor */}
-                              <div className="mt-1.5 flex items-center gap-2">
-                                {isEditing ? (
-                                  <div className="flex items-center gap-1.5 w-full max-w-sm">
-                                    <input
-                                      type="text"
-                                      value={editingSectionTitle}
-                                      onChange={(e) => setEditingSectionTitle(e.target.value)}
-                                      className="bg-slate-950 border border-indigo-500/45 text-white text-xs rounded-lg px-2.5 py-1 focus:outline-none w-full"
-                                      autoFocus
-                                      placeholder="Enter custom title..."
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        handleUpdateSectionTitle(section.id, editingSectionTitle);
-                                        setEditingSectionId(null);
-                                      }}
-                                      className="bg-indigo-600 hover:bg-indigo-700 text-white p-1 rounded-md transition-colors"
-                                      title="Save Title Override"
-                                    >
-                                      <Check className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setEditingSectionId(null)}
-                                      className="bg-slate-800 hover:bg-slate-700 text-gray-400 p-1 rounded-md transition-colors"
-                                      title="Cancel"
-                                    >
-                                      <X className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                                    <span className="font-mono text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/20">
-                                      Display Title: {section.title || section.name}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setEditingSectionId(section.id);
-                                        setEditingSectionTitle(section.title || section.name);
-                                      }}
-                                      className="text-gray-500 hover:text-white p-0.5 rounded transition-colors"
-                                      title="Edit Title Override"
-                                    >
-                                      <Edit2 className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Right: Layout Style picker + Show/Hide toggle + Reordering controls */}
-                          <div className="flex items-center gap-3 shrink-0 self-end md:self-auto">
-                            {/* Layout Style choice (if relevant) */}
-                            {["trending", "heavyRotation", "recommended", "communityFavorites", "freshFinds", "quickPicks", "moodsGenres"].includes(section.id) && (
-                              <div className="flex items-center gap-1 bg-black/30 border border-white/5 p-1 rounded-xl">
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateSectionStyle(section.id, "carousel")}
-                                  className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-all ${
-                                    section.layoutStyle !== "grid"
-                                      ? "bg-indigo-600/80 text-white"
-                                      : "text-gray-400 hover:text-gray-200"
-                                  }`}
-                                >
-                                  Carousel
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateSectionStyle(section.id, "grid")}
-                                  className={`text-[9px] font-bold px-2 py-1 rounded-lg transition-all ${
-                                    section.layoutStyle === "grid"
-                                      ? "bg-indigo-600/80 text-white"
-                                      : "text-gray-400 hover:text-gray-200"
-                                  }`}
-                                >
-                                  Grid
-                                </button>
-                              </div>
-                            )}
-
-                            {/* Visibility toggler */}
-                            <button
-                              type="button"
-                              onClick={() => handleToggleSectionVisibility(section.id)}
-                              className={`flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-xl border transition-all ${
-                                section.visible
-                                  ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-indigo-500/20"
-                                  : "bg-slate-800 text-gray-500 border-transparent hover:bg-slate-700 hover:text-gray-400"
-                              }`}
-                            >
-                              {section.visible ? (
-                                <>
-                                  <Eye className="w-3.5 h-3.5" />
-                                  <span>VISIBLE</span>
-                                </>
-                              ) : (
-                                <>
-                                  <EyeOff className="w-3.5 h-3.5" />
-                                  <span>HIDDEN</span>
-                                </>
-                              )}
-                            </button>
-
-                            {/* Reordering Up & Down buttons */}
-                            <div className="flex items-center bg-black/20 rounded-xl p-1 border border-white/5 gap-0.5">
-                              <button
-                                type="button"
-                                onClick={() => handleMoveSection(idx, "up")}
-                                disabled={!canMoveUp}
-                                className={`p-1 rounded-lg transition-colors ${
-                                  canMoveUp
-                                    ? "text-gray-300 hover:bg-slate-800 hover:text-white cursor-pointer"
-                                    : "text-gray-600 cursor-not-allowed opacity-30"
-                                }`}
-                                title="Move Up"
-                              >
-                                <ArrowUp className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleMoveSection(idx, "down")}
-                                disabled={!canMoveDown}
-                                className={`p-1 rounded-lg transition-colors ${
-                                  canMoveDown
-                                    ? "text-gray-300 hover:bg-slate-800 hover:text-white cursor-pointer"
-                                    : "text-gray-600 cursor-not-allowed opacity-30"
-                                }`}
-                                title="Move Down"
-                              >
-                                <ArrowDown className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Recommended for You & Moods/Genres Settings Panel */}
-                <div id="homepage-sections-settings-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6 mt-8">
-                  <div className="mb-6">
-                    <h3 className="text-md font-bold mb-1 flex items-center gap-2 text-white">
-                      <Sliders className="w-4 h-4 text-indigo-400" />
-                      Homepage Section Configuration Settings
-                    </h3>
-                    <p className="text-xs text-gray-400">
-                      Customize advanced behaviors, display limits, recommendation models, and category overrides for 'Recommended for You' and 'Moods & Genres'.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left: Recommended for You Settings */}
-                    <div className="bg-slate-900/35 border border-white/5 rounded-xl p-5 flex flex-col gap-4">
-                      <div className="flex items-center gap-2 border-b border-white/5 pb-3">
-                        <Sparkles className="w-4 h-4 text-indigo-400" />
-                        <h4 className="text-sm font-bold text-gray-200">Recommended for You Settings</h4>
-                      </div>
-
-                      {/* Recommendation Strategy */}
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-gray-300">Recommendation Strategy</label>
-                        <select
-                          value={recommendedStrategyInput}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setRecommendedStrategyInput(val);
-                            handleUpdateConfig("RECOMMENDED_STRATEGY", val);
-                            toast.success("Recommendation strategy updated");
-                          }}
-                          className="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-indigo-500 w-full"
-                        >
-                          <option value="artist_match">Personalized (User's Played Artists Match)</option>
-                          <option value="all_songs">Global Discovery (Trending Public Tracks Fallback)</option>
-                        </select>
-                        <span className="text-[10px] text-gray-500">
-                          Choose how the system determines songs recommended to users.
-                        </span>
-                      </div>
-
-                      {/* Recommendation Limit */}
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-gray-300">Recommendation Limit (Max Songs)</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="number"
-                            min="1"
-                            max="100"
-                            value={recommendedLimitInput}
-                            onChange={(e) => setRecommendedLimitInput(e.target.value)}
-                            className="bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500 flex-1"
-                            placeholder="e.g. 20"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const val = parseInt(recommendedLimitInput, 10);
-                              if (isNaN(val) || val <= 0) {
-                                toast.error("Please enter a valid positive number");
-                                return;
-                              }
-                              handleUpdateConfig("RECOMMENDED_LIMIT", val.toString());
-                              toast.success("Recommendation limit saved");
-                            }}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-all shadow cursor-pointer"
-                          >
-                            Save
-                          </button>
-                        </div>
-                        <span className="text-[10px] text-gray-500">
-                          The maximum number of recommended songs to fetch and display.
-                        </span>
-                      </div>
-
-                      {/* Recommendation Exclude Played */}
-                      <div className="flex items-center justify-between p-3 bg-black/20 border border-white/5 rounded-xl mt-1">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-xs font-semibold text-gray-300">Exclude Own Tracks</span>
-                          <span className="text-[10px] text-gray-500">Filter out songs from the user's own playlists.</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const nextVal = !recommendedExcludePlayedInput;
-                            setRecommendedExcludePlayedInput(nextVal);
-                            handleUpdateConfig("RECOMMENDED_EXCLUDE_PLAYED", nextVal ? "true" : "false");
-                            toast.success(nextVal ? "Self-playlist tracks excluded" : "Self-playlist tracks allowed");
-                          }}
-                          className={`w-10 h-6 rounded-full p-1 transition-colors duration-200 focus:outline-none ${
-                            recommendedExcludePlayedInput ? "bg-emerald-600" : "bg-slate-700"
-                          }`}
-                        >
-                          <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
-                            recommendedExcludePlayedInput ? "translate-x-4" : "translate-x-0"
-                          }`} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Right: Moods & Genres Settings */}
-                    <div className="bg-slate-900/35 border border-white/5 rounded-xl p-5 flex flex-col gap-4">
-                      <div className="flex items-center gap-2 border-b border-white/5 pb-3">
-                        <LayoutGrid className="w-4 h-4 text-indigo-400" />
-                        <h4 className="text-sm font-bold text-gray-200">Moods & Genres Settings</h4>
-                      </div>
-
-                      {/* Moods Custom Tags override */}
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-gray-300">Custom Tags Override</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={moodsGenresCustomTagsInput}
-                            onChange={(e) => setMoodsGenresCustomTagsInput(e.target.value)}
-                            className="bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500 flex-1"
-                            placeholder="e.g. lofi, study, synthwave, energetic, acoustic"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleUpdateConfig("MOOD_GENRES_CUSTOM_TAGS", moodsGenresCustomTagsInput.trim());
-                              toast.success("Moods/Genres custom tags saved");
-                            }}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-all shadow cursor-pointer"
-                          >
-                            Save
-                          </button>
-                        </div>
-                        <span className="text-[10px] text-gray-500">
-                          Enter comma-separated tags to enforce specific moods/genres on the homepage. Leave empty to compile automatically based on platform taxonomy.
-                        </span>
-                      </div>
-
-                      {/* Moods display limit */}
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-semibold text-gray-300">Moods Display Limit</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="number"
-                            min="1"
-                            max="50"
-                            value={moodsGenresLimitInput}
-                            onChange={(e) => setMoodsGenresLimitInput(e.target.value)}
-                            className="bg-slate-950 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-indigo-500 flex-1"
-                            placeholder="e.g. 15"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const val = parseInt(moodsGenresLimitInput, 10);
-                              if (isNaN(val) || val <= 0) {
-                                toast.error("Please enter a valid positive number");
-                                return;
-                              }
-                              handleUpdateConfig("MOOD_GENRES_LIMIT", val.toString());
-                              toast.success("Moods display limit saved");
-                            }}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-1.5 rounded-xl transition-all shadow cursor-pointer"
-                          >
-                            Save
-                          </button>
-                        </div>
-                        <span className="text-[10px] text-gray-500">
-                          The maximum number of moods/genres chips shown in the row.
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </>
-            );
-          })()}
           </div>
         );
       })()}
@@ -3400,6 +3741,189 @@ export function AdminDashboard() {
               <div className="flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-3 py-1.5 rounded-xl text-[10px] font-bold">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Live Studio Panel</span>
+              </div>
+            </div>
+
+            {/* Real-Time Live Mirror Preview Simulator (Full-Width) */}
+            <div id="live-mirror-preview-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6 w-full mb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4 mb-4">
+                <div>
+                  <h3 className="text-md font-bold flex items-center gap-2 text-white">
+                    <Monitor className="w-4 h-4 text-emerald-400" />
+                    Live Mirror Simulator
+                  </h3>
+                  <span className="text-[10px] text-gray-400">Previews exact user homepage slideshow sizing, typography, and button responsiveness.</span>
+                </div>
+
+                {/* Simulator Controls */}
+                <div className="flex items-center gap-1.5 self-start sm:self-auto">
+                  {/* Device Selection */}
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice("desktop")}
+                    className={`p-1.5 rounded-lg border transition-all ${
+                      previewDevice === "desktop"
+                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-400"
+                        : "bg-slate-900/40 border-white/5 text-gray-400 hover:text-gray-300"
+                    }`}
+                    title="Desktop Preview Aspect Ratio"
+                  >
+                    <Monitor className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewDevice("mobile")}
+                    className={`p-1.5 rounded-lg border transition-all ${
+                      previewDevice === "mobile"
+                        ? "bg-indigo-600/20 border-indigo-500 text-indigo-400"
+                        : "bg-slate-900/40 border-white/5 text-gray-400 hover:text-gray-300"
+                    }`}
+                    title="Mobile Preview Aspect Ratio"
+                  >
+                    <Smartphone className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Divider */}
+                  <div className="w-px h-6 bg-white/10 mx-1" />
+
+                  {/* Source Selection */}
+                  <div className="bg-slate-950/40 border border-white/10 p-0.5 rounded-lg flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewSource("live");
+                        setPreviewIndex(0);
+                      }}
+                      className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                        previewSource === "live"
+                          ? "bg-indigo-600 text-white shadow"
+                          : "text-gray-400 hover:text-gray-300"
+                      }`}
+                    >
+                      Live List
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPreviewSource("draft");
+                        setPreviewIndex(0);
+                      }}
+                      className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
+                        previewSource === "draft"
+                          ? "bg-amber-600 text-white shadow"
+                          : "text-gray-400 hover:text-gray-300"
+                      }`}
+                    >
+                      Draft Form
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Device Screen Container Frame */}
+              <div className="flex justify-center bg-black/35 rounded-2xl p-4 border border-white/5 relative min-h-[220px]">
+                {activeBanner ? (
+                  <div 
+                    className={`relative overflow-hidden transition-all duration-300 rounded-2xl bg-slate-900 border border-white/5 shadow-inner ${
+                      previewDevice === "mobile" 
+                        ? "w-[600px] max-w-full aspect-[600/350]" 
+                        : "w-[1200px] max-w-full aspect-[1200/400]"
+                    }`}
+                  >
+                    {/* Slide image block */}
+                    <div className="absolute inset-0 w-full h-full">
+                      <img
+                        src={previewDevice === "mobile" ? (activeBanner.mobileImageUrl || activeBanner.imageUrl) : activeBanner.imageUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                      {/* Gradient Toggle Overlay */}
+                      {activeBanner.enableGradient !== false && !activeBanner.hideContent && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent" />
+                      )}
+                    </div>
+
+                    {/* Slide Content Box */}
+                    {!activeBanner.hideContent && (
+                      <div className={`absolute inset-0 flex flex-col justify-center px-6 ${previewDevice === "mobile" ? "py-4 px-5" : "py-6 px-10"} z-10`}>
+                        <span className={`text-[8px] font-black tracking-widest uppercase mb-0.5 ${
+                          activeBanner.type === "ad" ? "text-amber-400" : "text-indigo-400"
+                        }`}>
+                          {activeBanner.type === "ad" ? "Advertisement" : "Promoted Spotlight"}
+                        </span>
+                        {activeBanner.title && (
+                          <h2 className={`font-black text-white tracking-tight leading-tight line-clamp-1 ${
+                            previewDevice === "mobile" ? "text-sm" : "text-lg md:text-xl"
+                          }`}>
+                            {activeBanner.title}
+                          </h2>
+                        )}
+                        {activeBanner.subtitle && (
+                          <p className="text-[10px] text-slate-300 font-medium max-w-sm mt-0.5 leading-snug line-clamp-2">
+                            {activeBanner.subtitle}
+                          </p>
+                        )}
+                        {activeBanner.buttonText && activeBanner.buttonText.trim() !== "" && (
+                          <div className={`${previewDevice === "mobile" ? "mt-2" : "mt-3"}`}>
+                            <span className="inline-flex items-center px-3 py-1 bg-indigo-600 text-white font-bold text-[9px] rounded-full shadow cursor-default select-none">
+                              {activeBanner.buttonText}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Top-Right Indicator Badge */}
+                    <div className="absolute top-2.5 right-2.5 bg-black/85 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 text-[8px] font-black text-gray-300 uppercase tracking-widest z-20 flex flex-col items-end gap-0.5">
+                      <span>{previewDevice === "mobile" ? "Mobile Render" : "Desktop Render"}</span>
+                      <span className="text-indigo-400 text-[7px]">{previewDevice === "mobile" ? "600 x 350 px" : "1200 x 400 px"}</span>
+                    </div>
+
+                    {/* Page Indicators overlay (only if in Live mode with multiple slides) */}
+                    {previewSource === "live" && bannersList.length > 1 && (
+                      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-20">
+                        {bannersList.map((_, dotIndex) => (
+                          <button
+                            key={dotIndex}
+                            type="button"
+                            onClick={() => setPreviewIndex(dotIndex)}
+                            className={`h-1 rounded-full transition-all ${
+                              previewIndex === dotIndex ? "w-3.5 bg-white" : "w-1 bg-white/40 hover:bg-white/70"
+                            }`}
+                            title={`View slide ${dotIndex + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-10 text-center w-full bg-slate-950/20 rounded-xl border border-dashed border-white/5 relative">
+                    <AlertCircle className="w-8 h-8 text-amber-500/60 mb-2 animate-bounce" />
+                    <span className="text-xs font-semibold text-amber-500/90">No Slides Configured</span>
+                    <p className="text-[10px] text-gray-500 max-w-xs mt-1">
+                      No active slide banners in library. Default to draft form view or load quick templates.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Global Slide settings (Interval speed slider) */}
+              <div className="mt-4 p-3 bg-slate-950/20 border border-white/5 rounded-xl flex items-center justify-between gap-4">
+                <div className="flex flex-col gap-0.5 flex-1">
+                  <span className="text-xs font-semibold text-gray-300">Slideshow Transition Speed</span>
+                  <span className="text-[9px] text-gray-500">Dynamic delay between slides in seconds (current: {slideshowIntervalInput}s)</span>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <input
+                    type="number"
+                    min="2"
+                    max="30"
+                    value={slideshowIntervalInput}
+                    onChange={(e) => setSlideshowIntervalInput(e.target.value)}
+                    className="w-16 bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1 text-center text-xs text-gray-200 focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
 
@@ -3728,197 +4252,6 @@ export function AdminDashboard() {
               {/* Right Side: Active Slides & Real-Time Device Simulator (6 Cols) */}
               <div className="lg:col-span-6 flex flex-col gap-8">
                 
-                {/* Real-Time Live Mirror Preview Simulator */}
-                <div id="live-mirror-preview-panel" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/5 pb-4 mb-4">
-                    <div>
-                      <h3 className="text-md font-bold flex items-center gap-2 text-white">
-                        <Monitor className="w-4 h-4 text-emerald-400" />
-                        Live Mirror Simulator
-                      </h3>
-                      <span className="text-[10px] text-gray-400">Previews exact user dashboard sizing, typography, and button responsiveness.</span>
-                    </div>
-
-                    {/* Simulator Controls */}
-                    <div className="flex items-center gap-1.5 self-start sm:self-auto">
-                      {/* Device Selection */}
-                      <button
-                        onClick={() => setPreviewDevice("desktop")}
-                        className={`p-1.5 rounded-lg border transition-all ${
-                          previewDevice === "desktop"
-                            ? "bg-indigo-600/20 border-indigo-500 text-indigo-400"
-                            : "bg-slate-900/40 border-white/5 text-gray-400 hover:text-gray-300"
-                        }`}
-                        title="Desktop Preview Aspect Ratio"
-                      >
-                        <Monitor className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => setPreviewDevice("mobile")}
-                        className={`p-1.5 rounded-lg border transition-all ${
-                          previewDevice === "mobile"
-                            ? "bg-indigo-600/20 border-indigo-500 text-indigo-400"
-                            : "bg-slate-900/40 border-white/5 text-gray-400 hover:text-gray-300"
-                        }`}
-                        title="Mobile Preview Aspect Ratio"
-                      >
-                        <Smartphone className="w-3.5 h-3.5" />
-                      </button>
-
-                      {/* Divider */}
-                      <div className="w-px h-6 bg-white/10 mx-1" />
-
-                      {/* Source Selection */}
-                      <div className="bg-slate-950/40 border border-white/10 p-0.5 rounded-lg flex gap-1">
-                        <button
-                          onClick={() => {
-                            setPreviewSource("live");
-                            setPreviewIndex(0);
-                          }}
-                          className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
-                            previewSource === "live"
-                              ? "bg-indigo-600 text-white shadow"
-                              : "text-gray-400 hover:text-gray-300"
-                          }`}
-                        >
-                          Live List
-                        </button>
-                        <button
-                          onClick={() => {
-                            setPreviewSource("draft");
-                            setPreviewIndex(0);
-                          }}
-                          className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${
-                            previewSource === "draft"
-                              ? "bg-amber-600 text-white shadow"
-                              : "text-gray-400 hover:text-gray-300"
-                          }`}
-                        >
-                          Draft Form
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Device Screen Container Frame */}
-                  <div className="flex justify-center bg-black/35 rounded-2xl p-4 border border-white/5 relative min-h-[220px]">
-                    {activeBanner ? (
-                      <div 
-                        className={`relative overflow-hidden transition-all duration-300 rounded-2xl bg-slate-900 border border-white/5 shadow-inner ${
-                          previewDevice === "mobile" 
-                            ? "w-[600px] max-w-full aspect-[600/350]" 
-                            : "w-[1200px] max-w-full aspect-[1200/400]"
-                        }`}
-                      >
-                        {/* Slide image block */}
-                        <div className="absolute inset-0 w-full h-full">
-                          <img
-                            src={previewDevice === "mobile" ? (activeBanner.mobileImageUrl || activeBanner.imageUrl) : activeBanner.imageUrl}
-                            alt=""
-                            className="w-full h-full object-cover"
-                            referrerPolicy="no-referrer"
-                          />
-                          {/* Gradient Toggle Overlay */}
-                          {activeBanner.enableGradient !== false && !activeBanner.hideContent && (
-                            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent" />
-                          )}
-                        </div>
-
-                        {/* Slide Content Box */}
-                        {!activeBanner.hideContent && (
-                          <div className={`absolute inset-0 flex flex-col justify-center px-6 ${previewDevice === "mobile" ? "py-4 px-5" : "py-6 px-10"} z-10`}>
-                            <span className={`text-[8px] font-black tracking-widest uppercase mb-0.5 ${
-                              activeBanner.type === "ad" ? "text-amber-400" : "text-indigo-400"
-                            }`}>
-                              {activeBanner.type === "ad" ? "Advertisement" : "Promoted Spotlight"}
-                            </span>
-                            {activeBanner.title && (
-                              <h2 className={`font-black text-white tracking-tight leading-tight line-clamp-1 ${
-                                previewDevice === "mobile" ? "text-sm" : "text-lg md:text-xl"
-                              }`}>
-                                {activeBanner.title}
-                              </h2>
-                            )}
-                            {activeBanner.subtitle && (
-                              <p className="text-[10px] text-slate-300 font-medium max-w-sm mt-0.5 leading-snug line-clamp-2">
-                                {activeBanner.subtitle}
-                              </p>
-                            )}
-                            {activeBanner.buttonText && activeBanner.buttonText.trim() !== "" && (
-                              <div className={`${previewDevice === "mobile" ? "mt-2" : "mt-3"}`}>
-                                <span className="inline-flex items-center px-3 py-1 bg-indigo-600 text-white font-bold text-[9px] rounded-full shadow cursor-default select-none">
-                                  {activeBanner.buttonText}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Top-Right Indicator Badge */}
-                        <div className="absolute top-2.5 right-2.5 bg-black/85 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 text-[8px] font-black text-gray-300 uppercase tracking-widest z-20 flex flex-col items-end gap-0.5">
-                          <span>{previewDevice === "mobile" ? "Mobile Render" : "Desktop Render"}</span>
-                          <span className="text-indigo-400 text-[7px]">{previewDevice === "mobile" ? "600 x 350 px" : "1200 x 400 px"}</span>
-                        </div>
-
-                        {/* Page Indicators overlay (only if in Live mode with multiple slides) */}
-                        {previewSource === "live" && bannersList.length > 1 && (
-                          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-20">
-                            {bannersList.map((_, dotIndex) => (
-                              <button
-                                key={dotIndex}
-                                onClick={() => setPreviewIndex(dotIndex)}
-                                className={`h-1 rounded-full transition-all ${
-                                  previewIndex === dotIndex ? "w-3.5 bg-white" : "w-1 bg-white/40 hover:bg-white/70"
-                                }`}
-                                title={`View slide ${dotIndex + 1}`}
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center py-10 text-center w-full bg-slate-950/20 rounded-xl border border-dashed border-white/5 relative">
-                        <AlertCircle className="w-8 h-8 text-amber-500/60 mb-2 animate-bounce" />
-                        <span className="text-xs font-semibold text-amber-500/90">No Slides Configured</span>
-                        <p className="text-[10px] text-gray-500 max-w-xs mt-1">
-                          No active slide banners in library. Default to draft form view or load quick templates.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Global Slide settings (Interval speed slider) */}
-                  <div className="mt-4 p-3 bg-slate-950/20 border border-white/5 rounded-xl flex items-center justify-between gap-4">
-                    <div className="flex flex-col gap-0.5 flex-1">
-                      <span className="text-xs font-semibold text-gray-300">Slideshow Transition Speed</span>
-                      <span className="text-[9px] text-gray-500">Dynamic delay between slides in seconds (current: {slideshowIntervalInput}s)</span>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      <input
-                        type="number"
-                        min="2"
-                        max="30"
-                        value={slideshowIntervalInput}
-                        onChange={(e) => setSlideshowIntervalInput(e.target.value)}
-                        className="w-14 bg-slate-950/50 border border-white/10 rounded-lg px-2 py-1 text-center text-xs text-gray-200 focus:outline-none"
-                      />
-                      <button
-                        onClick={() => {
-                          const val = parseInt(slideshowIntervalInput, 10);
-                          if (isNaN(val) || val < 2 || val > 30) {
-                            toast.error("Interval must be between 2 and 30 seconds.");
-                            return;
-                          }
-                          handleUpdateConfig("SYSTEM_PROMO_INTERVAL", val.toString());
-                        }}
-                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] rounded-lg transition-all"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
                 {/* 3. Active Promotion Library */}
                 <div id="active-promos-library" className="bg-[#0f172a]/40 border border-white/5 rounded-2xl p-6">
                   <div className="flex items-center justify-between border-b border-white/5 pb-3 mb-4">

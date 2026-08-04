@@ -11,6 +11,7 @@ import { useToast } from "../context/ToastContext";
 import { EmptyState } from "./EmptyState";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditSongModal } from "./EditSongModal";
+import { getThumbnailUrl } from "../utils/youtube";
 
 gsap.registerPlugin(useGSAP);
 
@@ -117,12 +118,7 @@ const SongRow = memo(function SongRow({
 
   const getThumbnailSrc = (url: string) => {
     if (!url) return "";
-    if (!lowDataMode && url.includes("mqdefault.jpg")) {
-      return variant === "explore"
-        ? url.replace("mqdefault.jpg", "maxresdefault.jpg")
-        : url.replace("mqdefault.jpg", "hqdefault.jpg");
-    }
-    return url;
+    return getThumbnailUrl(url, 'mqdefault');
   };
 
   const handlePlayClick = (e: React.MouseEvent) => {

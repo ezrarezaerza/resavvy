@@ -4,6 +4,7 @@ import { Heart, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
 import { OptimizedImage } from "./OptimizedImage";
+import { getThumbnailUrl } from '../utils/youtube';
 
 interface PlaylistCardProps {
   playlist: PlaylistGroup;
@@ -24,7 +25,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = React.memo(({ playlist,
     } else if (playlist.songs.length > 0) {
       let url = playlist.songs[0].thumbnailUrl;
       if (url) {
-        return url.replace('mqdefault.jpg', 'maxresdefault.jpg').replace('hqdefault.jpg', 'maxresdefault.jpg');
+        return getThumbnailUrl(url, 'mqdefault');
       }
     }
     return null;

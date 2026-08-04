@@ -4,6 +4,7 @@ import { usePlayer } from "../context/PlayerContext";
 import { useSettings } from "../hooks/useSettings";
 import { PlaybackProgressBar } from "./PlaybackProgressBar";
 import { OptimizedImage } from "./OptimizedImage";
+import { getThumbnailUrl } from "../utils/youtube";
 
 export const PlayerBar = React.memo(function PlayerBar() {
   const [isVolHovering, setIsVolHovering] = useState(false);
@@ -42,10 +43,7 @@ export const PlayerBar = React.memo(function PlayerBar() {
 
   const getThumbnailSrc = (url: string) => {
     if (!url) return '';
-    if (!lowDataMode && url.includes('mqdefault.jpg')) {
-      return url.replace('mqdefault.jpg', 'hqdefault.jpg');
-    }
-    return url;
+    return getThumbnailUrl(url, 'mqdefault');
   };
 
   return (
