@@ -4,24 +4,24 @@ Resavvy is a premium, browser-based YouTube music library, PWA audio player, and
 
 ---
 
-## Technical Specifications & Asset Optimization Guide
+## UI Layout & Media Display Specifications
 
-This section outlines technical specifications, media asset requirements, and optimization strategies to ensure optimal visual presentation and web performance across desktop and mobile devices.
+To ensure a seamless visual presentation across devices, media assets and covers adapt dynamically according to viewport size, UI context, and device capabilities.
 
-### 1. YouTube Thumbnail Optimization (`getThumbnailUrl`)
+### 1. Song Cover & Track Artwork Display
 
-To maintain fast page load times, lower bandwidth consumption, and minimize Cumulative Layout Shift (CLS), YouTube video thumbnails are fetched using an optimized resolution utility `getThumbnailUrl(videoId, size)`.
+YouTube song artwork is displayed using tailored visual dimensions and aspect ratios across different platform views:
 
-#### Available Resolution Sizes:
-| Size Parameter | Resolution | Aspect Ratio | Use Case |
-| :--- | :--- | :--- | :--- |
-| `default` | 120 × 90 px | 4:3 | Compact list items, small popovers, & search previews |
-| `mqdefault` / `mq` | 320 × 180 px | 16:9 | **Standard Default**: Song cards, grid views, tracklists, bottom player bar, & background overlays |
-| `hqdefault` / `hq` | 480 × 360 px | 4:3 | High-density retina previews & modal covers |
-| `sddefault` / `sd` | 640 × 480 px | 4:3 | Standard-definition playlist header banners |
-| `maxresdefault` / `maxres` | 1280 × 720 px | 16:9 | Immersive full-screen background visualizers & hero banners |
-
-> **Performance Strategy**: By standardizing grid and list view thumbnails to `mqdefault` (320x180 px), initial page payloads are reduced by up to 70% compared to uncompressed `maxresdefault` images, providing near-instant loading even on constrained mobile networks.
+| View Component | Aspect Ratio | Desktop Display Size | Mobile Display Size | Styling Details |
+| :--- | :--- | :--- | :--- | :--- |
+| **Grid Song Cards** (`SongCard.tsx`) | `1:1` Square | Responsive Grid Card (`aspect-square`) | Responsive Grid Card (`aspect-square`) | `rounded-xl` with drop-shadow & scale-up hover feedback |
+| **Heavy Rotation Cards** (`HomeDashboard.tsx`) | `1:1` Square | `320 px` Card width with `64 × 64 px` Avatar | `80vw` Card width with `64 × 64 px` Avatar | Backdrop blur container (`rounded-2xl`) |
+| **Standard Tracklists** (`Tracklist.tsx`) | `1:1` Square | `48 × 48 px` | `48 × 48 px` | Compact row artwork (`rounded-xl`) |
+| **Explore & Discovery Rows** (`DiscoveryDashboard.tsx`) | `16:9` Rectangular | `64 × 48 px` Rectangular Crop | `64 × 48 px` Rectangular Crop | Widescreen format optimized for video preview frames |
+| **Playlist Hero Covers** (`PlaylistHero.tsx`) | `1:1` Square | `224 × 224 px` to `256 × 256 px` | `176 × 176 px` | `rounded-3xl` with prominent `shadow-2xl` elevation |
+| **Public Showcase Hero** (`PublicPlaylistPage.tsx`) | `1:1` Square | `240 × 240 px` | `192 × 192 px` | Centered showcase cover with `rounded-2xl` borders |
+| **Bottom Player Bar** (`PlayerBar.tsx`) | `1:1` Square | `48 × 48 px` | `48 × 48 px` | Persistent compact album cover with `rounded-xl` |
+| **Fullscreen Player Artwork** (`FullscreenPlayer.tsx`) | `1:1` Square | `320 × 320 px` (`w-80 h-80`) | `256 × 256 px` (`w-64 h-64`) | Elevated album cover with scaled `150%` ambient background blur |
 
 ---
 
@@ -29,42 +29,52 @@ To maintain fast page load times, lower bandwidth consumption, and minimize Cumu
 
 Administrators can deploy system-wide promotional banners, sponsorship slides, and advertisement units via the **Promotions & Broadcasts** panel in the Admin Dashboard.
 
-#### Banner Image Dimensions & Aspect Ratios:
+#### Banner Image Dimensions & Responsive Display:
 * **Desktop Banner**:
-  * **Recommended Dimensions**: `1200 × 400 pixels`
-  * **Aspect Ratio**: `3:1` (1200/400)
+  * **Display Dimensions**: `1200 × 400 pixels`
+  * **Aspect Ratio**: `3:1` (w-[1200px] aspect-[1200/400])
   * **Display Location**: Hero carousel on desktop home feeds.
 * **Mobile Banner**:
-  * **Recommended Dimensions**: `600 × 350 pixels`
-  * **Aspect Ratio**: `~1.71:1` (600/350)
+  * **Display Dimensions**: `600 × 350 pixels`
+  * **Aspect Ratio**: `~1.71:1` (w-[600px] aspect-[600/350])
   * **Display Location**: Mobile home feed carousel.
-  * **Fallback Behavior**: If a dedicated mobile image URL is omitted, the desktop banner image automatically scales to fit mobile displays.
+  * **Fallback Mechanism**: If a dedicated mobile image URL is omitted, the system automatically scales the desktop banner image to fit mobile screen widths.
 
-#### Administrator Customization Options:
-* **Gradient Overlay (`enableGradient`)**: Toggles a dark readability gradient behind overlay text.
-* **Hide Content (`hideContent`)**: Hides text overlays and action buttons to display full graphical/banner artwork cleanly.
-* **Call-to-Action**: Custom button label and target destination URL.
-* **Real-time Live Preview**: Real-time aspect ratio preview toggle (Desktop `1200x400` vs Mobile `600x350`) in the Admin Dashboard before publishing changes system-wide.
-
----
-
-### 3. PWA Icons & SEO Meta Assets
-
-Located in the `/public` directory and configured in `index.html`:
-* **App Icon (Small)**: `192 × 192 px` PNG (`/public/icon-192.png`)
-* **App Icon (Large)**: `512 × 512 px` PNG (`/public/icon-512.png`)
-* **Apple Touch Icon**: `180 × 180 px` PNG (`/public/apple-touch-icon.png`)
-* **Open Graph / Twitter Card Image**: `1200 × 630 px` JPG/PNG
+#### Administrator Customization Controls:
+* **Gradient Overlay (`enableGradient`)**: Toggles a dark readability gradient behind overlay text for contrast against vibrant artwork.
+* **Hide Content (`hideContent`)**: Suppresses text overlays and action buttons to display raw graphical or brand artwork cleanly.
+* **Interactive Call-to-Action**: Custom CTA button text and destination URL parameters.
+* **Real-time Live Device Visualizer**: Allows administrators to toggle between **Desktop Preview (1200×400)** and **Mobile Preview (600×350)** inside the Admin Dashboard before publishing slides system-wide.
 
 ---
 
-## Key Features
+### 3. Global Broadcasts & System Announcement Banners
 
-- **YouTube Search & Discovery**: Real-time track search, metadata extraction, and smooth playback streaming.
-- **Custom Playlists & Social Curation**: Tag, like, clone, and share public playlists.
-- **Progressive Web App (PWA)**: Complete offline support capabilities, service worker, custom app manifest, and native standalone experience.
-- **Stately Audio Interface**: Smooth full-screen player, custom audio equalizer, queue control, and dynamic visualizer.
-- **Rich Analytics & Administration**: Dashboard monitoring, user role management, content moderation, dead-link detection, and homepage section customization.
+* **System Alert Banner**: Full-width top notification bar (`SYSTEM_ALERT_BANNER`, up to 180 characters) displayed across the entire platform. Users can dismiss it for their current session.
+* **Maintenance Mode Banner**: Emergency top banner rendered across all user views when `SYSTEM_MAINTENANCE_MODE` is activated by an administrator.
+
+---
+
+### 4. Navigation & Workspace Layout Dimensions
+
+* **Desktop Left Sidebar** (`Sidebar.tsx`): Fixed `256 px` (`w-64`) width with sticky positioning.
+* **Top Navigation Bar** (`TopNav.tsx`): Fixed `64 px` (`h-16`) height with centered global search bar (`max-w-md` / `448 px`).
+* **Mobile Bottom Navigation Bar** (`MobileBottomNav.tsx`): Fixed `64 px` (`h-16`) height with 5 primary touch tabs (`>44 px` touch targets).
+* **PWA & Mobile Meta Assets**:
+  * **App Icon (Small)**: `192 × 192 px` PNG (`/public/icon-192.png`)
+  * **App Icon (Large)**: `512 × 512 px` PNG (`/public/icon-512.png`)
+  * **Apple Touch Icon**: `180 × 180 px` PNG (`/public/apple-touch-icon.png`)
+  * **Open Graph Preview**: `1200 × 630 px` JPG/PNG
+
+---
+
+## Core Features
+
+- **YouTube Track Management & Metadata**: Real-time track search, title parsing, artist extraction, and streaming playback.
+- **Custom Playlists & Social Curation**: Tagging, cloning, liking, and public playlist link sharing.
+- **Progressive Web App (PWA)**: Service worker offline fallback, custom PWA manifest, install prompt, and native mobile container layout.
+- **Stately Audio Player & Equalizer**: Persistent player bar, queue management, full-screen player, custom audio equalizer presets, and dynamic ambient background visualizer.
+- **Comprehensive Admin Suite**: Public playlist moderation, dead-link checking, user role management, system broadcast alerts, and customizable promo banner slideshows.
 
 ---
 
