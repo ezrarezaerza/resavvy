@@ -1,6 +1,37 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useRef, useEffect } from 'react';
 import { Song } from '../types';
 import { usePlaylist } from './PlaylistContext';
+import { recordTrackPlay } from '../utils/offlineManager';
+
+export interface EqualizerState {
+  presetId: string;
+  levels: number[]; // 5 band values (0 to 100, where 50 is flat neutral)
+}
+
+const DEFAULT_EQUALIZER_STATE: EqualizerState = {
+  presetId: 'general',
+  levels: [50, 50, 50, 50, 50]
+};
+
+export function applyEqualizerToPlayer(
+  player: any,
+  baseVolume: number,
+  eqState: EqualizerState
+) {
+  if (!player) return;
+
+  const levels = eqState?.levels || [50, 50, 50, 50, 50];
+  // Calculate weighted gain multiplier relative to neutral 50 baseline
+  const weightedGain = (levels[0] * 1.4 + levels[1] * 1.2 + levels[2] * 1.0 + levels[3] * 0.9 + levels[4] * 0.9) / 5.4;
+  const gainMultiplier = Math.max(0.2, weightedGain / 50.0);
+  const targetVolume = Math.min(100, Math.max(0, Math.round(baseVolume * gainMultiplier)));
+
+  if (typeof player.setVolume === 'function') {
+    try {
+      player.setVolume(targetVolume);
+    } catch {}
+  }
+}
 
 interface PlayerContextType {
   currentSong: Song | null;
@@ -9,6 +40,8 @@ interface PlayerContextType {
   isShuffle: boolean;
   repeatMode: 'off' | 'all' | 'one';
   volume: number;
+  equalizerState: EqualizerState;
+  setEqualizerState: React.Dispatch<React.SetStateAction<EqualizerState>>;
   isExpanded: boolean;
   setIsExpanded: (expanded: boolean) => void;
   playSong: (song: Song, groupQueue?: Song[], groupId?: string) => void;
@@ -88,6 +121,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     } catch {}
     return 100;
   });
+  const [equalizerState, setEqualizerState] = useState<EqualizerState>(() => {
+    try {
+      const stored = window.localStorage.getItem('resavvy_eq_state');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch {}
+    return DEFAULT_EQUALIZER_STATE;
+  });
   const [isExpanded, setIsExpanded] = useState(false);
   const playerRef = useRef<any>(null);
 
@@ -104,12 +146,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, [currentSong, queue, isShuffle, repeatMode, currentGroupId, volume]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('resavvy_eq_state', JSON.stringify(equalizerState));
+    } catch {}
+    if (playerRef.current) {
+      applyEqualizerToPlayer(playerRef.current, volume, equalizerState);
+    }
+  }, [equalizerState, volume]);
+
   const setVolume = useCallback((val: number) => {
     setVolumeState(val);
-    if (playerRef.current && playerRef.current.setVolume) {
-      playerRef.current.setVolume(val);
+    if (playerRef.current) {
+      applyEqualizerToPlayer(playerRef.current, val, equalizerState);
     }
-  }, []);
+  }, [equalizerState]);
 
   const playSong = useCallback((song: Song, groupQueue?: Song[], groupId?: string) => {
     const queueToUse = groupQueue || [song];
@@ -117,6 +168,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setCurrentSong(song);
     setQueue(queueToUse);
     setIsPlaying(true);
+    recordTrackPlay(song);
     if (groupId) {
       setCurrentGroupId(groupId);
       incrementPlayCount(groupId, song.id);
@@ -260,6 +312,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     isShuffle,
     repeatMode,
     volume,
+    equalizerState,
+    setEqualizerState,
     isExpanded,
     setIsExpanded,
     playSong,
@@ -270,7 +324,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     toggleRepeat,
     setVolume,
     playerRef,
-  }), [currentSong, queue, isPlaying, isShuffle, repeatMode, volume, isExpanded, playSong, togglePlayPause, playNext, playPrevious, toggleShuffle, toggleRepeat]);
+  }), [currentSong, queue, isPlaying, isShuffle, repeatMode, volume, equalizerState, isExpanded, playSong, togglePlayPause, playNext, playPrevious, toggleShuffle, toggleRepeat]);
 
   return (
     <PlayerContext.Provider

@@ -25,29 +25,35 @@ export function usePlaylistData() {
 
   const [isLoadingPlaylists, setIsLoadingPlaylists] = useState<boolean>(!!token);
 
-  // Clear cache and fetch original data based on logged in account
+  // Fetch user playlists and save for offline accessibility
   useEffect(() => {
-    window.localStorage.removeItem(LOCAL_STORAGE_KEY);
-    
     if (token) {
       setIsLoadingPlaylists(true);
       const abortController = new AbortController();
-      fetch('/api/playlists?_t=' + Date.now(), {
+      fetch('/api/playlists', {
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        cache: 'no-store',
         signal: abortController.signal
       })
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
           setGroups(data);
+          try {
+            window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+          } catch (e) {}
         }
       })
       .catch(err => {
         if (err.name !== 'AbortError') {
-          console.error('Failed to load user playlists', err);
+          console.error('Failed to load user playlists from network, attempting offline backup', err);
+          try {
+            const cached = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (cached) {
+              setGroups(JSON.parse(cached));
+            }
+          } catch (e) {}
         }
       })
       .finally(() => {
@@ -55,20 +61,25 @@ export function usePlaylistData() {
       });
       return () => abortController.abort();
     } else {
-      setGroups([]);
+      try {
+        const cached = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (cached) {
+          setGroups(JSON.parse(cached));
+        }
+      } catch (e) {}
       setIsLoadingPlaylists(false);
     }
   }, [token]);
 
   useEffect(() => {
-    if (!token) {
+    if (groups.length > 0) {
       try {
         window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(groups));
       } catch (error) {
         console.error("Failed to save playlists to localStorage:", error);
       }
     }
-  }, [groups, token]);
+  }, [groups]);
 
   const createGroup = async (
     name: string,
@@ -535,6 +546,63 @@ export function usePlaylistData() {
     }
   };
 
+  const importPlaylists = async (importedGroups: PlaylistGroup[]): Promise<number> => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Importing playlists is temporarily disabled.", "error");
+      return 0;
+    }
+
+    let addedCount = 0;
+    const existingIds = new Set(groups.map(g => g.id));
+    const newGroupsToAppend: PlaylistGroup[] = [];
+
+    for (const group of importedGroups) {
+      if (!group || !group.name) continue;
+      
+      const newId = existingIds.has(group.id) ? crypto.randomUUID() : (group.id || crypto.randomUUID());
+      const cleanedGroup: PlaylistGroup = {
+        ...group,
+        id: newId,
+        createdAt: group.createdAt || Date.now(),
+        songs: Array.isArray(group.songs) ? group.songs : []
+      };
+
+      if (token) {
+        try {
+          const res = await fetch('/api/playlists', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+              name: cleanedGroup.name,
+              description: cleanedGroup.description,
+              tags: cleanedGroup.tags,
+              visibility: cleanedGroup.visibility,
+              customCoverUrl: cleanedGroup.customCoverUrl,
+              coverType: cleanedGroup.coverType,
+              songs: cleanedGroup.songs
+            })
+          });
+          if (res.ok) {
+            const savedServerGroup = await res.json();
+            newGroupsToAppend.push(savedServerGroup);
+            addedCount++;
+          }
+        } catch (err) {
+          console.error('Error syncing imported playlist to server:', err);
+        }
+      } else {
+        newGroupsToAppend.push(cleanedGroup);
+        addedCount++;
+      }
+    }
+
+    if (newGroupsToAppend.length > 0) {
+      setGroups(prev => [...prev, ...newGroupsToAppend]);
+    }
+
+    return addedCount;
+  };
+
   const playlistDataValue = React.useMemo(() => ({
     groups,
     isLoadingPlaylists,
@@ -553,6 +621,7 @@ export function usePlaylistData() {
     savePlaylist,
     unsavePlaylist,
     clonePlaylist,
+    importPlaylists,
   }), [groups, token, isLoadingPlaylists]);
 
   return playlistDataValue;

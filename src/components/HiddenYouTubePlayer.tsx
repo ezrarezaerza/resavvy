@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { usePlayer } from '../context/PlayerContext';
+import { usePlayer, applyEqualizerToPlayer } from '../context/PlayerContext';
 import { usePlaylist } from '../context/PlaylistContext';
 import { useSettings } from '../hooks/useSettings';
 
@@ -11,11 +11,26 @@ declare global {
 }
 
 export function HiddenYouTubePlayer() {
-  const { currentSong, isPlaying, playNext, playerRef, volume } = usePlayer();
+  const { currentSong, isPlaying, playNext, playerRef, volume, equalizerState } = usePlayer();
   const { updateSongDuration } = usePlaylist();
-  const { dataSaver, autoplay } = useSettings();
+  const { dataSaver, crossfade } = useSettings();
   const isReadyRef = useRef<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const crossfadeRef = useRef(crossfade);
+  useEffect(() => {
+    crossfadeRef.current = crossfade;
+  }, [crossfade]);
+
+  const eqStateRef = useRef(equalizerState);
+  useEffect(() => {
+    eqStateRef.current = equalizerState;
+  }, [equalizerState]);
+
+  const volumeRef = useRef(volume);
+  useEffect(() => {
+    volumeRef.current = volume;
+  }, [volume]);
   
   const playNextRef = useRef(playNext);
   useEffect(() => {
@@ -76,8 +91,8 @@ export function HiddenYouTubePlayer() {
           onReady: () => {
             console.log('[Player Engine] Player Ready.');
             isReadyRef.current = true;
-            if (playerRef.current && playerRef.current.setVolume) {
-              playerRef.current.setVolume(volume);
+            if (playerRef.current) {
+              applyEqualizerToPlayer(playerRef.current, volumeRef.current, eqStateRef.current);
             }
             if (currentSongRef.current) {
               const videoId = currentSongRef.current.youtubeId || currentSongRef.current.id;
@@ -109,6 +124,9 @@ export function HiddenYouTubePlayer() {
               playNextRef.current();
             } else if (event.data === window.YT.PlayerState.PLAYING) {
               console.log('[Player Engine] Status: PLAYING.');
+              if (playerRef.current) {
+                applyEqualizerToPlayer(playerRef.current, volumeRef.current, eqStateRef.current);
+              }
               const song = currentSongRef.current;
               if (song && (!song.duration || song.duration === '--:--')) {
                 const durationSeconds = playerRef.current?.getDuration();
@@ -200,6 +218,57 @@ export function HiddenYouTubePlayer() {
       }
     }
   }, [isPlaying]); // Depends on isPlaying
+
+  // Crossfade Transition Engine
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    let isTransitioning = false;
+    const interval = setInterval(() => {
+      if (!playerRef.current || typeof playerRef.current.getCurrentTime !== 'function') return;
+
+      const cf = crossfadeRef.current || 0;
+      if (cf <= 0) return;
+
+      const ct = playerRef.current.getCurrentTime() || 0;
+      const dur = playerRef.current.getDuration() || 0;
+
+      if (dur > 0 && ct > 0) {
+        const timeRemaining = dur - ct;
+        if (timeRemaining <= cf && timeRemaining > 0) {
+          // Fade out towards track end
+          const fadeRatio = Math.max(0, timeRemaining / cf);
+          applyEqualizerToPlayer(
+            playerRef.current,
+            volumeRef.current * fadeRatio,
+            eqStateRef.current
+          );
+
+          if (timeRemaining <= 0.4 && !isTransitioning) {
+            isTransitioning = true;
+            playNextRef.current();
+          }
+        } else if (ct < Math.min(2, cf * 0.5)) {
+          // Fade in at track start
+          const fadeInRatio = Math.min(1, ct / Math.min(2, cf * 0.5));
+          applyEqualizerToPlayer(
+            playerRef.current,
+            volumeRef.current * fadeInRatio,
+            eqStateRef.current
+          );
+        } else {
+          // Normal playback volume
+          applyEqualizerToPlayer(
+            playerRef.current,
+            volumeRef.current,
+            eqStateRef.current
+          );
+        }
+      }
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [isPlaying]);
 
   return (
     <div className="absolute -left-[9999px] w-[1px] h-[1px] overflow-hidden opacity-0 pointer-events-none">

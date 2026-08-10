@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon, Share2, Flag } from "lucide-react";
+import { Plus, MoreHorizontal, Edit2, Trash2, Play, ImageIcon, Share2, Flag, Download } from "lucide-react";
 import { PlaylistGroup } from "../types";
 import { usePlaylist } from "../context/PlaylistContext";
 import { usePlayer } from "../context/PlayerContext";
 import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
+import { cachePlaylistForOffline } from "../utils/offlineManager";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditCoverModal } from "./EditCoverModal";
 import { EditPlaylistModal } from "./EditPlaylistModal";
@@ -35,6 +36,12 @@ export function PlaylistHero({ activeGroup, onAddSong, isReadOnly = false }: Pla
   const [displayImage, setDisplayImage] = useState<string>('');
   const inputRef = useRef<HTMLInputElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
+
+  const handleCacheOffline = () => {
+    cachePlaylistForOffline(activeGroup);
+    addToast(`"${activeGroup.name}" metadata and songs cached for offline playback!`, 'success');
+    setShowOptions(false);
+  };
 
   const handleFlagClick = () => {
     if (!token) {
@@ -240,6 +247,13 @@ export function PlaylistHero({ activeGroup, onAddSong, isReadOnly = false }: Pla
                           >
                             <Share2 className="w-4 h-4" />
                             Share Playlist
+                          </button>
+                          <button
+                            onClick={handleCacheOffline}
+                            className="w-full text-left px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 flex items-center gap-2 font-medium"
+                          >
+                            <Download className="w-4 h-4" />
+                            Cache for Offline
                           </button>
                           {!isReadOnly && (
                             <>

@@ -6,24 +6,34 @@ import {
   Sun, 
   Settings, 
   Download, 
+  Upload,
   RefreshCw, 
   Trash2, 
   Check, 
   Volume2, 
   Sparkles,
-  ShieldAlert
+  ShieldAlert,
+  HardDrive,
+  Wifi,
+  WifiOff,
+  Database
 } from "lucide-react";
 import { useSettings } from "../hooks/useSettings";
 import { useAuth } from "../context/AuthContext";
+import { usePlaylist } from "../context/PlaylistContext";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { OptimizedImage } from "./OptimizedImage";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
+import { fetchOfflineCacheStats, getFrequentlyPlayedTracks, clearAllOfflineCache } from "../utils/offlineManager";
+import { OfflineIndicator } from "./OfflineIndicator";
 
 export function SettingsScreen() {
-  const { theme, setTheme, autoplay, setAutoplay } = useSettings();
+  const { theme, setTheme, autoplay, setAutoplay, crossfade, setCrossfade } = useSettings();
   const { user, logout, updateProfile, deleteAccount } = useAuth();
+  const { groups, importPlaylists } = usePlaylist();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const isDark = theme === 'dark' || (theme === 'system' && typeof window !== "undefined" && window.matchMedia('(prefers-color-scheme: dark)').matches);
   
@@ -36,6 +46,39 @@ export function SettingsScreen() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [offlineStats, setOfflineStats] = useState({ metadataCount: 0, frequentCount: 0, mediaCount: 0 });
+
+  const loadOfflineStats = () => {
+    fetchOfflineCacheStats().then(stats => setOfflineStats(stats));
+  };
+
+  useEffect(() => {
+    loadOfflineStats();
+  }, []);
+
+  const handlePrecacheTopTracks = () => {
+    const top = getFrequentlyPlayedTracks(12);
+    if (top.length === 0) {
+      toast.info("Play a few songs first to record frequently played tracks!");
+      return;
+    }
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'CACHE_FREQUENTLY_PLAYED',
+        payload: { songs: top }
+      });
+      toast.success(`Pre-cached ${top.length} frequently played tracks for offline listening!`);
+      setTimeout(loadOfflineStats, 1000);
+    } else {
+      toast.error("Service worker not active yet");
+    }
+  };
+
+  const handlePurgeOfflineCache = async () => {
+    await clearAllOfflineCache();
+    toast.success("Offline track and metadata cache cleared.");
+    loadOfflineStats();
+  };
 
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -76,23 +119,72 @@ export function SettingsScreen() {
 
   const handleExportData = () => {
     try {
-      const data = {
-        playlists: localStorage.getItem('resavvy_playlists'),
+      const exportPayload = {
+        app: "ReSavvy Music",
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        playlistCount: groups.length,
+        playlists: groups,
         settings: {
-          theme: localStorage.getItem('resavvy_theme'),
-          autoplay: localStorage.getItem('resavvy_autoplay')
+          theme,
+          autoplay,
+          crossfade
         }
       };
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'resavvy_backup.json';
+      const dateStr = new Date().toISOString().split('T')[0];
+      a.download = `resavvy_playlists_backup_${dateStr}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success('Data exported successfully');
+      
+      const totalSongs = groups.reduce((acc, g) => acc + (g.songs?.length || 0), 0);
+      toast.success(`Exported ${groups.length} playlist${groups.length === 1 ? '' : 's'} (${totalSongs} tracks) to JSON backup!`);
     } catch (err) {
-      toast.error('Failed to export data');
+      console.error(err);
+      toast.error('Failed to export playlist backup');
+    }
+  };
+
+  const handleFileImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+
+      let playlistsToImport: any[] = [];
+      if (Array.isArray(parsed)) {
+        playlistsToImport = parsed;
+      } else if (parsed && Array.isArray(parsed.playlists)) {
+        playlistsToImport = parsed.playlists;
+      } else if (parsed && Array.isArray(parsed.groups)) {
+        playlistsToImport = parsed.groups;
+      } else if (parsed && parsed.name && Array.isArray(parsed.songs)) {
+        playlistsToImport = [parsed];
+      }
+
+      if (playlistsToImport.length === 0) {
+        toast.error('No valid playlist data found in JSON file');
+        return;
+      }
+
+      const count = await importPlaylists(playlistsToImport);
+      if (count > 0) {
+        toast.success(`Successfully imported ${count} playlist${count > 1 ? 's' : ''}!`);
+      } else {
+        toast.info('No new playlists were imported');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error('Invalid JSON file format');
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -354,7 +446,7 @@ export function SettingsScreen() {
             </div>
 
             {/* Autoplay Similar */}
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-white/5">
               <div className="flex flex-col">
                 <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
                   <Volume2 className="w-4 h-4 text-indigo-500" />
@@ -369,6 +461,42 @@ export function SettingsScreen() {
                 <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${autoplay ? 'translate-x-5' : 'translate-x-0'}`} />
               </button>
             </div>
+
+            {/* Track Crossfade */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-indigo-500" />
+                  Track Crossfade Transitions
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Smoothly blend track boundaries for uninterrupted listening</span>
+              </div>
+              <div className="flex p-1 bg-gray-100 dark:bg-black/45 rounded-xl border border-gray-200/50 dark:border-white/5 self-start sm:self-auto flex-wrap gap-1">
+                {[
+                  { value: 0, label: 'Off' },
+                  { value: 2, label: '2s' },
+                  { value: 4, label: '4s' },
+                  { value: 6, label: '6s' },
+                  { value: 8, label: '8s' },
+                  { value: 12, label: '12s' }
+                ].map((opt) => {
+                  const active = crossfade === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => setCrossfade(opt.value)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        active 
+                          ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-white shadow-sm font-bold' 
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Storage and Data */}
@@ -382,16 +510,32 @@ export function SettingsScreen() {
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-gray-50 dark:bg-black/10 border border-gray-100 dark:border-white/5 w-full">
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">Export Local Backup</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Save your custom playlists and playback history as a JSON file</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">Playlist Backup & Restore</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Export all curated track collections to local JSON or restore existing backup files</span>
               </div>
-              <button
-                onClick={handleExportData}
-                className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/5 text-sm font-semibold text-gray-700 dark:text-gray-300 transition-all flex items-center gap-2 cursor-pointer bg-white dark:bg-gray-900 shadow-xs"
-              >
-                <Download className="w-4 h-4" />
-                <span>Export Backups</span>
-              </button>
+              <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".json,application/json"
+                  onChange={handleFileImport}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/5 text-sm font-semibold text-gray-700 dark:text-gray-300 transition-all flex items-center gap-2 cursor-pointer bg-white dark:bg-gray-900 shadow-xs"
+                >
+                  <Upload className="w-4 h-4 text-indigo-500" />
+                  <span>Import JSON</span>
+                </button>
+                <button
+                  onClick={handleExportData}
+                  className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Export JSON ({groups.length})</span>
+                </button>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-gray-50 dark:bg-black/10 border border-gray-100 dark:border-white/5 w-full">
@@ -409,7 +553,66 @@ export function SettingsScreen() {
             </div>
           </div>
 
-          {/* Danger Zone */}
+          {/* Offline Playback & PWA Storage */}
+          <div className="mobile-animate bg-white dark:bg-gray-900/60 backdrop-blur-md rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm p-5 sm:p-6 flex flex-col gap-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                  <HardDrive className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">Offline Playback & PWA Cache</h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Frequently played songs and playlist metadata are cached locally for offline listening</p>
+                </div>
+              </div>
+              <div className="shrink-0">
+                <OfflineIndicator />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 p-3 bg-gray-50 dark:bg-black/20 rounded-xl border border-gray-100 dark:border-white/5 text-center">
+              <div>
+                <div className="text-lg font-extrabold text-gray-900 dark:text-white">{offlineStats.metadataCount}</div>
+                <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Metadata Items</div>
+              </div>
+              <div>
+                <div className="text-lg font-extrabold text-indigo-600 dark:text-indigo-400">{offlineStats.frequentCount}</div>
+                <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Top Tracks Cached</div>
+              </div>
+              <div>
+                <div className="text-lg font-extrabold text-emerald-600 dark:text-emerald-400">{offlineStats.mediaCount}</div>
+                <div className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Artwork & Media</div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-gray-50 dark:bg-black/10 border border-gray-100 dark:border-white/5 w-full">
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">Pre-cache Frequently Played Tracks</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Download metadata and artwork for your top listened tracks</span>
+              </div>
+              <button
+                onClick={handlePrecacheTopTracks}
+                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer shadow-sm shrink-0"
+              >
+                <Download className="w-4 h-4" />
+                <span>Cache Top Tracks</span>
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-gray-50 dark:bg-black/10 border border-gray-100 dark:border-white/5 w-full">
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">Purge Offline Media Cache</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Clear cached media files while retaining account and playlist settings</span>
+              </div>
+              <button
+                onClick={handlePurgeOfflineCache}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/5 text-sm font-semibold text-gray-700 dark:text-gray-300 transition-all flex items-center gap-2 cursor-pointer bg-white dark:bg-gray-900 shadow-xs shrink-0"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Clear Media Cache</span>
+              </button>
+            </div>
+          </div>
           {user && (
             <div className="mobile-animate bg-red-500/5 dark:bg-red-500/5 rounded-2xl border border-red-500/15 p-5 sm:p-6 flex flex-col gap-5">
               <div className="flex items-center gap-3">

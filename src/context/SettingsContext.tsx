@@ -54,7 +54,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [systemConfigs, setSystemConfigs] = useState<SystemConfig[]>([]);
   const [isLoadingConfigs, setIsLoadingConfigs] = useState<boolean>(true);
 
-  const refreshConfigs = async (retries = 5, delay = 1000) => {
+  const refreshConfigs = async (retries = 1, delay = 1000) => {
     try {
       const res = await fetch('/api/auth?action=system-config');
       if (res.ok) {
@@ -66,20 +66,23 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             setIsLoadingConfigs(false);
             return;
           }
-        } else {
-          throw new Error('Response content-type is not JSON. Expected application/json.');
         }
       }
-      throw new Error(`Response status: ${res.status}`);
     } catch (err) {
       if (retries > 0) {
-        console.warn(`System config fetch failed, retrying in ${delay}ms... (${retries} retries left)`, err);
         await new Promise(resolve => setTimeout(resolve, delay));
         return refreshConfigs(retries - 1, delay * 1.5);
       }
-      console.error('Failed to load global system configurations', err);
-      setIsLoadingConfigs(false);
     }
+    // Set fallback default configs on error or invalid response
+    setSystemConfigs([
+      { key: "MAINTENANCE_MODE", value: "false" },
+      { key: "SYSTEM_ALERT_BANNER", value: "" },
+      { key: "MAX_SONGS_PER_PLAYLIST", value: "100" },
+      { key: "ENABLE_COMMUNITY_POSTS", value: "true" },
+      { key: "SYSTEM_PROMO_INTERVAL", value: "6" }
+    ]);
+    setIsLoadingConfigs(false);
   };
 
   useEffect(() => {

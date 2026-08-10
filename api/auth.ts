@@ -191,11 +191,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'GET' && action === 'system-config') {
+    const defaultConfig = [
+      { key: "MAINTENANCE_MODE", value: "false" },
+      { key: "SYSTEM_ALERT_BANNER", value: "" },
+      { key: "MAX_SONGS_PER_PLAYLIST", value: "100" },
+      { key: "ENABLE_COMMUNITY_POSTS", value: "true" },
+      { key: "SYSTEM_PROMO_INTERVAL", value: "6" }
+    ];
     try {
       const configs = await prisma.systemConfig.findMany();
-      return res.status(200).json(configs);
+      if (configs && configs.length > 0) {
+        return res.status(200).json(configs);
+      }
+      return res.status(200).json(defaultConfig);
     } catch (err) {
-      return res.status(500).json({ error: 'Failed to fetch public system configurations' });
+      console.warn('Fallback system config used due to DB error:', err);
+      return res.status(200).json(defaultConfig);
     }
   }
 

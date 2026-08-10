@@ -73,8 +73,16 @@ Administrators can deploy system-wide promotional banners, sponsorship slides, a
 - **YouTube Track Management & Metadata**: Real-time track search, title parsing, artist extraction, and streaming playback.
 - **Custom Playlists & Social Curation**: Tagging, cloning, liking, and public playlist link sharing.
 - **Progressive Web App (PWA)**: Service worker offline fallback, custom PWA manifest, install prompt, and native mobile container layout.
-- **Stately Audio Player & Equalizer**: Persistent player bar, queue management, full-screen player, custom audio equalizer presets, and dynamic ambient background visualizer.
+- **Stately Audio Player & Equalizer**: Persistent player bar, queue management, full-screen player with collapsible icon-only side-panel, custom 5-band audio equalizer presets, and dynamic ambient background visualizer.
+- **Track Crossfade Transition Engine**: Smoothly blends audio track boundaries with configurable crossfade durations (Off, 2s, 4s, 6s, 8s, 12s) configured via Settings.
+- **Playlist Backup & Restore (JSON Export/Import)**: Complete local JSON file export and import system in Settings for backing up and restoring curated track collections with automatic deduplication and server sync.
 - **Comprehensive Admin Suite**: Public playlist moderation, dead-link checking, user role management, system broadcast alerts, and customizable promo banner slideshows.
+
+---
+
+## Technical Documentation & Prompt Changelog
+
+For a comprehensive log of key development prompts, milestones, and architectural decisions made during the Google AI Studio build lifecycle, refer to [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 

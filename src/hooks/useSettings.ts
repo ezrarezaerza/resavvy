@@ -28,6 +28,14 @@ export function useSettings() {
     return false; // default false
   });
 
+  const [crossfade, setCrossfade] = useState<number>(() => {
+    try {
+      const saved = window.localStorage.getItem('resavvy_crossfade');
+      if (saved !== null) return JSON.parse(saved);
+    } catch {}
+    return 0; // default 0s (Off)
+  });
+
   // Keep in sync with native settings
   const [lowDataMode, setLowDataMode] = useState(false); // always false for images
 
@@ -50,6 +58,12 @@ export function useSettings() {
     window.dispatchEvent(new Event('resavvy_settings_update'));
   };
 
+  const setCrossfadeState = (val: number) => {
+    setCrossfade(val);
+    window.localStorage.setItem('resavvy_crossfade', JSON.stringify(val));
+    window.dispatchEvent(new Event('resavvy_settings_update'));
+  };
+
   useEffect(() => {
     const handleUpdate = () => {
       setThemeState((window.localStorage.getItem('resavvy_theme') as Theme) || 'dark');
@@ -62,6 +76,10 @@ export function useSettings() {
       try {
         const ap = window.localStorage.getItem('resavvy_autoplay');
         if (ap !== null) setAutoplay(JSON.parse(ap));
+      } catch {}
+      try {
+        const cf = window.localStorage.getItem('resavvy_crossfade');
+        if (cf !== null) setCrossfade(JSON.parse(cf));
       } catch {}
     };
 
@@ -102,6 +120,8 @@ export function useSettings() {
     setDataSaver: setDataSaverState,
     autoplay,
     setAutoplay: setAutoplayState,
+    crossfade,
+    setCrossfade: setCrossfadeState,
     lowDataMode, // backward compat
   };
 }

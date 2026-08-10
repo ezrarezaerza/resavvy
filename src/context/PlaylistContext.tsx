@@ -20,6 +20,7 @@ interface PlaylistContextType {
   savePlaylist: (playlistId: string) => Promise<void>;
   unsavePlaylist: (playlistId: string) => Promise<void>;
   clonePlaylist: (playlistId: string) => Promise<void>;
+  importPlaylists: (importedGroups: PlaylistGroup[]) => Promise<number>;
 }
 
 const PlaylistContext = createContext<PlaylistContextType | undefined>(undefined);

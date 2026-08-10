@@ -162,7 +162,7 @@ export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onN
       </div>
 
       {/* Right Zone (Profile Trigger) */}
-      <div className="flex-1 flex items-center justify-end">
+      <div className="flex-1 flex items-center justify-end gap-3">
         {!user ? (
           <button
             onClick={() => setShowLoginModal(true)}

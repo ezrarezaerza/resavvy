@@ -1,13 +1,14 @@
 import React, { useRef, memo, useCallback, useState, useEffect } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { Clock, Play, MoreVertical, Edit2, Trash2, Heart, AlertTriangle } from "lucide-react";
+import { Clock, Play, MoreVertical, Edit2, Trash2, Heart, AlertTriangle, Download, CheckCircle2 } from "lucide-react";
 import { usePlayer } from "../context/PlayerContext";
 import { Song, PlaylistGroup } from "../types";
 import { useSettings } from "../hooks/useSettings";
 import { usePlaylist } from "../context/PlaylistContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { isTrackCachedOffline, cacheTrackForOffline } from "../utils/offlineManager";
 import { EmptyState } from "./EmptyState";
 import { ConfirmModal } from "./ConfirmModal";
 import { EditSongModal } from "./EditSongModal";
@@ -66,11 +67,21 @@ const SongRow = memo(function SongRow({
   const { addToast } = useToast();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLiked, setIsLiked] = useState(song.isLiked || false);
+  const [isCached, setIsCached] = useState(() => isTrackCachedOffline(song.id));
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsLiked(song.isLiked || false);
-  }, [song.isLiked]);
+    setIsCached(isTrackCachedOffline(song.id));
+  }, [song.isLiked, song.id]);
+
+  const handleCacheSongOffline = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMenuOpen(false);
+    cacheTrackForOffline(song);
+    setIsCached(true);
+    addToast(`"${song.title}" saved for offline listening`, "success");
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -293,9 +304,12 @@ const SongRow = memo(function SongRow({
         />
         <div className="min-w-0 flex-1">
           <div
-            className={`truncate font-medium text-sm md:text-base ${isCurrentSong ? "text-indigo-600 dark:text-indigo-400" : "text-gray-900 dark:text-gray-100"}`}
+            className={`truncate font-medium text-sm md:text-base flex items-center gap-1.5 ${isCurrentSong ? "text-indigo-600 dark:text-indigo-400" : "text-gray-900 dark:text-gray-100"}`}
           >
-            {song.title}
+            <span className="truncate">{song.title}</span>
+            {isCached && (
+              <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 shrink-0" title="Cached for offline playback" />
+            )}
           </div>
           <div className="truncate text-xs text-gray-500 md:hidden mt-0.5">
             {song.artist || "Unknown Artist"}
@@ -341,6 +355,13 @@ const SongRow = memo(function SongRow({
             {isMenuOpen && (
               <div className="song-menu-dropdown absolute right-0 top-10 z-50 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col">
                 <button
+                  onClick={handleCacheSongOffline}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-left w-full font-medium"
+                >
+                  <Download className="w-4 h-4 text-emerald-500 shrink-0" />
+                  Save for Offline
+                </button>
+                <button
                   onClick={handleReportDeadClick}
                   className="flex items-center gap-2 px-4 py-2.5 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-left w-full font-medium"
                 >
@@ -365,6 +386,13 @@ const SongRow = memo(function SongRow({
               </button>
               {isMenuOpen && (
                 <div className="song-menu-dropdown absolute right-0 top-10 z-50 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col">
+                  <button
+                    onClick={handleCacheSongOffline}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-left w-full font-medium"
+                  >
+                    <Download className="w-4 h-4 text-emerald-500" />
+                    Save for Offline
+                  </button>
                   <button
                     onClick={handleEditClick}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left w-full"
