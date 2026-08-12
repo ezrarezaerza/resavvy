@@ -7,6 +7,7 @@ import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { usePlaylist } from "../context/PlaylistContext";
 import { Modal } from "./Modal";
 import { AddSongInput } from "./AddSongInput";
+import { CreatePlaylistModal } from "./CreatePlaylistModal";
 import { PlaylistHero } from "./PlaylistHero";
 import { TopNav } from "./TopNav";
 import { FullscreenPlayer } from "./FullscreenPlayer";
@@ -46,7 +47,7 @@ export function AppLayout({
       }
     }
   }, []);
-  const { groups, createGroup, deleteGroup, addSong, removeSong } =
+  const { groups, createGroup, deleteGroup, addSong, addSongsBulk, removeSong } =
     usePlaylist();
   const { currentSong } = usePlayer();
   const { user, setShowLoginModal, acknowledgeWarning } = useAuth();
@@ -146,6 +147,13 @@ export function AppLayout({
     }
   };
 
+  const handleAddBulkSongs = (songs: Omit<import("../types").Song, "addedAt">[]) => {
+    if (activeGroup) {
+      addSongsBulk(activeGroup.id, songs);
+      setIsAddSongModalOpen(false);
+    }
+  };
+
   const handleGroupSelect = (id: string | null, searchPrefix?: string) => {
     if (!user && (id === "library" || id === "analytics" || id === "liked")) {
       setShowLoginModal(true);
@@ -183,25 +191,51 @@ export function AppLayout({
     setIsSidebarOpen(false);
   };
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const [prefilledYoutubeUrlForCreate, setPrefilledYoutubeUrlForCreate] = useState<string>('');
+  const [prefilledUrlForAddSong, setPrefilledUrlForAddSong] = useState<string>('');
+
+  const handleImportPlaylistUrl = (url: string) => {
     if (isMaintenanceMode) {
       toast.error("System is under maintenance. Playlist creation is temporarily disabled.");
       return;
     }
-    if (newPlaylistName.trim()) {
-      const tags = newPlaylistTagsStr.split(',').map(t => t.trim()).filter(Boolean);
-      createGroup(
-        newPlaylistName.trim(),
-        newPlaylistDescription.trim() || undefined,
-        tags.length > 0 ? tags : undefined,
-        newPlaylistVisibility
-      );
-      setNewPlaylistName("");
-      setNewPlaylistDescription("");
-      setNewPlaylistTagsStr("");
-      setNewPlaylistVisibility("public");
-      setIsCreatingModalOpen(false);
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    setPrefilledYoutubeUrlForCreate(url);
+    setIsCreatingModalOpen(true);
+  };
+
+  const handleAddSongUrl = (url: string) => {
+    if (isMaintenanceMode) {
+      toast.error("System is under maintenance.");
+      return;
+    }
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    setPrefilledUrlForAddSong(url);
+    setIsAddSongModalOpen(true);
+  };
+
+  const handleCreatePlaylist = async (
+    name: string,
+    description?: string,
+    tags?: string[],
+    visibility?: 'private' | 'public' | 'unlisted',
+    initialSongs?: Omit<import("../types").Song, "addedAt">[]
+  ) => {
+    if (isMaintenanceMode) {
+      toast.error("System is under maintenance. Playlist creation is temporarily disabled.");
+      return;
+    }
+    const newGroup = await createGroup(name, description, tags, visibility, initialSongs);
+    setIsCreatingModalOpen(false);
+    setPrefilledYoutubeUrlForCreate('');
+    if (newGroup) {
+      handleGroupSelect(newGroup.id);
     }
   };
 
@@ -264,6 +298,8 @@ export function AppLayout({
           }}
           onNavigate={handleGroupSelect}
           isSidebarCollapsed={isSidebarCollapsed}
+          onImportPlaylistUrl={handleImportPlaylistUrl}
+          onAddSongUrl={handleAddSongUrl}
         />
         
         {/* Global Broadcast Announcement Banner */}
@@ -419,98 +455,28 @@ export function AppLayout({
 
         <Modal
           isOpen={isAddSongModalOpen}
-          onClose={() => setIsAddSongModalOpen(false)}
+          onClose={() => {
+            setIsAddSongModalOpen(false);
+            setPrefilledUrlForAddSong('');
+          }}
           title="Add New Song"
         >
-          <AddSongInput onAdd={handleAddSong} />
+          <AddSongInput 
+            onAdd={handleAddSong} 
+            onAddBulk={handleAddBulkSongs} 
+            initialUrl={prefilledUrlForAddSong}
+          />
         </Modal>
 
-        <Modal
+        <CreatePlaylistModal
           isOpen={isCreatingModalOpen}
           onClose={() => {
             setIsCreatingModalOpen(false);
-            setNewPlaylistName("");
-            setNewPlaylistDescription("");
-            setNewPlaylistTagsStr("");
-            setNewPlaylistVisibility("public");
+            setPrefilledYoutubeUrlForCreate('');
           }}
-          title="Create New Playlist"
-        >
-          <form
-            onSubmit={handleCreateSubmit}
-            className="space-y-4 text-left mt-2"
-          >
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Name</label>
-              <input
-                autoFocus
-                type="text"
-                placeholder="E.g., Workout Mix, Chill Vibes..."
-                value={newPlaylistName}
-                onChange={(e) => setNewPlaylistName(e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm transition-all"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Description</label>
-              <textarea
-                value={newPlaylistDescription}
-                onChange={(e) => setNewPlaylistDescription(e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm h-24 resize-none transition-all"
-                placeholder="What's this playlist about?"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Tags (comma-separated)</label>
-              <input
-                type="text"
-                value={newPlaylistTagsStr}
-                onChange={(e) => setNewPlaylistTagsStr(e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm transition-all"
-                placeholder="workout, chill, focus"
-              />
-            </div>
-
-            <div>
-               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-1">Visibility</label>
-               <select
-                 value={newPlaylistVisibility}
-                 onChange={(e) => setNewPlaylistVisibility(e.target.value as any)}
-                 className="w-full px-3 py-2 bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-md text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 shadow-sm transition-all"
-               >
-                 <option value="private">Private</option>
-                 <option value="unlisted">Unlisted</option>
-                 <option value="public">Public</option>
-               </select>
-            </div>
-
-            <div className="pt-4 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsCreatingModalOpen(false);
-                  setNewPlaylistName("");
-                  setNewPlaylistDescription("");
-                  setNewPlaylistTagsStr("");
-                  setNewPlaylistVisibility("public");
-                }}
-                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded-md transition-all font-medium shadow-md hover:shadow-lg active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!newPlaylistName.trim()}
-              >
-                Create
-              </button>
-            </div>
-          </form>
-        </Modal>
+          onCreate={handleCreatePlaylist}
+          initialYoutubeUrl={prefilledYoutubeUrlForCreate}
+        />
       </div>
     </div>
   );

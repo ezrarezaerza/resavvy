@@ -39,6 +39,8 @@ interface SongRowProps {
   onToggleLike?: (songId: string) => void;
   variant?: "default" | "explore";
   isReadOnly?: boolean;
+  isMenuOpen?: boolean;
+  onToggleMenu?: (isOpen: boolean) => void;
 }
 
 const SongRow = memo(function SongRow({
@@ -61,11 +63,14 @@ const SongRow = memo(function SongRow({
   onToggleLike,
   variant = "default",
   isReadOnly = false,
+  isMenuOpen: isMenuOpenProp,
+  onToggleMenu,
 }: SongRowProps) {
   const { lowDataMode } = useSettings();
   const { token, setShowLoginModal } = useAuth();
   const { addToast } = useToast();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [internalIsMenuOpen, setInternalIsMenuOpen] = useState(false);
+  const isMenuOpen = isMenuOpenProp !== undefined ? isMenuOpenProp : internalIsMenuOpen;
   const [isLiked, setIsLiked] = useState(song.isLiked || false);
   const [isCached, setIsCached] = useState(() => isTrackCachedOffline(song.id));
   const menuRef = useRef<HTMLDivElement>(null);
@@ -75,9 +80,27 @@ const SongRow = memo(function SongRow({
     setIsCached(isTrackCachedOffline(song.id));
   }, [song.isLiked, song.id]);
 
+  const closeMenu = useCallback(() => {
+    if (onToggleMenu) {
+      onToggleMenu(false);
+    } else {
+      setInternalIsMenuOpen(false);
+    }
+  }, [onToggleMenu]);
+
+  const toggleMenu = useCallback((e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const next = !isMenuOpen;
+    if (onToggleMenu) {
+      onToggleMenu(next);
+    } else {
+      setInternalIsMenuOpen(next);
+    }
+  }, [isMenuOpen, onToggleMenu]);
+
   const handleCacheSongOffline = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsMenuOpen(false);
+    closeMenu();
     cacheTrackForOffline(song);
     setIsCached(true);
     addToast(`"${song.title}" saved for offline listening`, "success");
@@ -86,14 +109,14 @@ const SongRow = memo(function SongRow({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
+        closeMenu();
       }
     };
     if (isMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isMenuOpen]);
+  }, [isMenuOpen, closeMenu]);
 
   const toggleLike = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -144,19 +167,19 @@ const SongRow = memo(function SongRow({
 
   const handleRemoveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsMenuOpen(false);
+    closeMenu();
     onRemove(song);
   };
 
   const handleEditClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsMenuOpen(false);
+    closeMenu();
     onEdit(song);
   };
 
   const handleReportDeadClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsMenuOpen(false);
+    closeMenu();
 
     if (!token) {
       setShowLoginModal(true);
@@ -224,7 +247,7 @@ const SongRow = memo(function SongRow({
       onDragEnd={onDragEnd}
       onDrop={(e) => onDrop(e, index)}
       onClick={handlePlayClick}
-      className={`song-row will-change-transform grid ${isSelectable ? "grid-cols-[40px_40px_minmax(0,1fr)_auto_32px] sm:grid-cols-[40px_40px_minmax(0,1fr)_auto_32px] md:grid-cols-[40px_40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_80px_32px] gap-2 px-2" : "grid-cols-[40px_minmax(0,1fr)_auto_32px] sm:grid-cols-[40px_minmax(0,1fr)_auto_32px] md:grid-cols-[40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_80px_32px] gap-2 px-2 sm:gap-4 sm:px-4"} py-2.5 items-center rounded-lg group transition-colors cursor-pointer relative hover:z-40 focus-within:z-50 ${isMenuOpen ? "z-50" : "z-10"} ${
+      className={`song-row will-change-transform grid ${isSelectable ? "grid-cols-[40px_40px_minmax(0,1fr)_auto_32px] sm:grid-cols-[40px_40px_minmax(0,1fr)_auto_32px] md:grid-cols-[40px_40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_80px_32px] gap-2 px-2" : "grid-cols-[40px_minmax(0,1fr)_auto_32px] sm:grid-cols-[40px_minmax(0,1fr)_auto_32px] md:grid-cols-[40px_minmax(0,4fr)_minmax(0,3fr)_minmax(0,2fr)_80px_32px] gap-2 px-2 sm:gap-4 sm:px-4"} py-2.5 items-center rounded-lg group transition-colors cursor-pointer relative ${isMenuOpen ? "z-[60]" : "z-10 hover:z-20 focus-within:z-20"} ${
         isSelected
           ? "bg-indigo-50 dark:bg-indigo-900/20"
           : isCurrentSong
@@ -341,19 +364,16 @@ const SongRow = memo(function SongRow({
       <div className="w-8 flex justify-end shrink-0 relative items-center gap-1" ref={menuRef}>
         {variant === "explore" || isReadOnly ? (
           <>
-            <QuickAddMenu song={song} />
+            <QuickAddMenu song={song} onOpenChange={(open) => onToggleMenu?.(open)} />
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsMenuOpen(!isMenuOpen);
-              }}
+              onClick={toggleMenu}
               className="song-menu-button opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-gray-900 dark:hover:text-white text-gray-500 transition-all p-1 rounded-md focus:opacity-100"
               title="More options"
             >
               <MoreVertical className="w-5 h-5" />
             </button>
             {isMenuOpen && (
-              <div className="song-menu-dropdown absolute right-0 top-10 z-50 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col">
+              <div className="song-menu-dropdown absolute right-0 top-10 z-[110] w-52 bg-white dark:bg-gray-900 shadow-2xl rounded-xl border border-gray-200 dark:border-gray-800 py-1.5 flex flex-col divide-y divide-gray-100 dark:divide-gray-800/80">
                 <button
                   onClick={handleCacheSongOffline}
                   className="flex items-center gap-2 px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-left w-full font-medium"
@@ -375,45 +395,46 @@ const SongRow = memo(function SongRow({
           !isReadOnly && (
             <>
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsMenuOpen(!isMenuOpen);
-                }}
+                onClick={toggleMenu}
                 className="song-menu-button opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:text-gray-900 dark:hover:text-white text-gray-500 transition-all p-1 rounded-md focus:opacity-100"
                 title="More options"
               >
                 <MoreVertical className="w-5 h-5" />
               </button>
               {isMenuOpen && (
-                <div className="song-menu-dropdown absolute right-0 top-10 z-50 w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col">
-                  <button
-                    onClick={handleCacheSongOffline}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-left w-full font-medium"
-                  >
-                    <Download className="w-4 h-4 text-emerald-500" />
-                    Save for Offline
-                  </button>
-                  <button
-                    onClick={handleEditClick}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left w-full"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit Song Details
-                  </button>
-                  <button
-                    onClick={handleReportDeadClick}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-left w-full"
-                  >
-                    <AlertTriangle className="w-4 h-4 text-rose-500" />
-                    Report Dead Link
-                  </button>
-                  <button
-                    onClick={handleRemoveClick}
-                    className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left w-full border-t border-gray-100 dark:border-gray-700 mt-1 pt-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Remove
-                  </button>
+                <div className="song-menu-dropdown absolute right-0 top-10 z-[110] w-52 bg-white dark:bg-gray-900 shadow-2xl rounded-xl border border-gray-200 dark:border-gray-800 py-1.5 flex flex-col divide-y divide-gray-100 dark:divide-gray-800/80">
+                  <div className="py-1">
+                    <button
+                      onClick={handleCacheSongOffline}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors text-left w-full font-medium"
+                    >
+                      <Download className="w-4 h-4 text-emerald-500 shrink-0" />
+                      Save for Offline
+                    </button>
+                    <button
+                      onClick={handleEditClick}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left w-full"
+                    >
+                      <Edit2 className="w-4 h-4 shrink-0" />
+                      Edit Song Details
+                    </button>
+                    <button
+                      onClick={handleReportDeadClick}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors text-left w-full"
+                    >
+                      <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
+                      Report Dead Link
+                    </button>
+                  </div>
+                  <div className="py-1">
+                    <button
+                      onClick={handleRemoveClick}
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left w-full font-medium"
+                    >
+                      <Trash2 className="w-4 h-4 shrink-0" />
+                      Remove
+                    </button>
+                  </div>
                 </div>
               )}
             </>
@@ -486,6 +507,11 @@ export const Tracklist = React.memo(function Tracklist({
   
   const [songToRemove, setSongToRemove] = useState<Song | null>(null);
   const [editingSong, setEditingSong] = useState<Song | null>(null);
+  const [openMenuSongId, setOpenMenuSongId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOpenMenuSongId(null);
+  }, [activeGroup.id]);
 
   // Drag and drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -612,6 +638,7 @@ export const Tracklist = React.memo(function Tracklist({
           <div className="flex flex-col gap-1 relative" style={{ height: `${rowVirtualizer.getTotalSize()}px` }}>
             {rowVirtualizer.getVirtualItems().map((virtualItem) => {
               const song = activeGroup.songs[virtualItem.index];
+              const isMenuOpen = openMenuSongId === song.id;
               return (
                 <div
                   key={`${song.id}-${song.addedAt}`}
@@ -623,7 +650,8 @@ export const Tracklist = React.memo(function Tracklist({
                     left: 0,
                     width: '100%',
                     transform: `translate3d(0, ${virtualItem.start}px, 0)`,
-                    willChange: 'transform'
+                    willChange: 'transform',
+                    zIndex: isMenuOpen ? 100 : 1
                   }}
                 >
                   <SongRow
@@ -646,6 +674,8 @@ export const Tracklist = React.memo(function Tracklist({
                     onToggleLike={handleToggleLike}
                     variant={variant}
                     isReadOnly={isReadOnly}
+                    isMenuOpen={isMenuOpen}
+                    onToggleMenu={(open) => setOpenMenuSongId(open ? song.id : null)}
                   />
                 </div>
               );

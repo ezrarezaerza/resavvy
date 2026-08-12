@@ -25,9 +25,18 @@ interface TopNavProps {
   onLogoClick: () => void;
   onNavigate?: (id: string, searchPrefix?: string) => void;
   isSidebarCollapsed?: boolean;
+  onImportPlaylistUrl?: (url: string) => void;
+  onAddSongUrl?: (url: string) => void;
 }
 
-export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onNavigate, isSidebarCollapsed }: TopNavProps) {
+export const TopNav = React.memo(function TopNav({ 
+  onMenuClick, 
+  onLogoClick, 
+  onNavigate, 
+  isSidebarCollapsed,
+  onImportPlaylistUrl,
+  onAddSongUrl
+}: TopNavProps) {
   const { theme, setTheme, dataSaver, setDataSaver, autoplay, setAutoplay } = useSettings();
   const { user, logout, updateProfile, deleteAccount, setShowLoginModal } = useAuth();
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -144,7 +153,11 @@ export const TopNav = React.memo(function TopNav({ onMenuClick, onLogoClick, onN
 
       {/* Center Zone (Desktop Search & Mobile Logo) */}
       <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex w-full max-w-xl justify-center z-50">
-        <GlobalSearchBar onNavigate={onNavigate} />
+        <GlobalSearchBar 
+          onNavigate={onNavigate} 
+          onImportPlaylistUrl={onImportPlaylistUrl}
+          onAddSongUrl={onAddSongUrl}
+        />
       </div>
 
       <div 

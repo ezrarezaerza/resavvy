@@ -36,7 +36,13 @@ export function usePlaylistData() {
         },
         signal: abortController.signal
       })
-      .then(res => res.json())
+      .then(async res => {
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP error ${res.status}`);
+        }
+        return res.json();
+      })
       .then(data => {
         if (Array.isArray(data)) {
           setGroups(data);
@@ -85,11 +91,12 @@ export function usePlaylistData() {
     name: string,
     description?: string,
     tags?: string[],
-    visibility?: 'private' | 'public' | 'unlisted'
-  ) => {
+    visibility?: 'private' | 'public' | 'unlisted',
+    initialSongs?: Omit<Song, 'addedAt'>[]
+  ): Promise<PlaylistGroup | null> => {
     if (isMaintenanceMode) {
       addToast("System is under maintenance. Playlist creation is temporarily disabled.", "error");
-      return;
+      return null;
     }
     if (token) {
       try {
@@ -99,14 +106,47 @@ export function usePlaylistData() {
           body: JSON.stringify({ name, description, tags, visibility })
         });
         if (res.ok) {
-          const newGroup = await res.json();
-          setGroups(prev => [...prev, newGroup]);
-          addToast(`Created playlist "${name}"`, 'success');
+          const newGroup: PlaylistGroup = await res.json();
+          let addedSongs: Song[] = [];
+          if (initialSongs && initialSongs.length > 0) {
+            for (const song of initialSongs) {
+              try {
+                const songRes = await fetch('/api/songs', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                  body: JSON.stringify({
+                    playlistId: newGroup.id,
+                    youtubeId: song.youtubeId || song.id,
+                    title: song.title,
+                    artist: song.artist,
+                    thumbnailUrl: song.thumbnailUrl,
+                    duration: song.duration
+                  })
+                });
+                if (songRes.ok) {
+                  const dbSong = await songRes.json();
+                  addedSongs.push(dbSong);
+                }
+              } catch (e) {
+                console.error(e);
+              }
+            }
+          }
+          const groupWithSongs = { ...newGroup, songs: addedSongs };
+          setGroups(prev => [...prev, groupWithSongs]);
+          const songMsg = addedSongs.length > 0 ? ` with ${addedSongs.length} tracks` : '';
+          addToast(`Created playlist "${name}"${songMsg}`, 'success');
+          return groupWithSongs;
         }
       } catch (err) {
         addToast('Failed to create playlist', 'error');
       }
+      return null;
     } else {
+      const formattedSongs: Song[] = (initialSongs || []).map((s) => ({
+        ...s,
+        addedAt: Date.now()
+      }));
       const newGroup: PlaylistGroup = {
         id: crypto.randomUUID(),
         name,
@@ -114,10 +154,12 @@ export function usePlaylistData() {
         tags,
         visibility,
         createdAt: Date.now(),
-        songs: [],
+        songs: formattedSongs,
       };
       setGroups((prevGroups) => [...prevGroups, newGroup]);
-      addToast(`Created playlist "${name}"`, 'success');
+      const songMsg = formattedSongs.length > 0 ? ` with ${formattedSongs.length} tracks` : '';
+      addToast(`Created playlist "${name}"${songMsg}`, 'success');
+      return newGroup;
     }
   };
 
@@ -193,6 +235,79 @@ export function usePlaylistData() {
         addToast('Song already exists in playlist', 'error');
       } else if (wasAdded) {
         addToast('Song added to playlist', 'success');
+      }
+    }
+  };
+
+  const addSongsBulk = async (groupId: string, songsToAdd: Omit<Song, "addedAt">[]) => {
+    if (isMaintenanceMode) {
+      addToast("System is under maintenance. Modifying playlists is temporarily disabled.", "error");
+      return;
+    }
+    const targetGroup = groups.find((g) => g.id === groupId);
+    if (!targetGroup) return;
+
+    if (targetGroup.songs.length + songsToAdd.length > maxSongsPerPlaylist) {
+      addToast(`Adding these songs exceeds the playlist limit (${maxSongsPerPlaylist} tracks max).`, "error");
+      return;
+    }
+
+    if (token) {
+      try {
+        let addedCount = 0;
+        const newDbSongs: Song[] = [];
+        for (const song of songsToAdd) {
+          const res = await fetch('/api/songs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({
+              playlistId: groupId,
+              youtubeId: song.youtubeId || song.id,
+              title: song.title,
+              artist: song.artist,
+              thumbnailUrl: song.thumbnailUrl,
+              duration: song.duration
+            })
+          });
+          if (res.ok) {
+            const dbSong = await res.json();
+            newDbSongs.push(dbSong);
+            addedCount++;
+          }
+        }
+        if (addedCount > 0) {
+          setGroups((prevGroups) => prevGroups.map((group) => {
+            if (group.id === groupId) return { ...group, songs: [...group.songs, ...newDbSongs] };
+            return group;
+          }));
+          addToast(`Added ${addedCount} tracks to playlist`, 'success');
+        }
+      } catch (err) {
+        addToast('Failed to add bulk songs', 'error');
+      }
+    } else {
+      let addedCount = 0;
+      setGroups((prevGroups) =>
+        prevGroups.map((group) => {
+          if (group.id === groupId) {
+            const existingIds = new Set(group.songs.map((s) => s.id));
+            const freshSongs: Song[] = [];
+            for (const song of songsToAdd) {
+              if (!existingIds.has(song.id)) {
+                existingIds.add(song.id);
+                freshSongs.push({ ...song, addedAt: Date.now() });
+                addedCount++;
+              }
+            }
+            return { ...group, songs: [...group.songs, ...freshSongs] };
+          }
+          return group;
+        })
+      );
+      if (addedCount > 0) {
+        addToast(`Added ${addedCount} tracks to playlist`, 'success');
+      } else {
+        addToast('All selected songs are already in this playlist', 'info');
       }
     }
   };
@@ -610,6 +725,7 @@ export function usePlaylistData() {
     deleteGroup,
     renameGroup,
     addSong,
+    addSongsBulk,
     removeSong,
     reorderSongs,
     updateSongDuration,

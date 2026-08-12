@@ -127,6 +127,71 @@ This document serves as the comprehensive developer changelog, technical documen
 
 ---
 
+### Milestone 10: Bulk YouTube Playlist Import Engine (Phase 1)
+* **User Prompt Intent**: *"Regarding the 'Add New Song' feature, is it possible to add songs in bulk from a YouTube playlist link instead of inputting them one by one? Lets execute Phase 1."*
+* **Architectural Strategy**:
+  - Developed server-side endpoint `/api/search/youtube-playlist` capable of parsing YouTube playlist URLs (`list=PL...`), extracting both `lockupViewModel` and legacy `playlistVideoRenderer` video nodes.
+  - Implemented intelligent title and artist cleaning logic (`cleanTitleAndArtist`) to automatically extract clean artist names and titles from YouTube video headings.
+  - Extended `src/utils/youtube.ts` with `extractYouTubePlaylistId(url)` regex detection.
+  - Created interactive bulk playlist staging interface in `AddSongInput.tsx` featuring playlist track preview, select all/deselect all toggles, track search filter, editable inline title/artist inputs, and duration badges.
+  - Added `addSongsBulk` method in `usePlaylistData.ts` and `PlaylistContext.tsx` for atomic batch persistence with duplicate protection and playlist capacity validation.
+* **Key Components**: `api/search/youtube-playlist.ts`, `AddSongInput.tsx`, `usePlaylistData.ts`, `PlaylistContext.tsx`, `AppLayout.tsx`.
+
+---
+
+### Milestone 11: Create New Playlist directly from YouTube Playlist Link (Phase 2)
+* **User Prompt Intent**: *"Lets continue execute Phase 2"*
+* **Architectural Strategy**:
+  - Updated `createGroup` in `usePlaylistData.ts` and `PlaylistContext.tsx` to support optional `initialSongs` parameter and return the newly created `PlaylistGroup`.
+  - Built a dedicated modal `CreatePlaylistModal.tsx` featuring tabbed navigation ("Blank Playlist" vs. "Import YouTube Playlist").
+  - Automated YouTube playlist metadata extraction: pasting a YouTube playlist link auto-populates the playlist name, description, tags, and stages all extracted video tracks with inline artist/title editing, duration displays, and select all/deselect all toggles.
+  - Integrated seamless navigation after creation: creating an imported playlist automatically sets the newly generated playlist as active and loads all tracks immediately.
+* **Key Components**: `CreatePlaylistModal.tsx`, `usePlaylistData.ts`, `PlaylistContext.tsx`, `AppLayout.tsx`.
+
+---
+
+### Milestone 12: Global Search Bar YouTube Playlist & Video Link Auto-Detection (Phase 3)
+* **User Prompt Intent**: *"Lets continue execute Phase 3"*
+* **Architectural Strategy**:
+  - Enhanced `GlobalSearchBar.tsx` with real-time regex URL detection for both YouTube playlist and video links.
+  - Integrated instant visual quick-action cards in the top search dropdown:
+    - **YouTube Playlist Link Card**: Offers instant one-click actions: "Import as New Playlist" (opens `CreatePlaylistModal` pre-populated with URL and auto-fetching playlist tracks) and "Add to Current Playlist" (opens `AddSongInput` pre-populated with URL).
+    - **YouTube Video Link Card**: Offers instant actions: "Add Song to Playlist" and "Create Playlist with Track".
+  - Connected `TopNav.tsx` and `AppLayout.tsx` state pipelines to seamlessly forward pre-filled URLs directly to modals upon detection card interaction.
+* **Key Components**: `GlobalSearchBar.tsx`, `TopNav.tsx`, `AppLayout.tsx`, `AddSongInput.tsx`, `CreatePlaylistModal.tsx`.
+
+---
+
+### Milestone 13: PostgreSQL Database Connection Auto-Recovery & Error Handling
+* **User Prompt Intent**: *"Fix the errors in the app - prisma:error Error in PostgreSQL connection: Error { kind: Closed, cause: None }"*
+* **Architectural Strategy**:
+  - Built a resilient Proxy wrapper around the Prisma client (`src/lib/prisma.ts`) that intercepts all model queries and raw transactions.
+  - Implemented automatic retry logic with exponential backoff and transparent `$disconnect()` / `$connect()` reconnection whenever PostgreSQL connection drops or closes due to remote idle timeouts (`Error { kind: Closed }`, `P1001`, `P1017`).
+  - Wrapped server API route handlers in `server.ts` with an async error handler to catch unexpected exceptions cleanly without dropping connections.
+* **Key Components**: `src/lib/prisma.ts`, `server.ts`.
+
+---
+
+### Milestone 14: API Route Sub-path Matching & Safe JSON Fallback
+* **User Prompt Intent**: *"Fix the errors in the app - Unexpected token '<', '<!doctype '... is not valid JSON"*
+* **Architectural Strategy**:
+  - Updated Express API route definitions in `server.ts` to cover sub-paths and trailing slashes (`["/api/playlists", "/api/playlists/*"]`).
+  - Added a dedicated `/api/*` Express catch-all 404 handler before Vite dev server middleware to ensure any unmatched API route returns a JSON 404 object instead of falling through to Vite's SPA HTML index fallback.
+  - Hardened frontend fetch handlers in `usePlaylistData.ts` and `HomeDashboard.tsx` to safely inspect HTTP status and `Content-Type` headers before parsing JSON.
+* **Key Components**: `server.ts`, `src/hooks/usePlaylistData.ts`, `src/components/HomeDashboard.tsx`.
+
+---
+
+### Milestone 15: Fix Song Dropdown Menu Stacking Context & Opaque Styling
+* **User Prompt Intent**: *"The drop-down option on the song is obstructed by another element and cannot be clicked; please fix this."*
+* **Architectural Strategy**:
+  - Identified that virtualized list item container `<div>` wrappers (`position: absolute`) lacked explicit `zIndex`, causing subsequent track rows in the DOM to stack on top of earlier rows' opened dropdown menus.
+  - Added `openMenuSongId` state in `Tracklist.tsx` to elevate the active song row's virtual wrapper container `div` to `zIndex: 100`.
+  - Upgraded the song action dropdown menu (`.song-menu-dropdown`) and `QuickAddMenu` styling from semi-transparent (`bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl`) to solid opaque (`bg-white dark:bg-gray-900 shadow-2xl z-[110]`), completely preventing row content behind the menu from bleeding through or obstructing user clicks.
+* **Key Components**: `src/components/Tracklist.tsx`, `src/components/QuickAddMenu.tsx`.
+
+---
+
 ## 4. Subsystem Technical Deep Dives
 
 ### A. YouTube Audio & Equalizer Pipeline (`HiddenYouTubePlayer.tsx`)

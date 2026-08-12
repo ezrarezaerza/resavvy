@@ -8,6 +8,7 @@ import playlistsHandler from "./api/playlists.js";
 import songsHandler from "./api/songs.js";
 import socialHandler from "./api/social.js";
 import youtubeHandler from "./api/search/youtube.js";
+import youtubePlaylistHandler from "./api/search/youtube-playlist.js";
 import globalHandler from "./api/search/global.js";
 
 async function startServer() {
@@ -17,34 +18,32 @@ async function startServer() {
   // Middleware
   app.use(express.json());
 
-  // Consolidated Routes
-  app.all("/api/auth", (async (req: any, res: any) => {
-    return authHandler(req, res);
-  }) as any);
+  // Helper wrapper for async API handlers
+  const asyncHandler = (fn: any) => async (req: any, res: any) => {
+    try {
+      await fn(req, res);
+    } catch (err: any) {
+      console.error(`[API Error] ${req.path}:`, err);
+      if (!res.headersSent) {
+        res.status(500).json({ error: err.message || "Internal server error" });
+      }
+    }
+  };
 
-  app.all("/api/admin", (async (req: any, res: any) => {
-    return adminHandler(req, res);
-  }) as any);
+  // Consolidated Routes (including sub-paths and trailing slashes)
+  app.all(["/api/auth", "/api/auth/*"], asyncHandler((req: any, res: any) => authHandler(req, res)));
+  app.all(["/api/admin", "/api/admin/*"], asyncHandler((req: any, res: any) => adminHandler(req, res)));
+  app.all(["/api/playlists", "/api/playlists/*"], asyncHandler((req: any, res: any) => playlistsHandler(req, res)));
+  app.all(["/api/songs", "/api/songs/*"], asyncHandler((req: any, res: any) => songsHandler(req, res)));
+  app.all(["/api/social", "/api/social/*"], asyncHandler((req: any, res: any) => socialHandler(req, res)));
+  app.all(["/api/search/youtube-playlist", "/api/search/youtube-playlist/*"], asyncHandler((req: any, res: any) => youtubePlaylistHandler(req, res)));
+  app.all(["/api/search/youtube", "/api/search/youtube/*"], asyncHandler((req: any, res: any) => youtubeHandler(req, res)));
+  app.all(["/api/search/global", "/api/search/global/*"], asyncHandler((req: any, res: any) => globalHandler(req, res)));
 
-  app.all("/api/playlists", (async (req: any, res: any) => {
-    return playlistsHandler(req, res);
-  }) as any);
-
-  app.all("/api/songs", (async (req: any, res: any) => {
-    return songsHandler(req, res);
-  }) as any);
-
-  app.all("/api/social", (async (req: any, res: any) => {
-    return socialHandler(req, res);
-  }) as any);
-
-  app.all("/api/search/youtube", (async (req: any, res: any) => {
-    return youtubeHandler(req, res);
-  }) as any);
-
-  app.all("/api/search/global", (async (req: any, res: any) => {
-    return globalHandler(req, res);
-  }) as any);
+  // Fallback for unhandled /api requests to prevent Vite SPA HTML fallback
+  app.all("/api/*", (req: any, res: any) => {
+    res.status(404).json({ error: `API route ${req.path} not found` });
+  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

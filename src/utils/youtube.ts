@@ -58,6 +58,18 @@ export function extractYouTubeId(url: string): string | null {
   return null;
 }
 
+export function extractYouTubePlaylistId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/(?:list=)([\w-]+)/);
+  if (match && match[1]) {
+    return match[1];
+  }
+  if (/^PL[\w-]+$/i.test(url.trim())) {
+    return url.trim();
+  }
+  return null;
+}
+
 export async function fetchYouTubeMetadata(url: string): Promise<{ title: string; thumbnailUrl: string }> {
   const videoId = extractYouTubeId(url);
   if (!videoId) {

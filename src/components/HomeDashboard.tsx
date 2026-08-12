@@ -73,36 +73,48 @@ export const HomeDashboard = React.memo(function HomeDashboard({ groups, onSelec
   useEffect(() => {
     const abortController = new AbortController();
     const signal = abortController.signal;
+
+    const safeJson = async (res: Response) => {
+      if (!res.ok) return null;
+      const ct = res.headers.get('content-type');
+      if (ct && ct.includes('application/json')) {
+        return res.json().catch(() => null);
+      }
+      return null;
+    };
+
     // Fetch global trending unconditionally
     fetch('/api/social?type=trending', { signal })
-      .then(res => res.json())
+      .then(safeJson)
       .then(data => { if (Array.isArray(data)) setTrending(data); })
       .catch(err => { if (err.name !== 'AbortError') console.error(err); });
 
     // Fetch discovery shelves unconditionally
     fetch('/api/social?type=discovery', { signal })
-      .then(res => res.json())
+      .then(safeJson)
       .then(data => {
-          if (data.trending) setTrendingCurations(data.trending);
-          if (data.fresh) setFreshCurations(data.fresh);
-          if (data.quickPicks) setQuickPicks(data.quickPicks);
-          if (data.globalTags) setGlobalTags(data.globalTags);
-          if (data.featuredCollection) setFeaturedCollection(data.featuredCollection);
-          if (data.customCollection) setCustomCollection(data.customCollection);
-          if (data.homepageLayout) setLayout(data.homepageLayout);
+          if (data) {
+            if (data.trending) setTrendingCurations(data.trending);
+            if (data.fresh) setFreshCurations(data.fresh);
+            if (data.quickPicks) setQuickPicks(data.quickPicks);
+            if (data.globalTags) setGlobalTags(data.globalTags);
+            if (data.featuredCollection) setFeaturedCollection(data.featuredCollection);
+            if (data.customCollection) setCustomCollection(data.customCollection);
+            if (data.homepageLayout) setLayout(data.homepageLayout);
+          }
       })
       .catch(err => { if (err.name !== 'AbortError') console.error(err); })
       .finally(() => setCustomCollectionLoading(false));
 
     if (token) {
       fetch('/api/social?type=rotation', { headers: { 'Authorization': `Bearer ${token}` }, signal })
-        .then(res => res.json())
+        .then(safeJson)
         .then(data => { if (Array.isArray(data)) setHeavyRotation(data); })
         .catch(err => { if (err.name !== 'AbortError') console.error(err); });
         
       fetch('/api/social?type=recommended', { headers: { 'Authorization': `Bearer ${token}` }, signal })
-        .then(res => res.json())
-        .then(data => { if (data.songs) setRecommended(data); })
+        .then(safeJson)
+        .then(data => { if (data && data.songs) setRecommended(data); })
         .catch(err => { if (err.name !== 'AbortError') console.error(err); });
     }
     return () => abortController.abort();

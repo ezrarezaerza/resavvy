@@ -120,7 +120,7 @@ export function QuickAddMenu({ song, onOpenChange }: QuickAddMenuProps) {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-8 z-[100] w-48 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 py-1 flex flex-col max-h-64 overflow-y-auto">
+        <div className="absolute right-0 top-8 z-[110] w-52 bg-white dark:bg-gray-900 shadow-2xl rounded-xl border border-gray-200 dark:border-gray-800 py-1 flex flex-col max-h-64 overflow-y-auto">
           <button
             onClick={handleAddToLibrary}
             className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-white hover:bg-indigo-50 dark:hover:bg-indigo-900/50 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors text-left w-full"

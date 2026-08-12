@@ -5,10 +5,11 @@ import { PlaylistGroup, Song } from '../types';
 interface PlaylistContextType {
   groups: PlaylistGroup[];
   isLoadingPlaylists: boolean;
-  createGroup: (name: string, description?: string, tags?: string[], visibility?: 'private' | 'public' | 'unlisted') => void;
+  createGroup: (name: string, description?: string, tags?: string[], visibility?: 'private' | 'public' | 'unlisted', initialSongs?: Omit<Song, 'addedAt'>[]) => Promise<PlaylistGroup | null | void>;
   deleteGroup: (groupId: string) => void;
   renameGroup: (groupId: string, newName: string) => void;
   addSong: (groupId: string, song: Omit<Song, 'addedAt'>) => void;
+  addSongsBulk: (groupId: string, songs: Omit<Song, 'addedAt'>[]) => Promise<void>;
   removeSong: (groupId: string, songId: string) => void;
   reorderSongs: (groupId: string, newSongs: Song[]) => void;
   updateSongDuration: (songId: string, durationStr: string) => void;
